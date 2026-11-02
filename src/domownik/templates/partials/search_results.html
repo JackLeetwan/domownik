@@ -1,0 +1,27 @@
+{# Search hits grouped by kind. Needs: res, q, KINDS, limit (None = all), live (optional), too_short #}
+{% if q and not res.groups and not (live and too_short) %}
+<div class="search-empty">
+  <p>Nic nie znaleziono dla „{{ q }}”.</p>
+  <small class="muted">{% if too_short %}Wpisz co najmniej 2 znaki.{% else %}Spróbuj krótszego fragmentu (np. kilku znaków VIN-u) albo mniejszej liczby słów – muszą pasować wszystkie. Wielkość liter i polskie znaki nie mają znaczenia.{% endif %}</small>
+</div>
+{% elif res.groups %}
+{% for k, hits in res.groups.items() %}
+<section class="search-group">
+  <h3>{{ KINDS[k][1] }} {{ KINDS[k][0] }} <small class="muted">({{ hits|length }})</small></h3>
+  <ul class="search-hits">
+    {% for h in (hits[:limit] if limit else hits) %}
+    <li><a {% if h.task_id %}href="#" hx-get="/tasks/{{ h.task_id }}" hx-target="#modal-body" hx-push-url="false"{% else %}href="{{ h.url }}"{% endif %} data-search-hit>
+      <span class="hit-ic" aria-hidden="true">{{ h.icon }}</span>
+      <span class="hit-txt">
+        <strong>{{ h.title }}</strong>
+        {% if h.path %}<small class="muted">{{ h.path }}</small>{% endif %}
+        {% if h.detail %}<small class="hit-detail">{{ h.detail }}</small>{% endif %}
+      </span>
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% if limit and hits|length > limit %}<p class="search-more"><a href="/szukaj?q={{ q|urlencode }}">… i {{ hits|length - limit }} więcej</a></p>{% endif %}
+</section>
+{% endfor %}
+{% if live %}<a class="search-all" href="/szukaj?q={{ q|urlencode }}">Wszystkie wyniki ({{ res.total }}) – Enter →</a>{% endif %}
+{% endif %}

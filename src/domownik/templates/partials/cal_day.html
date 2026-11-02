@@ -1,0 +1,24 @@
+{# Tasks of the selected day, under the month grid. Needs: sel, sel_title, entries #}
+{% import "partials/cal_macros.html" as cm with context %}
+<section id="cal-day" class="cal-day" data-sel="{{ sel.isoformat() }}" aria-live="polite">
+  <h2>{{ sel_title }}</h2>
+  {% if not entries %}
+  <p class="muted">Nic na ten dzień.</p>
+  {% else %}
+  <ul class="cal-list">
+    {% for e in entries %}
+      {% if e.kind == 'bundle' %}
+      <li class="cal-row cal-bundle st-{{ e.status }}">
+        <details>
+          <summary>
+            <span class="cal-row-ic" aria-hidden="true">{{ e.icon }}</span>
+            <span class="cal-row-txt"><strong>{{ e.label }} <span class="cal-count">{{ e.count }}</span></strong><small class="muted">{{ e.summary }} · kliknij, żeby rozwinąć</small></span>
+          </summary>
+          <ul class="cal-list">{% for p in e.tasks %}{{ cm.task_line(p) }}{% endfor %}</ul>
+        </details>
+      </li>
+      {% else %}{{ cm.task_line(e) }}{% endif %}
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>

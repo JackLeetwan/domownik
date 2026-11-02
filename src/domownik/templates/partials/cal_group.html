@@ -1,0 +1,8 @@
+{# Window with the tasks behind one calendar chip. Needs: g (bundle), sel_title #}
+{% import "partials/cal_macros.html" as cm with context %}
+<header>
+  <button class="close" aria-label="Zamknij" data-close>✕</button>
+  <h3 id="modal-title">{{ g.icon }} {{ g.label }} <span class="cal-count">{{ g.count }}</span></h3>
+  <p class="muted">{{ sel_title }} · {{ g.summary }}</p>
+</header>
+<ul class="cal-list">{% for p in g.tasks %}{{ cm.task_line(p) }}{% endfor %}</ul>

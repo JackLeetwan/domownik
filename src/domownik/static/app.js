@@ -47,6 +47,40 @@
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") setNav(false); });
   document.addEventListener("htmx:beforeRequest", (ev) => { if (ev.detail.boosted) setNav(false); });
 
+  // ------------------------------------------------------------------ search box (sidebar / drawer)
+  const searchPanel = () => document.getElementById("search-live");
+  function closeSearch() { const p = searchPanel(); if (p) p.innerHTML = ""; }
+  document.addEventListener("keydown", (ev) => {
+    const input = document.getElementById("side-search");
+    if (!input) return;
+    if (ev.key === "Escape" && document.activeElement === input) { closeSearch(); input.blur(); return; }
+    if (ev.key !== "/" || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    const t = ev.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    const modal = document.getElementById("modal");
+    if (modal && modal.open) return;
+    if (!input.offsetParent) return; // phones: the box sits in the closed drawer
+    ev.preventDefault();
+    input.focus();
+    input.select();
+  });
+  document.addEventListener("click", (ev) => {
+    if (!ev.target.closest) return;
+    if (ev.target.closest("#search-live [data-search-hit]") || !ev.target.closest("[data-side-search]")) {
+      // a hit opening the task window keeps the page – fold the results away after htmx has read the link
+      setTimeout(closeSearch, 0);
+    }
+  });
+
+  // ------------------------------------------------------------------ month calendar: selected day
+  document.addEventListener("htmx:beforeRequest", (ev) => {
+    const cell = ev.detail.elt;
+    if (!cell || !cell.dataset || !cell.dataset.calDay) return;
+    document.querySelectorAll(".cal-cell.sel").forEach((c) => { c.classList.remove("sel"); c.setAttribute("aria-selected", "false"); });
+    cell.classList.add("sel");
+    cell.setAttribute("aria-selected", "true");
+  });
+
   // ------------------------------------------------------------------ copy to clipboard
   document.addEventListener("click", async (ev) => {
     const btn = ev.target.closest && ev.target.closest("[data-copy]");

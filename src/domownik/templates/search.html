@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{% if q %}„{{ q }}” – {% endif %}Szukaj · Domownik{% endblock %}
+{% block content %}
+<h1>🔍 Szukaj</h1>
+<form action="/szukaj" method="get" role="search" class="search-page-form">
+  <input type="search" name="q" value="{{ q }}" placeholder="np. fragment VIN-u, numer polisy, olej, hydraulik" aria-label="Czego szukasz" enterkeyhint="search" {% if not q %}autofocus{% endif %}>
+  <button type="submit">Szukaj</button>
+</form>
+{% if q and res.groups %}<p class="muted"><small>{{ res.total }} {{ 'wynik' if res.total == 1 else ('wyniki' if res.total % 10 in (2, 3, 4) and res.total % 100 not in (12, 13, 14) else 'wyników') }} dla „{{ q }}”</small></p>{% endif %}
+{% if not q %}<p class="muted"><small>Szuka w nazwach i danych (VIN, numer rejestracyjny, polisy…), przypiętych informacjach, zadaniach, sprawach do zrobienia, usterkach, dzienniku, notatkach i historii wykonań. Wielkość liter i polskie znaki nie mają znaczenia.</small></p>{% endif %}
+<div class="search-page">{% include "partials/search_results.html" %}</div>
+{% endblock %}

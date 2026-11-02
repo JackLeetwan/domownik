@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% import "partials/cal_macros.html" as cm with context %}
+{% block title %}Kalendarz · Domownik{% endblock %}
+{% block content %}
+{% set wq = '&who=me' if who == 'me' else '' %}
+{% set mkey = cal.first.strftime('%Y-%m') %}
+<header class="cal-head">
+  <h1 class="cal-title">📅 {{ cal.title }}</h1>
+  <nav class="cal-nav" aria-label="Miesiące">
+    <a role="button" class="outline secondary" href="/kalendarz?m={{ cal.prev.strftime('%Y-%m') }}{{ wq }}" aria-label="Poprzedni miesiąc" title="Poprzedni miesiąc">‹</a>
+    <a role="button" class="outline secondary" href="/kalendarz{{ '?who=me' if who == 'me' else '' }}">Dziś</a>
+    <a role="button" class="outline secondary" href="/kalendarz?m={{ cal.next.strftime('%Y-%m') }}{{ wq }}" aria-label="Następny miesiąc" title="Następny miesiąc">›</a>
+  </nav>
+  <div role="group" class="who">
+    <a href="/kalendarz?m={{ mkey }}" role="button" class="{% if who == 'me' %}outline {% endif %}secondary">Wszyscy</a>
+    <a href="/kalendarz?m={{ mkey }}&who=me" role="button" class="{% if who != 'me' %}outline {% endif %}secondary">Moje</a>
+  </div>
+</header>
+{% if who == 'me' and not any_assigned %}
+<p class="who-hint"><small>Żadne zadanie nie jest jeszcze przypisane, więc „Moje” pokazuje wszystko. <a href="/przypisania">Ustal, kto czym się zajmuje →</a></small></p>
+{% endif %}
+
+<div class="cal-grid" role="grid" aria-label="{{ cal.title }}">
+  <div class="cal-row-head" role="row">{% for w in weekdays %}<span role="columnheader" class="{% if loop.index > 5 %}we{% endif %}">{{ w }}</span>{% endfor %}</div>
+  {% for week in cal.weeks %}
+  <div class="cal-week" role="row">
+    {% for day in week %}
+    {% set iso = day.date.isoformat() %}
+    <div role="gridcell" tabindex="0"
+         class="cal-cell{% if not day.in_month %} out{% endif %}{% if day.weekend %} we{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.date == sel %} sel{% endif %}"
+         aria-selected="{{ 'true' if day.date == sel else 'false' }}"
+         aria-label="{{ day.date.day }}{% if day.count %}: {{ day.count }} {{ 'termin' if day.count == 1 else ('terminy' if day.count % 10 in (2, 3, 4) and day.count % 100 not in (12, 13, 14) else 'terminów') }}{% endif %}"
+         data-cal-day="{{ iso }}"
+         hx-get="/kalendarz/dzien?d={{ iso }}{{ wq }}" hx-target="#cal-day" hx-swap="outerHTML"
+         hx-trigger="click, keyup[key=='Enter']"
+         hx-replace-url="/kalendarz?m={{ mkey }}&d={{ iso }}{{ wq }}">
+      <span class="cal-num">{{ day.date.day }}</span>
+      {% if day.entries %}
+      <span class="cal-dots" aria-hidden="true">{% for s in day.dots[:3] %}<i class="dot {{ s }}"></i>{% endfor %}<b>{{ day.count }}</b></span>
+      <ul class="cal-chips">
+        {% set MAXC = 4 if day.entries|length <= 4 else 3 %}
+        {% for e in day.entries[:MAXC] %}
+          {% if e.kind == 'bundle' %}
+          <li><button type="button" class="cal-chip st-{{ e.status }}"
+              title="{{ e.label }} – {{ e.summary }}:{% for p in e.tasks[:12] %}&#10;{{ p.icon }} {{ p.title }}{% endfor %}{% if e.tasks|length > 12 %}&#10;… i {{ e.tasks|length - 12 }} więcej{% endif %}"
+              hx-get="/kalendarz/grupa?d={{ iso }}&of={{ e.of }}&cat={{ e.category }}{{ wq }}" hx-target="#modal-body" hx-swap="innerHTML" hx-replace-url="false" hx-trigger="click consume">
+              <span class="ic">{{ e.icon }}</span><span class="lbl">{{ e.label }}</span><b class="n">{{ e.count }}</b></button></li>
+          {% else %}
+          <li><button type="button" class="cal-chip st-{{ cm.st(e) }}"
+              title="{{ e.icon }} {{ e.title }}&#10;{{ e.zone }}{% if cm.amount(e)|trim %} · {{ cm.amount(e)|trim }}{% endif %}&#10;{{ cm.CAL_STATUS.get(cm.st(e)|trim, '') }}"
+              hx-get="/tasks/{{ e.task_id }}" hx-target="#modal-body" hx-swap="innerHTML" hx-replace-url="false" hx-trigger="click consume">
+              <span class="ic">{{ e.icon }}</span><span class="lbl">{{ e.title }}</span></button></li>
+          {% endif %}
+        {% endfor %}
+        {% if day.entries|length > MAXC %}<li class="cal-more">+{{ day.entries|length - MAXC }} więcej</li>{% endif %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+<p class="timeline-legend muted cal-legend">
+  <span class="dot overdue"></span> zaległe
+  <span class="dot soon"></span> wkrótce
+  <span class="dot later"></span> zaplanowane
+  <span class="dot forecast"></span> prognoza z przebiegu
+  <span class="dot done"></span> wykonane
+</p>
+
+{% include "partials/cal_day.html" %}
+{% endblock %}

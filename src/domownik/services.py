@@ -719,3 +719,179 @@ def bundle_points(points: list[dict[str, Any]], size: str, by_group: bool = Fals
 
 def default_timeline_window(today: date) -> tuple[date, date]:
     return today - timedelta(days=14), today + timedelta(days=92)
+
+
+# ---------------------------------------------------------------- month calendar
+
+MONTH_NAMES = [
+    "",
+    "styczeń",
+    "luty",
+    "marzec",
+    "kwiecień",
+    "maj",
+    "czerwiec",
+    "lipiec",
+    "sierpień",
+    "wrzesień",
+    "październik",
+    "listopad",
+    "grudzień",
+]
+CAL_WEEKDAYS = ("pon", "wt", "śr", "czw", "pt", "sob", "nd")
+# the colour of a chip that stands for several tasks: the most pressing one wins
+STATUS_RANK = {"overdue": 0, "today": 1, "soon": 2, "later": 3, "future": 4, "done": 5}
+CAL_GROUP_MIN = 2  # this many tasks of one kind on one day become a single chip ("💳 Opłaty 17")
+
+
+def calendar_points(
+    db: Session, tree: Tree, today: date, start: date, end: date, *, user_id: int | None = None
+) -> list[dict[str, Any]]:
+    """Timeline points (due, km forecasts, done) of [start, end], each with its `assignee`.
+
+    user_id given → only tasks of that person plus the shared (unassigned) ones, like "Moje" on the dashboard.
+    """
+    points = timeline(db, tree, today, start, end)["points"]
+    ids = {p["task_id"] for p in points}
+    assignees = {
+        t.id: t.assignee for t in db.scalars(select(Task).where(Task.id.in_(ids)).options(selectinload(Task.assignee)))
+    }
+    out = []
+    for p in points:
+        who = assignees.get(p["task_id"])
+        if user_id is not None and who is not None and who.id != user_id:
+            continue
+        out.append(p | {"assignee": who})
+    return out
+
+
+def group_day(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Chips of one day: tasks of one category (and kind: due / done) merge into one bundle.
+
+    Unlike the timeline bundles urgent ones merge too – a calendar cell has no room for 17 bills.
+    Km forecasts always stay on their own.
+    """
+    bins: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    single: list[dict[str, Any]] = []
+    for p in points:
+        if p["kind"] == "forecast":
+            single.append(p)
+        else:
+            bins[(p["kind"], p.get("category") or "other")].append(p)
+    out = list(single)
+    for (kind, cat), ps in bins.items():
+        if len(ps) < CAL_GROUP_MIN:
+            out.extend(ps)
+            continue
+        ps.sort(key=lambda p: (STATUS_RANK.get(p["status"], 9), p["title"]))
+        n = len(ps)
+        label = CATEGORY_PLURALS.get(cat, "Inne")
+        what = (
+            plural_pl(n, "zadanie", "zadania", "zadań")
+            if kind == "due"
+            else plural_pl(n, "wykonane", "wykonane", "wykonanych")
+        )
+        out.append(
+            {
+                "kind": "bundle",
+                "of": kind,
+                "date": ps[0]["date"],
+                "status": ps[0]["status"],
+                "count": n,
+                "icon": ps[0]["icon"],
+                "label": label,
+                "category": cat,
+                "summary": f"{n} {what}",
+                "tasks": ps,
+            }
+        )
+    out.sort(key=lambda p: (STATUS_RANK.get(p["status"], 9), p["kind"] != "bundle", p.get("title") or p["label"]))
+    return out
+
+
+@dataclass
+class CalDay:
+    date: date
+    in_month: bool
+    is_today: bool
+    entries: list[dict[str, Any]]
+
+    @property
+    def weekend(self) -> bool:
+        return self.date.weekday() >= 5
+
+    @property
+    def count(self) -> int:
+        """Number of tasks on this day (a bundle counts with all its tasks)."""
+        return sum(e["count"] if e["kind"] == "bundle" else 1 for e in self.entries)
+
+    @property
+    def dots(self) -> list[str]:
+        """Phone cells: one coloured dot per distinct status, most pressing first."""
+        sts = {("forecast" if e["kind"] == "forecast" else e["status"]) for e in self.entries}
+        return sorted(sts, key=lambda s: STATUS_RANK.get(s, 3.5))
+
+
+@dataclass
+class CalMonth:
+    year: int
+    month: int
+    weeks: list[list[CalDay]]
+
+    @property
+    def title(self) -> str:
+        return f"{MONTH_NAMES[self.month]} {self.year}"
+
+    @property
+    def first(self) -> date:
+        return date(self.year, self.month, 1)
+
+    @property
+    def prev(self) -> date:
+        return (self.first - timedelta(days=1)).replace(day=1)
+
+    @property
+    def next(self) -> date:
+        return (self.first + timedelta(days=32)).replace(day=1)
+
+    def days(self) -> list[CalDay]:
+        return [d for w in self.weeks for d in w]
+
+    def default_day(self, today: date) -> date:
+        """Today, or the nearest later day with something due; another month: its first busy day."""
+        busy = [d.date for d in self.days() if d.in_month and d.entries]
+        if self.first <= today < self.next:
+            if any(d.date == today and d.entries for d in self.days()):
+                return today
+            later = [d for d in busy if d >= today]
+            return later[0] if later else today
+        return busy[0] if busy else self.first
+
+
+def month_grid(year: int, month: int) -> tuple[date, date]:
+    """First Monday and last Sunday of the weeks covering the month."""
+    first = date(year, month, 1)
+    last = (first + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    return first - timedelta(days=first.weekday()), last + timedelta(days=6 - last.weekday())
+
+
+def calendar_month(
+    db: Session, tree: Tree, today: date, year: int, month: int, *, user_id: int | None = None
+) -> CalMonth:
+    start, end = month_grid(year, month)
+    by_day: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for p in calendar_points(db, tree, today, start, end, user_id=user_id):
+        by_day[p["date"]].append(p)
+    weeks: list[list[CalDay]] = []
+    d = start
+    while d <= end:
+        week = []
+        for _ in range(7):
+            week.append(CalDay(d, d.month == month, d == today, group_day(by_day.get(d.isoformat(), []))))
+            d += timedelta(days=1)
+        weeks.append(week)
+    return CalMonth(year, month, weeks)
+
+
+def calendar_day(db: Session, tree: Tree, today: date, day: date, *, user_id: int | None = None) -> list[dict]:
+    return group_day(calendar_points(db, tree, today, day, day, user_id=user_id))

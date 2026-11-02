@@ -1,0 +1,19 @@
+{# Shared bits of the calendar: one task line (day list, group window) and the chip text #}
+{% set CAL_STATUS = {"overdue": "zaległe", "today": "dziś", "soon": "wkrótce", "later": "zaplanowane", "future": "zaplanowane", "done": "wykonane", "forecast": "prognoza z przebiegu"} %}
+
+{% macro st(p) %}{{ 'forecast' if p.kind == 'forecast' else p.status }}{% endmacro %}
+
+{% macro amount(p) %}{% if p.amount and p.direction != 'none' %}{{ (p.amount if p.direction == 'income' else -p.amount)|pln(sign=True) }}{% endif %}{% endmacro %}
+
+{% macro task_line(p, show_zone=True) %}
+<li class="cal-row st-{{ st(p) }}">
+  <a href="#" hx-get="/tasks/{{ p.task_id }}" hx-target="#modal-body" hx-push-url="false">
+    <span class="cal-row-ic" aria-hidden="true">{{ p.icon }}</span>
+    <span class="cal-row-txt">
+      <strong>{{ avatar(p.assignee) }}{{ p.title }}</strong>
+      <small class="muted">{% if show_zone %}{{ p.zone }} · {% endif %}{{ CAL_STATUS.get(st(p), '') }}</small>
+    </span>
+    <span class="cal-row-amt">{{ amount(p) }}</span>
+  </a>
+</li>
+{% endmacro %}
