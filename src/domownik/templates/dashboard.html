@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% block head %}<link rel="stylesheet" href="/static/vendor/vis-timeline-graph2d.min.css">{% endblock %}
 {% block content %}
 {% if not has_items %}
 <article class="empty">
@@ -58,7 +57,7 @@
     {% if buckets[key] %}
     <h3 class="bucket bucket-{{ key }}">{{ label }} <small class="muted">({{ buckets[key]|length }})</small></h3>
     <ul class="task-list">
-      {% for row in buckets[key] %}{% include "partials/task_row.html" %}{% endfor %}
+      {% for entry in grouped[key] %}{% if entry.rows is defined %}{% set g = entry %}{% include "partials/payment_group.html" %}{% else %}{% set row = entry %}{% include "partials/task_row.html" %}{% endif %}{% endfor %}
     </ul>
     {% endif %}
   {% endfor %}
@@ -68,4 +67,3 @@
 </section>
 {% endif %}
 {% endblock %}
-{% block scripts %}<script src="/static/vendor/vis-timeline-graph2d.min.js"></script>{% endblock %}

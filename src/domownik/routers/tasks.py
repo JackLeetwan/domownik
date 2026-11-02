@@ -198,6 +198,16 @@ async def complete(request: Request, task_id: int, db: Session = Depends(get_db)
     return HTMLResponse("", headers={"HX-Refresh": "true"})
 
 
+@router.post("/tasks/bulk-done", dependencies=[Depends(verify_csrf)])
+async def bulk_done(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """'Paid all' for a group of payments on the dashboard."""
+    form = await request.form()
+    ids = {int(v) for v in form.getlist("task_id") if str(v).isdigit()}
+    tasks = [t for t in db.scalars(select(Task).where(Task.id.in_(ids), Task.active.is_(True)))] if ids else []
+    services.complete_many(db, tasks, user=user, done_on=today())
+    return _redirect("/")
+
+
 @router.post("/completions/{comp_id}/undo", dependencies=[Depends(verify_csrf)])
 def undo(comp_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     comp = db.get(Completion, comp_id)

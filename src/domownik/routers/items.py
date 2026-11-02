@@ -151,6 +151,7 @@ async def create_item(request: Request, key: str, db: Session = Depends(get_db),
 @router.get("/{item_id}")
 def item_page(request: Request, item_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     t = today()
+    services.settle_autopay(db, t)
     tree = Tree.load(db, include_archived=True)
     item = tree.items.get(item_id) or _get_item(db, item_id)
     vis = Tree.load(db)

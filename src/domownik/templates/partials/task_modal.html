@@ -11,6 +11,7 @@
   {% if task.amount_gr and task.direction != 'none' %} · {{ task.amount_gr|pln }}{% endif %}
   {% if task.assignee %} · 👤 {{ task.assignee.name }}{% endif %}
 </p>
+{% if task.autopay %}<p class="muted"><small>🔁 Płatne automatycznie – w dniu terminu zaksięguje się samo z kwotą z planu. Tu możesz je oznaczyć wcześniej albo z inną kwotą.</small></p>{% endif %}
 {% if upcoming %}<p class="muted">Kolejne: {% for d in upcoming %}{{ d|d }}{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
 {% if task.notes %}<p class="notes">{{ task.notes }}</p>{% endif %}
 

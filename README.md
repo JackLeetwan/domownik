@@ -22,6 +22,21 @@ sudo tailscale serve --bg 8000      # → https://<host>.<tailnet>.ts.net
 Po włączeniu HTTPS ustaw w `.env`: `DOMOWNIK_HTTPS_ONLY=true` i `DOMOWNIK_BASE_URL=https://…`,
 potem `docker compose up -d`.
 
+## Kopie zapasowe
+
+Codziennie o 3:30 (timer systemd użytkownika) `scripts/backup.sh`:
+1. w kontenerze `domownik backup` → `data/backups/auto/` (14 ostatnich, bez klucza sesji),
+2. kopiuje najnowsze archiwum na Dysk Google: `~/GoogleDrive/Domownik/kopie` (30 ostatnich).
+
+```bash
+ln -sf ~/domownik/deploy/systemd/domownik-backup.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload && systemctl --user enable --now domownik-backup.timer
+systemctl --user start domownik-backup.service      # kopia od ręki
+```
+
+Przywrócenie: `docker compose exec app domownik import /data/backups/auto/<plik> --force`
+(po przywróceniu wszyscy logują się ponownie – archiwum nie zawiera klucza sesji).
+
 ## Rozwój
 
 ```bash
@@ -39,6 +54,7 @@ uv run domownik makemigration "opis zmiany"     # po zmianie models.py
 | `domownik create-user` | nowe konto / reset hasła |
 | `domownik seed-zones` | domyślne strefy (pusta baza) |
 | `domownik export` / `import` | archiwum bazy i plików (backup, przeprowadzka) |
+| `domownik backup` | codzienna kopia z rotacją (bez sekretów) |
 
 ## Struktura
 

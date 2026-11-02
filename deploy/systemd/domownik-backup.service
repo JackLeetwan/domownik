@@ -1,0 +1,7 @@
+[Unit]
+Description=Domownik – codzienna kopia bazy (lokalnie + Dysk Google)
+After=docker.service gdrive-mount.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/domownik/scripts/backup.sh

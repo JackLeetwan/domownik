@@ -88,6 +88,26 @@ def export(
     """Pack the database and uploads into one archive (for backups and moving to another machine)."""
     s = get_settings()
     output = output or s.backups_dir / f"domownik-{datetime.now():%Y%m%d-%H%M%S}.tar.gz"
+    _write_archive(output, include_secrets=True)
+    typer.echo(f"Zapisano {output}")
+
+
+@app.command()
+def backup(keep: int = typer.Option(14, help="Ile ostatnich kopii zostawić")) -> None:
+    """Daily backup: archive without secrets in data/backups/auto, keep the newest N."""
+    s = get_settings()
+    auto = s.backups_dir / "auto"
+    auto.mkdir(parents=True, exist_ok=True)
+    output = auto / f"domownik-{datetime.now():%Y%m%d-%H%M%S}.tar.gz"
+    # no session secret: the copy may leave this machine (cloud drive); a restore just logs everyone out
+    _write_archive(output, include_secrets=False)
+    for old in sorted(auto.glob("domownik-*.tar.gz"))[: -max(keep, 1)]:
+        old.unlink()
+    typer.echo(str(output))
+
+
+def _write_archive(output: Path, *, include_secrets: bool) -> None:
+    s = get_settings()
     with tempfile.TemporaryDirectory() as tmp:
         snap = Path(tmp) / "db.sqlite"
         src = sqlite3.connect(s.db_path)
@@ -100,9 +120,8 @@ def export(
             tar.add(snap, arcname="db.sqlite")
             if s.uploads_dir.exists():
                 tar.add(s.uploads_dir, arcname="uploads")
-            if s.secrets_dir.exists():
+            if include_secrets and s.secrets_dir.exists():
                 tar.add(s.secrets_dir, arcname="secrets")
-    typer.echo(f"Zapisano {output}")
 
 
 @app.command("import")

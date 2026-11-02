@@ -1,0 +1,31 @@
+{# Several payments due the same day, collapsed into one row. Needs: g (services.PaymentGroup), csrf #}
+<li class="task-row task-group status-{{ g.due.status }}">
+  <details>
+    <summary>
+      <span class="task-main">
+        <span class="task-icon" aria-hidden="true">💳</span>
+        <span class="task-text">
+          <strong>Opłaty – {{ g.date|d }}</strong>
+          <small class="muted">{{ g.rows|length }} pozycji{% if g.auto_count %} · {{ g.auto_count }} płatne automatycznie{% endif %} · kliknij, żeby rozwinąć</small>
+        </span>
+      </span>
+      <span class="task-due">
+        <span class="badge {{ g.due.status }}">{{ g.due.days_left|days }}</span>
+        <small class="muted">{{ g.date|d(weekday=True) }}</small>
+      </span>
+      <span class="task-amount">{% if g.total_gr %}{{ g.total_gr|pln(sign=True) }}{% endif %}</span>
+    </summary>
+    <ul class="task-list">
+      {% for row in g.rows %}{% include "partials/task_row.html" %}{% endfor %}
+    </ul>
+    {% if g.manual %}
+    <form method="post" action="/tasks/bulk-done" class="group-pay"
+          hx-confirm="Oznaczyć {{ g.manual|length }} {{ 'płatność' if g.manual|length == 1 else 'płatności' }} jako zapłacone dziś, z kwotami z planu?">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      {% for row in g.manual %}<input type="hidden" name="task_id" value="{{ row.task.id }}">{% endfor %}
+      <button type="submit" class="outline">✓ Zapłacone wszystkie ({{ g.manual|length }})</button>
+      <small class="muted">Inna kwota albo data? Kliknij ✓ przy pojedynczej pozycji.{% if g.auto_count %} Płatne automatycznie zaksięgują się same w dniu terminu.{% endif %}</small>
+    </form>
+    {% endif %}
+  </details>
+</li>

@@ -27,6 +27,7 @@ def dashboard(
     user: User = Depends(current_user),
 ):
     t = today()
+    services.settle_autopay(db, t)
     tree = Tree.load(db)
     # household members get their own row; top-level members are not shown again as zones
     roots = [i for i in tree.roots() if i.kind != "member"]
@@ -41,6 +42,8 @@ def dashboard(
     for r in rows:
         buckets[r.due.bucket].append(r)
     buckets["later"] = buckets["later"][:15]
+    # many payments on one day (rent, subscriptions…) collapse into one row each
+    grouped = {k: services.group_payments(v) for k, v in buckets.items()}
     stats = services.zone_stats(db, tree, roots + members, t)
     todos = services.open_todos(db, tree)
     if who == "me":
@@ -59,6 +62,7 @@ def dashboard(
             "label": tree.label,
             "stats": stats,
             "buckets": buckets,
+            "grouped": grouped,
             "has_items": has_items,
             "who": who,
             "timeline_item": None,
@@ -85,6 +89,7 @@ def api_timeline(
 ):
     if end < start or end - start > timedelta(days=366 * 6):
         raise HTTPException(400, "Zakres maks. 6 lat")
+    services.settle_autopay(db, today())
     tree = Tree.load(db)
     ids = tree.subtree_ids(item) if item else None
     data = services.timeline(db, tree, today(), start, end, ids)

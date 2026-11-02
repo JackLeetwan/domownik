@@ -62,7 +62,7 @@
     clearTimeout(el._t);
     el._t = setTimeout(() => { el.hidden = true; }, 6000);
   }
-  document.body.addEventListener("htmx:sendError", (e) => {
+  document.addEventListener("htmx:sendError", (e) => {
     const cfg = e.detail.requestConfig || {};
     if (cfg.boosted && cfg.verb === "get") {
       window.location.href = cfg.path; // let the browser show its own error page
@@ -70,7 +70,7 @@
     }
     toast("Brak połączenia z serwerem Domownika – sprawdź, czy działa, i spróbuj ponownie.");
   });
-  document.body.addEventListener("htmx:responseError", (e) => {
+  document.addEventListener("htmx:responseError", (e) => {
     const xhr = e.detail.xhr;
     const tmp = document.createElement("div");
     tmp.innerHTML = xhr.responseText || "";
@@ -78,13 +78,16 @@
   });
 
   // ------------------------------------------------------------------ modal
-  const modal = document.getElementById("modal");
-  document.body.addEventListener("htmx:afterSwap", (e) => {
+  // look the dialog up at event time – hx-boost replaces the <body> content on every navigation
+  const modalEl = () => document.getElementById("modal");
+  document.addEventListener("htmx:afterSwap", (e) => {
+    const modal = modalEl();
     if (e.detail.target && e.detail.target.id === "modal-body" && modal && !modal.open) {
       modal.showModal();
     }
   });
   document.addEventListener("click", (e) => {
+    const modal = modalEl();
     if (!modal || !modal.open) return;
     if (e.target === modal || e.target.closest("[data-close]")) {
       e.preventDefault();
@@ -95,6 +98,8 @@
   // ------------------------------------------------------------------ forms
   function syncRuleForm(root) {
     root.querySelectorAll("select[data-mode]").forEach((sel) => {
+      if (sel.dataset.dmInit) return;
+      sel.dataset.dmInit = "1";
       const form = sel.closest("form");
       const apply = () => {
         form.querySelectorAll("[data-for]").forEach((el) => {
@@ -109,6 +114,8 @@
       apply();
     });
     root.querySelectorAll(".pick-row").forEach((row) => {
+      if (row.dataset.dmInit) return;
+      row.dataset.dmInit = "1";
       const cb = row.querySelector("input[type=checkbox]");
       const date = row.querySelector("input[data-required-if-checked]");
       if (!cb || !date) return;
@@ -117,13 +124,24 @@
       apply();
     });
   }
-  syncRuleForm(document);
-  document.body.addEventListener("htmx:load", (e) => syncRuleForm(e.detail.elt));
+  // htmx:load fires for the initial page and for every swapped-in fragment / boosted page
+  document.addEventListener("htmx:load", (e) => {
+    const root = e.detail.elt;
+    syncRuleForm(root);
+    const card = root.matches && root.matches(".timeline-card") ? root : root.querySelector && root.querySelector(".timeline-card");
+    if (card) initTimeline(card);
+  });
 
   // ------------------------------------------------------------------ timeline
-  const card = document.querySelector(".timeline-card");
-  const container = document.getElementById("timeline");
-  if (!card || !container || typeof vis === "undefined") return;
+  let current = null; // the live vis.Timeline – destroyed when a boosted navigation replaces the page
+
+  function initTimeline(card) {
+  const container = card.querySelector(".timeline");
+  if (!container || container.dataset.dmInit || typeof vis === "undefined") return;
+  container.dataset.dmInit = "1";
+  if (current) { try { current.destroy(); } catch (_) { /* already gone */ } current = null; }
+  const status = card.querySelector("[data-timeline-status]");
+  function setStatus(text) { if (status) { status.textContent = text; status.hidden = !text; } }
 
   const DAY = 86400000;
   const itemId = card.dataset.item || "";
@@ -210,15 +228,26 @@
     const iso = (d) => d.toISOString().slice(0, 10);
     const qs = new URLSearchParams({ start: iso(start), end: iso(end) });
     if (itemId) qs.set("item", itemId);
-    const res = await fetch(`/api/timeline?${qs}`, { credentials: "same-origin" });
+    let res;
+    try {
+      res = await fetch(`/api/timeline?${qs}`, { credentials: "same-origin" });
+    } catch (_) {
+      setStatus("Nie udało się wczytać osi czasu – brak połączenia z serwerem.");
+      return;
+    }
     if (res.status === 401) { window.location.href = "/login"; return; }
-    if (!res.ok) return;
+    if (!res.ok) { setStatus(`Nie udało się wczytać osi czasu (błąd ${res.status}).`); return; }
     const data = await res.json();
     groups = data.groups;
     items.clear();
     items.add(data.points.map(toItem));
     applyLanes();
     loaded = { start: start.getTime(), end: end.getTime() };
+    setStatus(data.points.length ? "" : "Brak terminów w tym okresie.");
+    // vis reveals itself only after its first range change; when that never comes
+    // (container resized while loading) it would stay invisible – reveal it ourselves
+    const root = container.querySelector(".vis-timeline");
+    if (root && root.style.visibility === "hidden") { timeline.redraw(); root.style.visibility = "visible"; }
   }
 
   function applyLanes() {
@@ -261,5 +290,7 @@
     });
   }
 
+  current = timeline;
   load(true);
+  }
 })();

@@ -345,9 +345,119 @@ def complete_task(
     return comp
 
 
+AUTOPAY_NOTE = "Zapłacone automatycznie"
+MAX_AUTOPAY_CATCHUP = 400  # safety net for a rule that never moves forward
+
+
+def settle_autopay(db: Session, today: date) -> int:
+    """Book standing orders / direct debits whose due date has come.
+
+    Each due occurrence becomes a completion on its due date with the planned amount
+    (so it lands in the history and the budget), then the task moves to the next date.
+    """
+    stmt = (
+        select(Task)
+        .join(Item, Task.item_id == Item.id)
+        .where(
+            Task.active.is_(True),
+            Task.autopay.is_(True),
+            Task.next_due_date.is_not(None),
+            Task.next_due_date <= today,
+            Item.archived.is_(False),
+        )
+    )
+    booked = 0
+    for task in list(db.scalars(stmt)):
+        for _ in range(MAX_AUTOPAY_CATCHUP):
+            due = task.next_due_date
+            if not task.active or due is None or due > today:
+                break
+            complete_task(
+                db,
+                task,
+                user=None,
+                done_on=due,
+                amount_gr=task.amount_gr,
+                km=None,
+                vendor=None,
+                notes=AUTOPAY_NOTE,
+            )
+            booked += 1
+            if task.next_due_date == due:
+                break
+    return booked
+
+
+def is_autopay_completion(comp: Completion) -> bool:
+    return comp.performed_by_id is None and comp.notes == AUTOPAY_NOTE
+
+
+def complete_many(db: Session, tasks: list[Task], *, user: User, done_on: date) -> int:
+    """'Paid all' for a group of payments: each one with its planned amount."""
+    for task in tasks:
+        complete_task(db, task, user=user, done_on=done_on, amount_gr=task.amount_gr, km=None, vendor=None, notes=None)
+    return len(tasks)
+
+
+# ---------------------------------------------------------------- payment groups (dashboard)
+
+PAYMENT_GROUP_MIN = 3  # fewer payments on one day stay as normal rows
+
+
+@dataclass
+class PaymentGroup:
+    """Several payments due the same day, shown as one collapsible row."""
+
+    date: date
+    rows: list[TaskRow]
+
+    @property
+    def due(self) -> Due:
+        return self.rows[0].due
+
+    @property
+    def total_gr(self) -> int:
+        return sum(
+            (r.task.amount_gr or 0) * (1 if r.task.direction == "income" else -1)
+            for r in self.rows
+            if r.task.direction != "none"
+        )
+
+    @property
+    def manual(self) -> list[TaskRow]:
+        return [r for r in self.rows if not r.task.autopay]
+
+    @property
+    def auto_count(self) -> int:
+        return len(self.rows) - len(self.manual)
+
+
+def group_payments(rows: list[TaskRow]) -> list[TaskRow | PaymentGroup]:
+    """Collapse payments due on the same day (rows sorted by date) into PaymentGroups."""
+    by_day: dict[date, list[TaskRow]] = defaultdict(list)
+    for r in rows:
+        if r.task.category == "payment" and r.due.date and not r.due.by_km:
+            by_day[r.due.date].append(r)
+    grouped = {d for d, rs in by_day.items() if len(rs) >= PAYMENT_GROUP_MIN}
+    out: list[TaskRow | PaymentGroup] = []
+    seen: set[date] = set()
+    for r in rows:
+        d = r.due.date
+        if d in grouped and r.task.category == "payment" and not r.due.by_km:
+            if d not in seen:
+                seen.add(d)
+                out.append(PaymentGroup(d, by_day[d]))
+            continue
+        out.append(r)
+    return out
+
+
 def undo_completion(db: Session, comp: Completion) -> None:
     """Revert the last completion: restore the previous due date."""
     task = comp.task
+    if task.autopay and is_autopay_completion(comp):
+        # otherwise the very next page view would book it again; the payment evidently did not go through
+        task.autopay = False
     task.next_due_date = comp.due_date
     task.active = True
     if comp.km:
