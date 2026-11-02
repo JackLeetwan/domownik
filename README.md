@@ -22,6 +22,14 @@ sudo tailscale serve --bg 8000      # → https://<host>.<tailnet>.ts.net
 Po włączeniu HTTPS ustaw w `.env`: `DOMOWNIK_HTTPS_ONLY=true` i `DOMOWNIK_BASE_URL=https://…`,
 potem `docker compose up -d`.
 
+## Powiadomienia
+
+Przez [ntfy](https://ntfy.sh): każdy w **Ustawieniach** generuje swój temat i subskrybuje go w aplikacji ntfy.
+Scheduler w kontenerze (co 5 min) wysyła rano (8:00) skrót: zaległe (co 3 dni), na dziś, nowe „wkrótce”;
+wieczorem (19:00) – co jest jutro. Bez kwot w treści. Przycisk ✓ w powiadomieniu odhacza zadanie
+(podpisany link, ważny 14 dni; telefon musi być w tailnecie). Podgląd: `domownik notify morning`.
+Na kopiach bazy uruchamiaj z `DOMOWNIK_SCHEDULER=false`.
+
 ## Kopie zapasowe
 
 Codziennie o 3:30 (timer systemd użytkownika) `scripts/backup.sh`:
@@ -55,6 +63,7 @@ uv run domownik makemigration "opis zmiany"     # po zmianie models.py
 | `domownik seed-zones` | domyślne strefy (pusta baza) |
 | `domownik export` / `import` | archiwum bazy i plików (backup, przeprowadzka) |
 | `domownik backup` | codzienna kopia z rotacją (bez sekretów) |
+| `domownik notify [morning\|evening] [--send]` | podgląd / wysyłka skrótu powiadomień |
 
 ## Struktura
 

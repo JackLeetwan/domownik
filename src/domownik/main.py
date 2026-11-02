@@ -1,20 +1,52 @@
 from __future__ import annotations
 
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
-from domownik.config import get_settings
-from domownik.routers import auth, board, dashboard, items, shopping, tasks
+from domownik.config import get_settings, now
+from domownik.routers import account, auth, board, dashboard, items, shopping, tasks
 from domownik.security import LoginRequired
 from domownik.web import HERE, is_htmx, render
+
+log = logging.getLogger("domownik")
+
+
+def _tick() -> None:
+    from domownik import notify
+    from domownik.db import session_factory
+
+    try:
+        with session_factory()() as db:
+            notify.tick(db, now())
+    except Exception:  # a failing job must never take the scheduler down
+        log.exception("scheduler tick failed")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    settings = get_settings()
+    scheduler = None
+    if settings.scheduler:
+        from apscheduler.schedulers.background import BackgroundScheduler
+
+        scheduler = BackgroundScheduler(timezone=settings.tz)
+        # every 5 minutes; the first run right after start catches up on a missed morning
+        scheduler.add_job(_tick, "interval", minutes=5, next_run_time=now(), max_instances=1, coalesce=True)
+        scheduler.start()
+    yield
+    if scheduler:
+        scheduler.shutdown(wait=False)
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title="Domownik", docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(title="Domownik", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.add_middleware(
         SessionMiddleware,
         secret_key=settings.resolved_secret_key(),
@@ -32,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(tasks.router)
     app.include_router(shopping.router)
     app.include_router(board.router)
+    app.include_router(account.router)
 
     @app.exception_handler(LoginRequired)
     async def _login_required(request: Request, _exc: LoginRequired):

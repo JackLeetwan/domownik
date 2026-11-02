@@ -422,3 +422,14 @@ button.danger { color: var(--pico-del-color, #c62828); }
 
 /* small buttons keep their natural width (Pico makes form buttons full-width) */
 button.small { width: auto; }
+
+/* settings */
+.flash { padding: 0.5rem 0.8rem; border-radius: 8px; }
+.flash.ok { background: color-mix(in srgb, var(--dm-later) 18%, transparent); }
+.flash.error { background: color-mix(in srgb, var(--dm-overdue) 18%, transparent); }
+.steps li { margin-bottom: 0.6rem; }
+.steps form.inline button { margin-left: 0.3rem; }
+code.topic { user-select: all; word-break: break-all; }
+.notify-form fieldset label { margin-bottom: 0.5rem; }
+.push-preview { padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; }
+.push-preview pre { margin: 0.4rem 0 0; padding: 0; background: none; white-space: pre-wrap; font-family: inherit; font-size: 0.9rem; }

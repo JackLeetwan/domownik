@@ -64,7 +64,28 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(200), unique=True)
     password_hash: Mapped[str] = mapped_column(String(200))
     ntfy_topic: Mapped[str | None] = mapped_column(String(200))
+    notify_morning: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    notify_evening: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class NotificationLog(Base):
+    """What was pushed to whom – deduplication of digests and per-task reminders.
+
+    kind: "morning" / "evening" with task_id NULL = the digest slot ran that day;
+    with task_id = this occurrence (ref_date = its due date) was announced as
+    "task" (entered the reminder window), "today", "overdue" or "tomorrow".
+    """
+
+    __tablename__ = "notification_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(20))
+    ref_date: Mapped[date | None] = mapped_column(Date)
+    sent_on: Mapped[date] = mapped_column(Date, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 

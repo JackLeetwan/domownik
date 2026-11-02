@@ -10,6 +10,7 @@ _tmp = tempfile.mkdtemp(prefix="domownik-test-")
 os.environ["DOMOWNIK_DATA_DIR"] = _tmp
 os.environ["DOMOWNIK_HTTPS_ONLY"] = "false"  # tests talk plain http; never inherit .env
 os.environ["DOMOWNIK_BASE_URL"] = "http://testserver"
+os.environ["DOMOWNIK_SCHEDULER"] = "false"  # no background jobs (and no real pushes) in tests
 
 from fastapi.testclient import TestClient  # noqa: E402
 

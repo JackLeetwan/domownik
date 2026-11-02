@@ -139,6 +139,29 @@ def import_(archive: Path, force: bool = typer.Option(False, help="Nadpisz istni
 
 
 @app.command()
+def notify(
+    slot: str = typer.Argument("morning", help="morning albo evening"),
+    send: bool = typer.Option(False, help="Wyślij naprawdę (z zapisem w logu), zamiast tylko pokazać"),
+) -> None:
+    """Show (or send) the digest each user would get now."""
+    from domownik import notify as nt
+    from domownik.db import session_factory
+
+    if slot not in ("morning", "evening"):
+        raise typer.BadParameter("slot: morning albo evening")
+    with session_factory()() as db:
+        if send:
+            typer.echo(f"Wysłano: {nt.run_slot(db, slot, today())}")
+            return
+        digests = nt.build_digests(db, slot, today())
+        if not digests:
+            typer.echo("Nikt nie ma ustawionego tematu ntfy (albo ma wyłączony ten skrót).")
+        for d in digests:
+            typer.echo(f"── {d.user.name}: {d.title()}")
+            typer.echo(d.message() or "(nic nowego – nie wyśle się)")
+
+
+@app.command()
 def serve(host: str = "0.0.0.0", port: int = 8000, reload: bool = False) -> None:
     """Run migrations and start the web server."""
     import uvicorn
