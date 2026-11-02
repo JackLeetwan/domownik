@@ -306,7 +306,13 @@
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const savedRange = parseInt(store.get("domownik.range") || "106", 10);
+  // phones get their own (shorter) default range and a lower timeline – at most ~40% of the screen
+  const phone = window.matchMedia("(max-width: 639.98px)").matches;
+  const rangeKey = phone ? "domownik.range.phone" : "domownik.range";
+  const savedRange = parseInt(store.get(rangeKey) || (phone ? "30" : "106"), 10);
+  let loadedBin = null;
+  let loadSeq = 0; // only the newest request may fill the timeline (zoom + lanes toggle can overlap)
+  if (phone) lanes = false; // too narrow for zone lanes – the switch is hidden there
 
   const fmtDay = new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "short" });
   const fmtMonth = new Intl.DateTimeFormat("pl-PL", { month: "short" });
@@ -320,10 +326,60 @@
   }
 
   const STATUS_TEXT = { overdue: "zaległe", today: "dziś", soon: "wkrótce", later: "zaplanowane", future: "kolejne wystąpienie", done: "wykonane" };
+  const URGENT = { overdue: 1, today: 1, soon: 1 };
+  const signed = (amount, direction) =>
+    amount && direction !== "none" ? (direction === "income" ? "+" : "−") + pln.format(amount / 100) : "";
+
+  // how coarse the server should bundle ordinary points: by pixels available per day
+  function binFor() {
+    const w = timeline ? timeline.getWindow() : { start: 0, end: savedRange * DAY };
+    const pxPerDay = (container.clientWidth || 360) / ((w.end - w.start) / DAY);
+    if (pxPerDay >= 8) return "day";
+    if (pxPerDay >= 1.2) return "week";
+    return "month";
+  }
+
+  function bundleItem(p, i) {
+    const d = new Date(p.date + "T12:00:00");
+    const from = new Date(p.start + "T12:00:00");
+    const to = new Date(p.end + "T12:00:00");
+    const when = p.start === p.end ? fmtFull.format(d) : `${fmtDay.format(from)} – ${fmtDay.format(to)}`;
+    const icons = p.icons.map(esc).join("");
+    const names = p.tasks.slice(0, 10).map((t) => `${esc(t.icon)} ${esc(t.title)}`).join("<br>");
+    const more = p.tasks.length > 10 ? `<br>… i ${p.tasks.length - 10} więcej` : "";
+    return {
+      id: `bundle-${p.of}-${p.start}-${p.group}-${i}`,
+      bundle: p,
+      start: d,
+      type: "point",
+      // the next occurrences carry a name ("💳 Opłaty 17"), further repeats only icons + count
+      content: `<span class="tl-icon">${icons}</span>${p.status === "later" && p.category ? `<span class="tl-label">${esc(p.label)}</span>` : ""}<span class="tl-count">${p.count}</span>`,
+      title: `<strong>${icons} ${esc(p.label)}</strong><br>${esc(when)}<br>${esc(p.summary)}<br><small>${names}${more}</small><br><em>kliknij, żeby zobaczyć listę</em>`,
+      className: `st-${p.status} tl-bundle`,
+      group: p.group,
+    };
+  }
+
+  function showBundle(p) {
+    const modal = document.getElementById("modal");
+    const body = document.getElementById("modal-body");
+    if (!modal || !body) return;
+    const d = new Date(p.date + "T12:00:00");
+    const when = p.start === p.end ? fmtFull.format(d) : `${fmtDay.format(new Date(p.start + "T12:00:00"))} – ${fmtDay.format(new Date(p.end + "T12:00:00"))}`;
+    const rows = p.tasks.map((t) => `<li><a href="#" hx-get="/tasks/${t.task_id}" hx-target="#modal-body" hx-push-url="false">`
+      + `<span>${esc(t.icon)} ${esc(t.title)}</span><small class="muted">${esc(t.zone)} · ${esc(fmtDay.format(new Date(t.date + "T12:00:00")))}</small></a>`
+      + `<span class="amount">${esc(signed(t.amount, t.direction))}</span></li>`).join("");
+    body.innerHTML = `<header><button class="close" aria-label="Zamknij" data-close>✕</button>`
+      + `<h3 id="modal-title">${p.icons.map(esc).join("")} ${esc(p.label)}</h3><p class="muted">${esc(when)} · ${esc(p.summary)}</p></header>`
+      + `<ul class="bundle-list">${rows}</ul>`;
+    htmx.process(body);
+    if (!modal.open) modal.showModal();
+  }
 
   function toItem(p, i) {
+    if (p.kind === "bundle") return bundleItem(p, i);
     const d = new Date(p.date + "T12:00:00");
-    const amount = p.amount && p.direction !== "none" ? " · " + (p.direction === "income" ? "+" : "−") + pln.format(p.amount / 100) : "";
+    const amount = signed(p.amount, p.direction) ? " · " + signed(p.amount, p.direction) : "";
     const status = p.kind === "forecast" ? "forecast" : p.status;
     return {
       id: `${p.kind}-${p.task_id}-${p.date}-${i}`,
@@ -335,12 +391,13 @@
         ? `<span class="tl-icon">${esc(p.icon)}</span>`
         : `<span class="tl-icon">${esc(p.icon)}</span><span class="tl-label">${esc(p.title)}</span>`,
       title: `<strong>${esc(p.icon)} ${esc(p.title)}</strong><br>${esc(p.zone)}<br>${esc(fmtFull.format(d))}${esc(amount)}<br><em>${esc(p.kind === "forecast" ? "prognoza z przebiegu" : STATUS_TEXT[p.status] || "")}</em>`,
-      className: `st-${status}`,
+      className: `st-${status}${URGENT[p.status] && p.kind === "due" ? " tl-urgent" : ""}`,
       group: p.group,
     };
   }
 
-  const timeline = new vis.Timeline(container, items, {
+  let timeline = null;
+  timeline = new vis.Timeline(container, items, {
     start: new Date(today.getTime() - savedRange * 0.15 * DAY),
     end: new Date(today.getTime() + savedRange * 0.85 * DAY),
     zoomMin: 7 * DAY,
@@ -348,13 +405,15 @@
     showCurrentTime: true,
     stack: true,
     stackSubgroups: true,
-    maxHeight: 340,
-    minHeight: 120,
+    maxHeight: phone ? Math.max(170, Math.round(window.innerHeight * 0.4) - 110) : 340,
+    minHeight: phone ? 110 : 120,
     margin: { item: { horizontal: 2, vertical: 4 }, axis: 6 },
     orientation: { axis: "top", item: "top" },
     selectable: false,
     tooltip: { followMouse: true, overflowMethod: "cap", delay: 150 },
-    cluster: { maxItems: 4, titleTemplate: "{count} zadań – przybliż", showStipes: false, fitOnDoubleClick: true },
+    // vis sanitises item HTML and drops every attribute – keep our classes (all text is escaped in esc())
+    xss: { disabled: false, filterOptions: { whiteList: { span: ["class"], strong: [], em: [], br: [], small: [] } } },
+    // no vis clustering: anonymous "17" bubbles hid urgent tasks – the server bundles ordinary points instead
     groupOrder: "order",
     format: {
       minorLabels: (date, scale) => {
@@ -374,12 +433,17 @@
   async function load(force) {
     const w = timeline.getWindow();
     const span = w.end - w.start;
-    if (!force && loaded && w.start >= loaded.start && w.end <= loaded.end) return;
-    const start = new Date(w.start.getTime() - span);
-    const end = new Date(w.end.getTime() + span);
+    const bin = binFor();
+    if (!force && bin === loadedBin && loaded && w.start >= loaded.start && w.end <= loaded.end) return;
+    // preload one window on each side, but stay within the API limit (6 years in total)
+    const pad = Math.max(0, Math.min(span, (6 * 365 * DAY - span) / 2));
+    const start = new Date(w.start.getTime() - pad);
+    const end = new Date(w.end.getTime() + pad);
     const iso = (d) => d.toISOString().slice(0, 10);
-    const qs = new URLSearchParams({ start: iso(start), end: iso(end) });
+    const qs = new URLSearchParams({ start: iso(start), end: iso(end), bin });
+    if (lanes) qs.set("lanes", "1");
     if (itemId) qs.set("item", itemId);
+    const seq = ++loadSeq;
     let res;
     try {
       res = await fetch(`/api/timeline?${qs}`, { credentials: "same-origin" });
@@ -390,11 +454,13 @@
     if (res.status === 401) { window.location.href = "/login"; return; }
     if (!res.ok) { setStatus(`Nie udało się wczytać osi czasu (błąd ${res.status}).`); return; }
     const data = await res.json();
+    if (seq !== loadSeq) return;
     groups = data.groups;
     items.clear();
     items.add(data.points.map(toItem));
     applyLanes();
     loaded = { start: start.getTime(), end: end.getTime() };
+    loadedBin = bin;
     setStatus(data.points.length ? "" : "Brak terminów w tym okresie.");
     // vis reveals itself only after its first range change; when that never comes
     // (container resized while loading) it would stay invisible – reveal it ourselves
@@ -416,19 +482,15 @@
     const it = items.get(props.item);
     if (it && it.task_id) {
       htmx.ajax("GET", `/tasks/${it.task_id}`, { target: "#modal-body", swap: "innerHTML" });
-    } else {
-      // a cluster – zoom in around it
-      const t = props.time.getTime();
-      const w = timeline.getWindow();
-      const span = (w.end - w.start) / 3;
-      timeline.setWindow(new Date(t - span / 2), new Date(t + span / 2));
+    } else if (it && it.bundle) {
+      showBundle(it.bundle);
     }
   });
 
   card.querySelectorAll("[data-range]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const days = parseInt(btn.dataset.range, 10);
-      store.set("domownik.range", String(days));
+      store.set(rangeKey, String(days));
       timeline.setWindow(new Date(today.getTime() - days * 0.15 * DAY), new Date(today.getTime() + days * 0.85 * DAY));
     });
   });
@@ -438,7 +500,7 @@
     lanesSwitch.addEventListener("change", () => {
       lanes = lanesSwitch.checked;
       store.set("domownik.lanes", lanes ? "1" : "0");
-      applyLanes();
+      load(true); // bundles are per lane when lanes are on
     });
   }
 

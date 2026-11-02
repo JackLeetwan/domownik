@@ -18,6 +18,9 @@ from domownik.web import render
 
 router = APIRouter()
 
+# "Później" can hold dozens of rows – the rest hides behind "Pokaż wszystkie (N)"
+LATER_SHOWN = 5
+
 
 @router.get("/")
 def dashboard(
@@ -41,7 +44,6 @@ def dashboard(
     buckets: dict[str, list] = {"overdue": [], "week": [], "month": [], "later": []}
     for r in rows:
         buckets[r.due.bucket].append(r)
-    buckets["later"] = buckets["later"][:15]
     # many payments on one day (rent, subscriptions…) collapse into one row each
     grouped = {k: services.group_payments(v) for k, v in buckets.items()}
     stats = services.zone_stats(db, tree, roots + members, t)
@@ -66,6 +68,7 @@ def dashboard(
             "has_items": has_items,
             "who": who,
             "timeline_item": None,
+            "LATER_SHOWN": LATER_SHOWN,
         },
     )
 
@@ -84,15 +87,20 @@ def api_timeline(
     start: date = Query(...),
     end: date = Query(...),
     item: int | None = None,
+    bin: str | None = Query(None, pattern="^(day|week|month)$"),
+    lanes: bool = False,
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
+    """Timeline points; with `bin` ordinary points of one day/week/month come merged into labelled bundles."""
     if end < start or end - start > timedelta(days=366 * 6):
         raise HTTPException(400, "Zakres maks. 6 lat")
     services.settle_autopay(db, today())
     tree = Tree.load(db)
     ids = tree.subtree_ids(item) if item else None
     data = services.timeline(db, tree, today(), start, end, ids)
+    if bin:
+        data["points"] = services.bundle_points(data["points"], bin, by_group=lanes)
     data["today"] = today().isoformat()
     return JSONResponse(data)
 

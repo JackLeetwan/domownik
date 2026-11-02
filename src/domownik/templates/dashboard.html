@@ -45,6 +45,42 @@
 </p>
 {% endif %}
 
+{# phone: one column – timeline, shortcuts, upcoming dates, then tiles; wide screens: dates beside the tiles #}
+<div class="dash-cols">
+<section class="agenda">
+  <header class="agenda-head">
+    <h2>Najbliższe terminy</h2>
+    <div role="group" class="who">
+      <a href="/" role="button" class="{% if who != 'me' %}{% else %}outline {% endif %}secondary">Wszyscy</a>
+      <a href="/?who=me" role="button" class="{% if who == 'me' %}{% else %}outline {% endif %}secondary">Moje</a>
+    </div>
+  </header>
+  {% for key, label in BUCKETS %}
+    {% if buckets[key] %}
+    <h3 class="bucket bucket-{{ key }}">{{ label }} <small class="muted">({{ buckets[key]|length }})</small></h3>
+    {% set entries = grouped[key] %}
+    {% set shown = LATER_SHOWN if key == 'later' and entries|length > LATER_SHOWN + 2 else entries|length %}
+    <ul class="task-list">
+      {% for entry in entries[:shown] %}{% if entry.rows is defined %}{% set g = entry %}{% include "partials/payment_group.html" %}{% else %}{% set row = entry %}{% include "partials/task_row.html" %}{% endif %}{% endfor %}
+    </ul>
+    {% if entries|length > shown %}
+    <details class="more-rows">
+      <summary>Pokaż wszystkie ({{ entries|length }})</summary>
+      <ul class="task-list">
+        {% for entry in entries[shown:] %}{% if entry.rows is defined %}{% set g = entry %}{% include "partials/payment_group.html" %}{% else %}{% set row = entry %}{% include "partials/task_row.html" %}{% endif %}{% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+    {% elif key in ('week', 'month') and (buckets.overdue or buckets.week or buckets.month or buckets.later) %}
+    <h3 class="bucket bucket-{{ key }} bucket-empty">{{ label }} <small class="muted">– {{ 'nic w tym tygodniu' if key == 'week' else 'nic w ciągu miesiąca' }} ✓</small></h3>
+    {% endif %}
+  {% endfor %}
+  {% if not (buckets.overdue or buckets.week or buckets.month or buckets.later) %}
+  <p class="muted">Brak terminów – dodaj elementy i zadania w strefach.</p>
+  {% endif %}
+</section>
+
+<div class="dash-tiles">
 <section class="members">
   <h2 class="section-title">Domownicy</h2>
   <div class="tiles tiles-members">
@@ -60,26 +96,7 @@
     <a class="tile tile-add" href="/items/new"><span class="tile-icon">＋</span><span class="tile-name">Nowa strefa</span></a>
   </div>
 </section>
-
-<section class="agenda">
-  <header class="agenda-head">
-    <h2>Najbliższe terminy</h2>
-    <div role="group" class="who">
-      <a href="/" role="button" class="{% if who != 'me' %}{% else %}outline {% endif %}secondary">Wszyscy</a>
-      <a href="/?who=me" role="button" class="{% if who == 'me' %}{% else %}outline {% endif %}secondary">Moje</a>
-    </div>
-  </header>
-  {% for key, label in BUCKETS %}
-    {% if buckets[key] %}
-    <h3 class="bucket bucket-{{ key }}">{{ label }} <small class="muted">({{ buckets[key]|length }})</small></h3>
-    <ul class="task-list">
-      {% for entry in grouped[key] %}{% if entry.rows is defined %}{% set g = entry %}{% include "partials/payment_group.html" %}{% else %}{% set row = entry %}{% include "partials/task_row.html" %}{% endif %}{% endfor %}
-    </ul>
-    {% endif %}
-  {% endfor %}
-  {% if not (buckets.overdue or buckets.week or buckets.month or buckets.later) %}
-  <p class="muted">Brak terminów – dodaj elementy i zadania w strefach.</p>
-  {% endif %}
-</section>
+</div>
+</div>
 {% endif %}
 {% endblock %}

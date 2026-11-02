@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any
@@ -508,6 +508,7 @@ def timeline(
             "title": task.title,
             "zone": label,
             "icon": task.category_icon,
+            "category": task.category,
             "amount": task.amount_gr,
             "direction": task.direction,
             "group": gid,
@@ -536,6 +537,7 @@ def timeline(
                 "title": t.title,
                 "zone": tree.label(t.item_id),
                 "icon": t.category_icon,
+                "category": t.category,
                 "amount": comp.actual_amount_gr,
                 "direction": t.direction,
                 "group": group_for(t.item_id),
@@ -545,6 +547,110 @@ def timeline(
             }
         )
     return {"points": points, "groups": sorted(groups.values(), key=lambda g: g["order"])}
+
+
+TIMELINE_BINS = ("day", "week", "month")
+URGENT_STATUSES = frozenset({"overdue", "today", "soon"})
+# category → plural label for a bundle ("💳 Opłaty · 17")
+CATEGORY_PLURALS = {
+    "insurance": "Ubezpieczenia",
+    "inspection": "Przeglądy",
+    "service": "Serwisy",
+    "diy": "Do zrobienia",
+    "payment": "Opłaty",
+    "income": "Przychody",
+    "tax": "Podatki",
+    "health": "Zdrowie",
+    "event": "Wydarzenia",
+    "occasion": "Okazje",
+    "shopping": "Zakupy",
+    "other": "Inne",
+}
+
+
+def plural_pl(n: int, one: str, few: str, many: str) -> str:
+    if n == 1:
+        return one
+    if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
+        return few
+    return many
+
+
+def _bin_range(d: date, size: str) -> tuple[date, date]:
+    if size == "week":
+        start = d - timedelta(days=d.weekday())
+        return start, start + timedelta(days=6)
+    if size == "month":
+        start = d.replace(day=1)
+        nxt = (start + timedelta(days=32)).replace(day=1)
+        return start, nxt - timedelta(days=1)
+    return d, d
+
+
+def bundle_points(points: list[dict[str, Any]], size: str, by_group: bool = False) -> list[dict[str, Any]]:
+    """Merge ordinary points falling into one day/week/month into a single labelled "bundle" point.
+
+    Overdue / today / soon occurrences and km forecasts are never merged – they must stay visible
+    with their own title. Done and planned points are bundled separately.
+    """
+    if size not in TIMELINE_BINS:
+        raise ValueError(size)
+    keep: list[dict[str, Any]] = []
+    bins: dict[tuple, list[dict[str, Any]]] = defaultdict(list)
+    for p in points:
+        if p["kind"] == "forecast" or p["status"] in URGENT_STATUSES:
+            keep.append(p)
+            continue
+        start, end = _bin_range(date.fromisoformat(p["date"]), size)
+        bins[(p["kind"], start, end, p["group"] if by_group else None)].append(p)
+    for (kind, start, end, group), ps in bins.items():
+        if len(ps) == 1:
+            keep.append(ps[0])
+            continue
+        ps.sort(key=lambda p: (p["date"], p["title"]))
+        cats = Counter(p.get("category") or "other" for p in ps)
+        dates = Counter(p["date"] for p in ps)
+        # place the bundle on its busiest day (e.g. the 10th, when most bills are due)
+        anchor = min(dates, key=lambda d: (-dates[d], d))
+        icons = Counter(p["icon"] for p in ps)
+        n = len(ps)
+        what = (
+            plural_pl(n, "zadanie", "zadania", "zadań")
+            if kind == "due"
+            else plural_pl(n, "wykonane", "wykonane", "wykonanych")
+        )
+        if len(cats) == 1:
+            cat = next(iter(cats))
+            label = CATEGORY_PLURALS.get(cat, "Inne")
+        else:
+            label = f"{n} {what}"
+        summary = f"{n} {what}"
+        if len(cats) > 1:
+            summary += ": " + ", ".join(f"{CATEGORY_PLURALS.get(c, 'Inne')} {k}" for c, k in cats.most_common())
+        statuses = {p["status"] for p in ps}
+        status = "done" if kind == "done" else ("later" if "later" in statuses else "future")
+        keep.append(
+            {
+                "kind": "bundle",
+                "of": kind,
+                "date": anchor,
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+                "status": status,
+                "count": n,
+                "icons": [i for i, _ in icons.most_common(3)],
+                "label": label,
+                "category": next(iter(cats)) if len(cats) == 1 else None,
+                "summary": summary,
+                "group": group if by_group else ps[0]["group"],
+                "tasks": [
+                    {k: p.get(k) for k in ("task_id", "title", "zone", "icon", "date", "amount", "direction", "status")}
+                    for p in ps
+                ],
+            }
+        )
+    keep.sort(key=lambda p: p["date"])
+    return keep
 
 
 def default_timeline_window(today: date) -> tuple[date, date]:
