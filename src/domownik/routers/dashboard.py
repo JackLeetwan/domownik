@@ -67,6 +67,7 @@ def dashboard(
             "grouped": grouped,
             "has_items": has_items,
             "who": who,
+            "any_assigned": services.any_assigned(db),
             "timeline_item": None,
             "LATER_SHOWN": LATER_SHOWN,
         },

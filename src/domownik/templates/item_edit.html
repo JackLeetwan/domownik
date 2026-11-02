@@ -20,6 +20,15 @@
     </label>
     <label>Kolejność <input type="number" name="sort_order" value="{{ item.sort_order }}"></label>
   </div>
+  {% if item.kind == 'member' %}
+  <label>Konto w Domowniku
+    <select name="user_id">
+      <option value="">— nie powiązano —</option>
+      {% for u in users %}<option value="{{ u.id }}" {% if u.id == item.user_id %}selected{% endif %}>{{ u.name }} ({{ u.email }})</option>{% endfor %}
+    </select>
+    <small class="muted">Na stronie tej osoby pojawią się zadania przypisane do tego konta („Zajmuje się”).</small>
+  </label>
+  {% endif %}
   <fieldset>
     <legend>Dane</legend>
     <div class="grid attrs">

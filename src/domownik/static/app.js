@@ -282,6 +282,24 @@
     syncRuleForm(root);
     const card = root.matches && root.matches(".timeline-card") ? root : root.querySelector && root.querySelector(".timeline-card");
     if (card) initTimeline(card);
+    updateBulk();
+  });
+
+  // ------------------------------------------------------------------ bulk assignment (/przypisania)
+  function updateBulk() {
+    const bar = document.querySelector("[data-bulk]");
+    if (!bar) return;
+    const n = document.querySelectorAll("input[name=task_id][form=bulk]:checked").length;
+    bar.querySelector("[data-bulk-count]").textContent = n;
+    bar.hidden = n === 0;
+    bar.querySelectorAll("button").forEach((b) => { b.disabled = n === 0; });
+  }
+  document.addEventListener("change", (e) => {
+    const all = e.target.closest && e.target.closest("[data-check-all]");
+    if (all) {
+      all.closest("section").querySelectorAll("input[name=task_id]").forEach((cb) => { cb.checked = all.checked; });
+    }
+    if (all || e.target.matches("input[name=task_id][form=bulk]")) updateBulk();
   });
 
   // ------------------------------------------------------------------ timeline

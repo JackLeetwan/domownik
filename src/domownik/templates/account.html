@@ -54,6 +54,12 @@
 </section>
 
 <section>
+  <h2>Kto się czym zajmuje</h2>
+  <p class="muted">Zadanie przypisane do osoby przypomina się tylko jej; wspólne – wszystkim.{% if not any_assigned %} <strong>Na razie nic nie jest przypisane</strong>, więc każdy dostaje wszystkie przypomnienia.{% endif %}</p>
+  <a href="/przypisania" role="button" class="outline">👥 Przypisz zadania</a>
+</section>
+
+<section>
   <h2>Co przyszłoby teraz</h2>
   {% for d, empty in [(morning, 'Rano nie byłoby nic nowego – powiadomienie się nie wyśle.'), (evening, 'Na jutro nie ma nic.')] %}
   <article class="push-preview">

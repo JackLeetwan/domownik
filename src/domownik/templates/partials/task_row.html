@@ -2,7 +2,7 @@
   <a class="task-main" href="#" hx-get="/tasks/{{ row.task.id }}" hx-target="#modal-body" hx-push-url="false">
     <span class="task-icon" aria-hidden="true">{{ row.task.category_icon }}</span>
     <span class="task-text">
-      <strong>{{ row.task.title }}{% if row.task.autopay %} <small class="badge auto" title="Płatne automatycznie – zaksięguje się samo w dniu terminu">auto</small>{% endif %}</strong>
+      <strong><span class="who-slot" data-task="{{ row.task.id }}">{{ avatar(row.task.assignee) }}</span>{{ row.task.title }}{% if row.task.autopay %} <small class="badge auto" title="Płatne automatycznie – zaksięguje się samo w dniu terminu">auto</small>{% endif %}</strong>
       {% if show_zone is not defined or show_zone %}<small class="muted">{{ row.zone_label }}</small>{% endif %}
     </span>
   </a>

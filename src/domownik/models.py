@@ -122,8 +122,11 @@ class Item(Base):
     attributes: Mapped[dict[str, Any]] = mapped_column(default=dict)
     notes: Mapped[str | None] = mapped_column(Text)
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    # kind == "member": the Domownik account of this person (their assigned tasks, notifications)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
+    user: Mapped[User | None] = relationship()
     parent: Mapped[Item | None] = relationship(remote_side="Item.id", back_populates="children")
     children: Mapped[list[Item]] = relationship(back_populates="parent", order_by="Item.sort_order, Item.name")
     tasks: Mapped[list[Task]] = relationship(back_populates="item", cascade="all, delete-orphan")

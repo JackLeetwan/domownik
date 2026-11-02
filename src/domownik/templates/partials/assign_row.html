@@ -1,0 +1,12 @@
+{# One task on /przypisania. Needs: row, users, label; oob → also refresh the counter #}
+{% set task = row.task %}
+{% set sub = label(task.item_id).split(' › ')[1:]|join(' › ') %}
+<li class="arow" id="arow-{{ task.id }}">
+  <input type="checkbox" name="task_id" value="{{ task.id }}" form="bulk" aria-label="Zaznacz: {{ task.title }}">
+  <a class="arow-text" href="#" hx-get="/tasks/{{ task.id }}" hx-target="#modal-body" hx-push-url="false">
+    <strong>{{ task.category_icon }} {{ task.title }}</strong>
+    <small class="muted">{% if sub %}{{ sub }} · {% endif %}{{ row.due.date|d if row.due.date else 'bez terminu' }}</small>
+  </a>
+  {% set ctx = 'list' %}{% include "partials/assign_seg.html" %}
+</li>
+{% if oob %}<span id="unassigned-count" hx-swap-oob="true">{{ unassigned }}</span>{% endif %}

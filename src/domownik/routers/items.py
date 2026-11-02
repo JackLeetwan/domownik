@@ -183,6 +183,8 @@ def item_page(request: Request, item_id: int, db: Session = Depends(get_db), use
     issues = services.subtree_issues(db, vis, item_id)
     km = services.km_readings(db, {item_id}).get(item_id, [])
     tpl = _template_for_kind(item.kind)
+    # a household member linked to an account: everything that person takes care of, house-wide
+    care_rows = services.rows_assigned_to(db, vis, t, item.user_id) if item.kind == "member" and item.user_id else []
     return render(
         request,
         "item.html",
@@ -203,6 +205,7 @@ def item_page(request: Request, item_id: int, db: Session = Depends(get_db), use
             "suggested": catalog.suggestions(item.kind, item.name, item.attributes or {}),
             "is_container": item.kind in ("group", "house", "apartment", "rental", "child"),
             "health_rows": health_rows,
+            "care_rows": care_rows,
             "open_issues": [i for i in issues if i.resolved_on is None],
             "closed_issues": [i for i in issues if i.resolved_on is not None],
             "todos": services.open_todos(db, vis, vis.subtree_ids(item_id)),
@@ -234,6 +237,7 @@ def edit_item_form(request: Request, item_id: int, db: Session = Depends(get_db)
             "parents": sorted(parents, key=lambda i: tree.label(i.id)),
             "label": tree.label,
             "kinds": ITEM_KINDS,
+            "users": services.active_users(db),
         },
     )
 
@@ -262,8 +266,24 @@ async def update_item(
     new_val = (form.get("new_attr_value") or "").strip()
     if new_key and new_val:
         item.attributes = {**item.attributes, new_key: new_val}
+    if item.kind != "member":
+        item.user_id = None
+    elif "user_id" in form:
+        item.user_id = _link_account(db, item, _int_or_none(form.get("user_id")))
     db.commit()
     return _redirect(f"/items/{item.id}")
+
+
+def _link_account(db: Session, item: Item, user_id: int | None) -> int | None:
+    """One account = one person: linking it here unlinks it from any other member item."""
+    if user_id is None:
+        return None
+    u = db.get(User, user_id)
+    if u is None or not u.is_active:
+        raise HTTPException(400, "Nie ma takiego konta")
+    for other in db.scalars(select(Item).where(Item.user_id == user_id, Item.id != item.id)):
+        other.user_id = None
+    return user_id
 
 
 @router.post("/{item_id}/archive", dependencies=[Depends(verify_csrf)])

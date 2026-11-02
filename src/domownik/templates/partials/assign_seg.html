@@ -1,0 +1,12 @@
+{# Segmented "Wspólne / <person>…" buttons saving at once. Needs: task, users, ctx ('modal' | 'list') #}
+{% set target = '#assign-' ~ task.id if ctx == 'modal' else '#arow-' ~ task.id %}
+<div class="seg" role="toolbar" aria-label="Kto się zajmuje: {{ task.title }}">
+  <button type="button" class="seg-btn" aria-pressed="{{ 'true' if task.assignee_id is none else 'false' }}"
+          hx-post="/przypisania/{{ task.id }}?ctx={{ ctx }}" hx-vals='{"assignee_id": ""}' hx-target="{{ target }}" hx-swap="outerHTML"
+          title="Powiadomienia dostają wszyscy">👥 Wspólne</button>
+  {% for u in users %}
+  <button type="button" class="seg-btn" aria-pressed="{{ 'true' if task.assignee_id == u.id else 'false' }}"
+          hx-post="/przypisania/{{ task.id }}?ctx={{ ctx }}" hx-vals='{"assignee_id": "{{ u.id }}"}' hx-target="{{ target }}" hx-swap="outerHTML"
+          title="Powiadomienia dostaje tylko {{ u.name }}">{{ avatar(u) }} {{ u.name }}</button>
+  {% endfor %}
+</div>

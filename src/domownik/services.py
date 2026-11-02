@@ -431,6 +431,15 @@ class PaymentGroup:
     def auto_count(self) -> int:
         return len(self.rows) - len(self.manual)
 
+    @property
+    def assignees(self) -> list[User]:
+        """Distinct people the payments of this day are assigned to (shown as initials)."""
+        out: dict[int, User] = {}
+        for r in self.rows:
+            if r.task.assignee is not None:
+                out.setdefault(r.task.assignee.id, r.task.assignee)
+        return list(out.values())
+
 
 def group_payments(rows: list[TaskRow]) -> list[TaskRow | PaymentGroup]:
     """Collapse payments due on the same day (rows sorted by date) into PaymentGroups."""
@@ -450,6 +459,52 @@ def group_payments(rows: list[TaskRow]) -> list[TaskRow | PaymentGroup]:
             continue
         out.append(r)
     return out
+
+
+# ---------------------------------------------------------------- who takes care of what
+
+
+def active_users(db: Session) -> list[User]:
+    return list(db.scalars(select(User).where(User.is_active.is_(True)).order_by(User.id)))
+
+
+def any_assigned(db: Session) -> bool:
+    """Is at least one active task assigned to someone? (otherwise 'Moje' == 'Wszyscy')"""
+    stmt = select(func.count(Task.id)).where(Task.active.is_(True), Task.assignee_id.is_not(None))
+    return (db.scalar(stmt) or 0) > 0
+
+
+def rows_assigned_to(db: Session, tree: Tree, today: date, user_id: int) -> list[TaskRow]:
+    """Active tasks of the whole household assigned to one account, by due date."""
+    return [r for r in task_rows(db, tree, today) if r.task.assignee_id == user_id]
+
+
+@dataclass
+class ZoneRows:
+    zone: Item
+    rows: list[TaskRow]
+
+
+def rows_by_zone(db: Session, tree: Tree, today: date) -> list[ZoneRows]:
+    """All active tasks grouped by top-level zone (in tile order), each group by due date."""
+    by_root: dict[int, list[TaskRow]] = defaultdict(list)
+    for r in task_rows(db, tree, today):
+        root = tree.root_of(r.task.item_id)
+        if root is not None:
+            by_root[root.id].append(r)
+    return [ZoneRows(z, by_root[z.id]) for z in tree.roots() if by_root.get(z.id)]
+
+
+def assign_tasks(db: Session, tasks: list[Task], assignee_id: int | None) -> int:
+    """Set who takes care of the tasks (None = shared: everybody gets the reminders)."""
+    if assignee_id is not None:
+        u = db.get(User, assignee_id)
+        if u is None or not u.is_active:
+            raise ValueError("Nie ma takiego konta")
+    for t in tasks:
+        t.assignee_id = assignee_id
+    db.commit()
+    return len(tasks)
 
 
 def undo_completion(db: Session, comp: Completion) -> None:

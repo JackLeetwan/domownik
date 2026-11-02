@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Kto się czym zajmuje · Domownik{% endblock %}
+{% block content %}
+<header class="agenda-head">
+  <h1>👥 Kto się czym zajmuje</h1>
+  <div role="group" class="who">
+    <a href="/przypisania" role="button" class="{% if only_free %}outline {% endif %}secondary">Wszystkie</a>
+    <a href="/przypisania?tylko=nieprzypisane" role="button" class="{% if not only_free %}outline {% endif %}secondary">Nieprzypisane</a>
+  </div>
+</header>
+<p class="assign-help"><strong>Wspólne</strong> = powiadomienie dostają wszyscy; <strong>przypisane</strong> = tylko ta osoba.
+  <span class="muted">Zmiana zapisuje się od razu. Zaznacz kilka, żeby przypisać je naraz.</span></p>
+<p class="assign-stats"><strong id="unassigned-count">{{ unassigned }}</strong> nieprzypisanych <span class="muted">z {{ total }} aktywnych zadań</span></p>
+
+{% for g in groups %}
+<section class="assign-zone">
+  <h2 class="assign-zone-head">
+    <label><input type="checkbox" data-check-all aria-label="Zaznacz wszystkie w strefie {{ g.zone.name }}"><span>{{ g.zone.display_icon }} {{ g.zone.name }} <small class="muted">({{ g.rows|length }})</small></span></label>
+  </h2>
+  <ul class="task-list">
+    {% for row in g.rows %}{% include "partials/assign_row.html" %}{% endfor %}
+  </ul>
+</section>
+{% else %}
+<p class="muted">{% if only_free %}Wszystkie zadania są przypisane albo wspólne – nic do zrobienia ✓ <a href="/przypisania">Pokaż wszystkie</a>{% else %}Brak aktywnych zadań.{% endif %}</p>
+{% endfor %}
+
+{% if groups %}
+<form id="bulk" method="post" action="/przypisania/zbiorczo" class="bulk-bar" data-bulk hidden>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  {% if only_free %}<input type="hidden" name="tylko" value="nieprzypisane">{% endif %}
+  <span class="bulk-count"><span data-bulk-count>0</span> zaznaczonych – przypisz do:</span>
+  <div class="seg">
+    <button type="submit" name="assignee_id" value="" class="seg-btn" disabled>👥 Wspólne</button>
+    {% for u in users %}<button type="submit" name="assignee_id" value="{{ u.id }}" class="seg-btn" disabled>{{ avatar(u) }} {{ u.name }}</button>{% endfor %}
+  </div>
+</form>
+{% endif %}
+{% endblock %}

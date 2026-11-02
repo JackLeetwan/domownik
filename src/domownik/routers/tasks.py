@@ -172,6 +172,7 @@ def task_modal(request: Request, task_id: int, db: Session = Depends(get_db), us
             "last_km": services.last_km(readings.get(task.item_id, [])),
             "is_car": task.item.kind == "car" or bool(task.recurrence.get("km")),
             "today": today(),
+            "users": services.active_users(db),
         },
     )
 

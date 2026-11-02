@@ -82,6 +82,7 @@ def settings_page(request: Request, db: Session = Depends(get_db), user: User = 
             "evening": evening[0] if evening else None,
             "message": flash.get("message"),
             "error": flash.get("error"),
+            "any_assigned": services.any_assigned(db),
         },
     )
 

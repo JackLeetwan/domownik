@@ -55,6 +55,9 @@
       <a href="/?who=me" role="button" class="{% if who == 'me' %}{% else %}outline {% endif %}secondary">Moje</a>
     </div>
   </header>
+  {% if who == 'me' and not any_assigned %}
+  <p class="who-hint"><small>Żadne zadanie nie jest jeszcze przypisane, więc „Moje” pokazuje wszystko. <a href="/przypisania">Ustal, kto czym się zajmuje →</a></small></p>
+  {% endif %}
   {% for key, label in BUCKETS %}
     {% if buckets[key] %}
     <h3 class="bucket bucket-{{ key }}">{{ label }} <small class="muted">({{ buckets[key]|length }})</small></h3>

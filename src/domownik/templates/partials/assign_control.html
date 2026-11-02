@@ -1,0 +1,6 @@
+{# "Kto: Wspólne / Ala / Jan" switch in the task window. Needs: task, users; oob → also refresh initials in rows behind #}
+<div class="assign" id="assign-{{ task.id }}">
+  <span class="assign-label">Kto:</span>
+  {% set ctx = 'modal' %}{% include "partials/assign_seg.html" %}
+</div>
+{% if oob %}<span class="who-slot" data-task="{{ task.id }}" hx-swap-oob="outerHTML:.who-slot[data-task='{{ task.id }}']">{{ avatar(task.assignee) }}</span>{% endif %}

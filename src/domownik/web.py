@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup, escape
 
 from domownik.config import today
 from domownik.domain import recurrence
@@ -33,6 +34,32 @@ def fmt_date(d: date | None, *, weekday: bool = False) -> str:
     return text
 
 
+AVATAR_COLORS = 6  # .av-0 … .av-5 in app.css – readable with white text in both themes
+
+
+def initials(name: str | None) -> str:
+    """'Ala' → 'A', 'Ala Nowak' → 'AN'."""
+    parts = (name or "?").split()
+    return "".join(p[0] for p in parts[:2]).upper() or "?"
+
+
+def avatar_class(user_id: int) -> str:
+    """Fixed colour per account – the same person looks the same everywhere."""
+    return f"av-{(user_id - 1) % AVATAR_COLORS}"
+
+
+def avatar(user, *, size: str = "") -> Markup:
+    """Small coloured circle with the initials of the person a task is assigned to."""
+    if user is None:
+        return Markup("")
+    cls = f"avatar {avatar_class(user.id)}" + (f" avatar-{size}" if size else "")
+    name = escape(user.name)
+    return Markup(
+        f'<span class="{cls}" title="Zajmuje się: {name}" aria-label="Zajmuje się: {name}">'
+        f"{escape(initials(user.name))}</span>"
+    )
+
+
 env = templates.env
 env.filters["pln"] = format_pln
 env.filters["pln_input"] = input_pln
@@ -49,6 +76,9 @@ env.globals.update(
     WEEKDAY_LABELS=recurrence.WEEKDAY_LABELS,
     MONTH_GENITIVE=recurrence.MONTH_GENITIVE,
     today=today,
+    avatar=avatar,
+    avatar_class=avatar_class,
+    initials=initials,
 )
 
 

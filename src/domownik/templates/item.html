@@ -40,6 +40,21 @@
 </section>
 {% endif %}
 
+{% if item.kind == 'member' %}
+<section class="care" id="zajmuje-sie">
+  <header class="agenda-head">
+    <h2>{% if item.user %}{{ avatar(item.user) }} {% endif %}Zajmuje się{% if care_rows %} <small class="muted">({{ care_rows|length }})</small>{% endif %}</h2>
+    <a href="/przypisania" class="small-link">Przypisz zadania →</a>
+  </header>
+  {% if not item.user_id %}
+  <p class="muted">Powiąż tę osobę z kontem w Domowniku – <a href="/items/{{ item.id }}/edit">Edytuj</a> → „Konto w Domowniku”. Wtedy zobaczysz tu wszystkie zadania przypisane do niej.</p>
+  {% elif care_rows %}
+  <ul class="task-list">{% set show_zone = True %}{% for row in care_rows %}{% include "partials/task_row.html" %}{% endfor %}</ul>
+  {% else %}
+  <p class="muted">Nic nie jest przypisane do {{ item.user.name }} – wszystkie zadania są wspólne. <a href="/przypisania">Przypisz zadania</a></p>
+  {% endif %}
+</section>
+{% endif %}
 {% if item.is_member %}{% include "partials/member_health.html" %}{% endif %}
 {% include "partials/todos.html" %}
 {% include "partials/issues.html" %}
