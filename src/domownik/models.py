@@ -63,11 +63,30 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(80))
     email: Mapped[str] = mapped_column(String(200), unique=True)
     password_hash: Mapped[str] = mapped_column(String(200))
-    ntfy_topic: Mapped[str | None] = mapped_column(String(200))
     notify_morning: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
     notify_evening: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class PushSubscription(Base):
+    """One browser / phone that agreed to receive Web Push notifications."""
+
+    __tablename__ = "push_subscription"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    endpoint: Mapped[str] = mapped_column(Text, unique=True)
+    p256dh: Mapped[str] = mapped_column(String(200))
+    auth: Mapped[str] = mapped_column(String(100))
+    label: Mapped[str | None] = mapped_column(String(120))  # "Android · Chrome" – to tell devices apart
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    last_ok_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    user: Mapped[User] = relationship()
+
+    def info(self) -> dict:
+        return {"endpoint": self.endpoint, "keys": {"p256dh": self.p256dh, "auth": self.auth}}
 
 
 class NotificationLog(Base):

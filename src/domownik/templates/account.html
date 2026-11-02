@@ -7,50 +7,37 @@
 {% if error %}<p class="flash error" role="alert">{{ error }}</p>{% endif %}
 
 <section>
-  <h2>Powiadomienia na telefon</h2>
-  <p class="muted">Domownik wysyła je przez darmową aplikację <strong>ntfy</strong>. Każda osoba ustawia to na swoim koncie – dostaje zadania przypisane do siebie i te nieprzypisane.</p>
+  <h2>Powiadomienia</h2>
+  <p class="muted">Domownik sam wysyła powiadomienia na telefon – bez dodatkowej aplikacji. Każdy włącza je na swoim koncie i dostaje zadania przypisane do siebie oraz nieprzypisane.</p>
 
-  <ol class="steps">
-    <li>Zainstaluj ntfy: <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener">Android (Google Play)</a> · <a href="https://apps.apple.com/app/ntfy/id1625396347" target="_blank" rel="noopener">iPhone (App Store)</a>.</li>
+  <article class="push-device">
+    <strong>To urządzenie</strong>
+    <p data-push-status class="muted">Sprawdzam…</p>
+    <button type="button" data-push-enable hidden>🔔 Włącz powiadomienia na tym urządzeniu</button>
+    <button type="button" class="outline secondary small" data-push-disable hidden>Wyłącz na tym urządzeniu</button>
+  </article>
+
+  {% if devices %}
+  <h3 class="section-sub">Twoje urządzenia z powiadomieniami</h3>
+  <ul class="device-list">
+    {% for d in devices %}
     <li>
-      {% if user.ntfy_topic %}
-      Twój temat: <code class="topic">{{ user.ntfy_topic }}</code>
-      {% else %}
-      Wygeneruj swój temat (losowy – działa jak hasło do Twoich powiadomień):
-      {% endif %}
-      <form method="post" action="/ustawienia/temat" class="inline"
-            {% if user.ntfy_topic %}hx-confirm="Wygenerować nowy temat? Stary przestanie dostawać powiadomienia – trzeba będzie zasubskrybować nowy."{% endif %}>
+      <span>📱 {{ d.label or 'Urządzenie' }} <small class="muted">· od {{ d.created_at.date()|d }}{% if d.last_ok_at %} · ostatnio {{ d.last_ok_at.date()|d }}{% endif %}</small></span>
+      <form method="post" action="/ustawienia/urzadzenia/{{ d.id }}/usun" class="inline" hx-confirm="Usunąć {{ d.label or 'to urządzenie' }}? Przestanie dostawać powiadomienia.">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button type="submit" class="{% if user.ntfy_topic %}link{% else %}small{% endif %}">{% if user.ntfy_topic %}wygeneruj nowy{% else %}Wygeneruj temat{% endif %}</button>
+        <button type="submit" class="link">usuń</button>
       </form>
     </li>
-    {% if user.ntfy_topic %}
-    <li>
-      <strong>Zasubskrybuj temat w aplikacji ntfy na telefonie</strong> – wybierz jeden sposób:
-      <ul>
-        <li><strong>Ręcznie (zawsze działa):</strong> w aplikacji ntfy stuknij okrągły <strong>＋</strong> w prawym dolnym rogu,
-          wklej temat <button type="button" class="link" data-copy="{{ user.ntfy_topic }}">📋 kopiuj temat</button>,
-          zostaw wyłączone „Use another server”{% if server != 'https://ntfy.sh' %} (albo włącz i wpisz <code>{{ server }}</code>){% endif %} i stuknij <strong>Subscribe</strong>.</li>
-        <li><strong>Jednym stuknięciem (Android):</strong> otwórz tę stronę <em>na telefonie</em> i stuknij
-          <a href="ntfy://{{ server.split('://', 1)[1] }}/{{ user.ntfy_topic }}?display=Domownik" hx-boost="false">subskrybuj w ntfy</a>.
-          Na komputerze ani po wklejeniu w pasek adresu ten link nic nie zrobi.</li>
-      </ul>
-    </li>
-    <li>
-      <form method="post" action="/ustawienia/test" class="inline">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button type="submit" class="small">Wyślij powiadomienie próbne</button>
-      </form>
-      <br><small class="muted">Nie dochodzi? Sprawdź, czy wiadomość jest na serwerze:
-        <a href="{{ server }}/{{ user.ntfy_topic }}" target="_blank" rel="noopener" hx-boost="false">podgląd tematu w przeglądarce</a>
-        – jeśli tam jest, a na telefonie nie, temat w aplikacji jest wpisany inaczej.</small>
-    </li>
-    {% endif %}
-  </ol>
+    {% endfor %}
+  </ul>
+  <form method="post" action="/ustawienia/test" class="inline">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit" class="small">Wyślij powiadomienie próbne</button>
+  </form>
+  {% endif %}
 
   <form method="post" action="/ustawienia" class="notify-form">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    <input type="hidden" name="ntfy_topic" value="{{ user.ntfy_topic or '' }}">
     <fieldset>
       <label><input type="checkbox" role="switch" name="notify_morning" value="1" {% if user.notify_morning %}checked{% endif %}>
         Rano ({{ morning_hour }}:00) – zaległe, na dziś i to, co zbliża się do terminu</label>
@@ -60,24 +47,9 @@
     <button type="submit" class="small">Zapisz</button>
   </form>
 
-  <details class="topic-manual">
-    <summary>Mam już temat – wpiszę go ręcznie</summary>
-    <form method="post" action="/ustawienia">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
-      {% if user.notify_morning %}<input type="hidden" name="notify_morning" value="1">{% endif %}
-      {% if user.notify_evening %}<input type="hidden" name="notify_evening" value="1">{% endif %}
-      <div role="group">
-        <input name="ntfy_topic" value="{{ user.ntfy_topic or '' }}" placeholder="np. domownik-…" aria-label="Temat ntfy" autocomplete="off">
-        <button type="submit">Zapisz</button>
-      </div>
-      <small class="muted">Puste pole wyłącza powiadomienia.</small>
-    </form>
-  </details>
-
   <p class="muted"><small>
-    🔒 Treść przechodzi przez publiczny serwer ntfy.sh, więc wysyłamy tylko nazwy zadań i daty – bez kwot.
-    Każdy, kto zna temat, może czytać powiadomienia: nie udostępniaj go.
-    Przycisk <strong>✓</strong> w powiadomieniu działa, gdy telefon ma włączony Tailscale.
+    Przycisk <strong>✓</strong> w powiadomieniu odhacza zadanie bez otwierania aplikacji – działa, gdy telefon ma włączony Tailscale.
+    Na iPhonie powiadomienia działają po dodaniu Domownika do ekranu początkowego (Udostępnij → Do ekranu początkowego) i otwarciu go z ikony.
   </small></p>
 </section>
 

@@ -16,12 +16,12 @@
   <link rel="stylesheet" href="/static/vendor/pico.min.css">
   <link rel="stylesheet" href="/static/vendor/vis-timeline-graph2d.min.css">
   {% block head %}{% endblock %}
-  <link rel="stylesheet" href="/static/app.css?v=13">
+  <link rel="stylesheet" href="/static/app.css?v=14">
   {# in <head>, deferred: run once per full page load – hx-boost swaps only <body>,
      scripts inside <body> would re-run (and stack listeners) on every navigation #}
   <script src="/static/vendor/htmx.min.js" defer></script>
   <script src="/static/vendor/vis-timeline-graph2d.min.js" defer></script>
-  <script src="/static/app.js?v=7" defer></script>
+  <script src="/static/app.js?v=8" defer></script>
 </head>
 <body hx-boost="true" hx-headers='{"X-CSRF-Token": "{{ csrf }}"}'>
 <div class="shell{% if nav %} has-nav{% endif %}">
@@ -40,6 +40,19 @@
     </main>
   </div>
 </div>
+  {% if nav %}
+  {# asks once per device for notifications; shown by app.js only when this browser has not decided yet #}
+  <dialog id="push-ask" aria-labelledby="push-ask-title">
+    <article>
+      <h3 id="push-ask-title">🔔 Włączyć powiadomienia?</h3>
+      <p data-push-ask-text>Domownik przypomni rano o terminach – opłaty, przeglądy, urodziny – a wieczorem o tym, co jutro. Bez instalowania czegokolwiek.</p>
+      <footer class="modal-actions">
+        <button type="button" data-push-ask-yes>Włącz</button>
+        <button type="button" class="outline secondary" data-push-ask-no>Nie teraz</button>
+      </footer>
+    </article>
+  </dialog>
+  {% endif %}
   <dialog id="modal" aria-labelledby="modal-title">
     <article id="modal-body"></article>
   </dialog>

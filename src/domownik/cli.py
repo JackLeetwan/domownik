@@ -155,7 +155,7 @@ def notify(
             return
         digests = nt.build_digests(db, slot, today())
         if not digests:
-            typer.echo("Nikt nie ma ustawionego tematu ntfy (albo ma wyłączony ten skrót).")
+            typer.echo("Nikt nie włączył powiadomień na żadnym urządzeniu (albo ma wyłączony ten skrót).")
         for d in digests:
             typer.echo(f"── {d.user.name}: {d.title()}")
             typer.echo(d.message() or "(nic nowego – nie wyśle się)")

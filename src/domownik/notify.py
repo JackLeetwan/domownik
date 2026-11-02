@@ -1,39 +1,34 @@
-"""Push notifications via ntfy: morning digest, evening "tomorrow", one-tap "done".
+"""Web Push notifications: morning digest, evening "tomorrow", one-tap "done".
 
-Content deliberately has no amounts – messages pass through a public ntfy server
-and anyone who knows a topic can read it.
+Sent by Domownik itself to every browser/phone a user enabled in Ustawienia – no extra app.
+Payloads are end-to-end encrypted for the device (the push service only relays them).
 """
 
 from __future__ import annotations
 
+import json
 import logging
-import secrets
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any
 
-import httpx
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import services
-from domownik.config import get_settings
+from domownik import services, webpush
+from domownik.config import get_settings, now
+from domownik.domain.money import format_pln
 from domownik.domain.status import humanize_days
 from domownik.domain.tree import Tree
-from domownik.models import NotificationLog, Task, User
+from domownik.models import NotificationLog, PushSubscription, Task, User
 
 log = logging.getLogger("domownik.notify")
 
 OVERDUE_REPEAT_DAYS = 3  # overdue tasks come back in the digest every N days
-MAX_DONE_ACTIONS = 2  # ntfy allows 3 actions; one is "Otwórz"
+MAX_DONE_ACTIONS = 2  # Chrome on Android shows at most 2 buttons; tapping the body opens the app
 DONE_TOKEN_MAX_AGE = 14 * 86400
 MAX_LINES = 12
-
-
-def new_topic() -> str:
-    """Hard to guess – the topic is the only thing protecting a public ntfy topic."""
-    return "domownik-" + secrets.token_urlsafe(18).replace("_", "").replace("-", "")[:22].lower()
 
 
 # ---------------------------------------------------------------- what to send
@@ -93,27 +88,34 @@ def _already(db: Session, user: User, kind: str, *, task_id: int | None, ref: da
     return db.scalar(stmt.limit(1)) is not None
 
 
-def _line_text(rank: int, title: str, due: date, today: date) -> str:
+def _amount(tasks: list[Task]) -> str:
+    total = sum((t.amount_gr or 0) * (1 if t.direction == "income" else -1) for t in tasks if t.direction != "none")
+    return f" · {format_pln(total, sign=True)}" if total else ""
+
+
+def _line_text(rank: int, title: str, due: date, today: date, tasks: list[Task]) -> str:
     from domownik.web import fmt_date
 
+    money = _amount(tasks)
     if rank == 0:
-        return f"⚠️ {title} – zaległe ({humanize_days((due - today).days)})"
+        return f"⚠️ {title} – zaległe ({humanize_days((due - today).days)}){money}"
     if rank == 1:
-        return f"📅 Dziś: {title}"
+        return f"📅 Dziś: {title}{money}"
     if rank == 3:
-        return f"🔔 Jutro: {title}"
-    return f"🔜 {fmt_date(due)} ({humanize_days((due - today).days)}): {title}"
+        return f"🔔 Jutro: {title}{money}"
+    return f"🔜 {fmt_date(due)} ({humanize_days((due - today).days)}): {title}{money}"
 
 
 def build_digests(db: Session, slot: str, today: date, *, preview_for: User | None = None) -> list[Digest]:
-    """Digests for every user with a topic and the slot switched on. Does not write anything.
+    """Digests for every user with a device and the slot switched on. Does not write anything.
 
-    preview_for: only this user's digest, regardless of topic and switches (settings page, test push).
+    preview_for: only this user's digest, regardless of devices and switches (settings page, test push).
     """
+    with_device = set(db.scalars(select(PushSubscription.user_id)))
     users = [
         u
         for u in db.scalars(select(User).where(User.is_active.is_(True)))
-        if (u.ntfy_topic and (u.notify_morning if slot == "morning" else u.notify_evening))
+        if (u.id in with_device and (u.notify_morning if slot == "morning" else u.notify_evening))
         or (preview_for is not None and u.id == preview_for.id)
     ]
     if preview_for is not None:
@@ -157,7 +159,8 @@ def build_digests(db: Session, slot: str, today: date, *, preview_for: User | No
                 title = ", ".join(r.task.title for r in rs)
             else:
                 title = rs[0].task.title
-            digests[user.id].lines.append(Line(rank, _line_text(rank, title, due, today), [r.task for r in rs], due))
+            tasks = [r.task for r in rs]
+            digests[user.id].lines.append(Line(rank, _line_text(rank, title, due, today, tasks), tasks, due))
         digests[user.id].lines.sort(key=lambda ln: (ln.rank, ln.due, ln.text))
     return list(digests.values())
 
@@ -166,7 +169,7 @@ def build_digests(db: Session, slot: str, today: date, *, preview_for: User | No
 
 
 def _serializer() -> URLSafeTimedSerializer:
-    return URLSafeTimedSerializer(get_settings().resolved_secret_key(), salt="ntfy-done")
+    return URLSafeTimedSerializer(get_settings().resolved_secret_key(), salt="push-done")
 
 
 def done_token(task: Task, user: User) -> str:
@@ -184,40 +187,45 @@ def read_done_token(token: str) -> dict[str, Any] | None:
 
 
 def payload(d: Digest) -> dict[str, Any]:
-    s = get_settings()
-    base = s.base_url.rstrip("/")
-    actions: list[dict[str, Any]] = [{"action": "view", "label": "Otwórz", "url": base + "/", "clear": True}]
+    """What the service worker (static/sw.js) turns into a notification. URLs are same-origin paths."""
+    actions: list[dict[str, Any]] = []
     for ln in d.lines:
-        if len(actions) > MAX_DONE_ACTIONS:
+        if len(actions) >= MAX_DONE_ACTIONS:
             break
         if len(ln.tasks) == 1 and ln.rank in (0, 1, 3) and ln.tasks[0].next_due_date:
             t = ln.tasks[0]
-            label = "✓ " + (t.title if len(t.title) <= 24 else t.title[:23] + "…")
+            label = "✓ " + (t.title if len(t.title) <= 22 else t.title[:21] + "…")
             actions.append(
-                {
-                    "action": "http",
-                    "label": label,
-                    "url": f"{base}/n/done/{done_token(t, d.user)}",
-                    "method": "POST",
-                    "clear": True,
-                }
+                {"action": f"done-{len(actions)}", "title": label, "url": f"/n/done/{done_token(t, d.user)}"}
             )
     return {
-        "topic": d.user.ntfy_topic,
         "title": d.title(),
-        "message": d.message(),
-        "priority": 4 if d.counts.get(0) else 3,
-        "tags": ["house"],
-        "click": base + "/",
+        "body": d.message(),
+        "url": "/",
+        "tag": f"domownik-{d.slot}",
+        "urgent": bool(d.counts.get(0)),
         "actions": actions,
     }
 
 
-def send(body: dict[str, Any]) -> None:
-    """Publish one message (JSON API – titles may contain any Unicode)."""
-    s = get_settings()
-    r = httpx.post(s.ntfy_server.rstrip("/") + "/", json=body, timeout=15)
-    r.raise_for_status()
+def send(db: Session, user: User, body: dict[str, Any]) -> int:
+    """Push to every device of the user. Returns how many got it; raises if all failed (retry later)."""
+    subs = list(db.scalars(select(PushSubscription).where(PushSubscription.user_id == user.id)))
+    delivered, errors = 0, []
+    data = json.dumps(body, ensure_ascii=False)
+    for sub in subs:
+        try:
+            if webpush.deliver(sub, data, urgent=bool(body.get("urgent"))):
+                sub.last_ok_at = now().replace(tzinfo=None)
+                delivered += 1
+            else:
+                db.delete(sub)  # unsubscribed / expired on the device
+        except webpush.PushError as exc:
+            errors.append(exc)
+    db.commit()
+    if not delivered and errors:
+        raise errors[0]
+    return delivered
 
 
 RANK_KIND = {0: "overdue", 1: "today", 2: "task", 3: "tomorrow"}
@@ -238,9 +246,9 @@ def run_slot(db: Session, slot: str, today: date) -> int:
             continue
         if d.lines:
             try:
-                send(payload(d))
-            except httpx.HTTPError as exc:
-                log.warning("ntfy: %s – %s", d.user.name, exc)
+                send(db, d.user, payload(d))
+            except webpush.PushError as exc:
+                log.warning("push: %s – %s", d.user.name, exc)
                 continue  # try again on the next tick
             record(db, d, today)
             sent += 1
@@ -263,16 +271,16 @@ def tick(db: Session, now: datetime) -> None:
         run_slot(db, "evening", today)
 
 
-def send_test(user: User, digest: Digest | None) -> None:
+def send_test(db: Session, user: User, digest: Digest | None) -> int:
     if digest and digest.lines:
         body = payload(digest)
         body["title"] = "[próba] " + body["title"]
     else:
         body = {
-            "topic": user.ntfy_topic,
             "title": "Domownik: próba",
-            "message": "Powiadomienia działają. Rano dostaniesz tu skrót terminów.",
-            "tags": ["house"],
-            "click": get_settings().base_url.rstrip("/") + "/",
+            "body": "Powiadomienia działają. Rano dostaniesz tu skrót terminów.",
+            "url": "/",
+            "tag": "domownik-test",
+            "actions": [],
         }
-    send(body)
+    return send(db, user, body)

@@ -21,8 +21,7 @@ class Settings(BaseSettings):
     # Set to true when served over HTTPS (tailscale serve, Caddy) – marks the session cookie Secure
     https_only: bool = False
     session_days: int = 90
-    # push notifications (ntfy) – each user sets a private topic in Ustawienia
-    ntfy_server: str = "https://ntfy.sh"
+    # push notifications (Web Push) – each user enables them on their phone (Ustawienia)
     morning_hour: int = 8
     evening_hour: int = 19
     # background jobs (digests, autopay); off in tests and throwaway dev copies

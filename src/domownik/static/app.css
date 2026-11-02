@@ -433,3 +433,10 @@ code.topic { user-select: all; word-break: break-all; }
 .notify-form fieldset label { margin-bottom: 0.5rem; }
 .push-preview { padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; }
 .push-preview pre { margin: 0.4rem 0 0; padding: 0; background: none; white-space: pre-wrap; font-family: inherit; font-size: 0.9rem; }
+.push-device { padding: 0.8rem 1rem; }
+.push-device p { margin: 0.3rem 0 0.6rem; }
+.push-device button { width: auto; margin: 0; }
+.section-sub { font-size: 1rem; margin: 1rem 0 0.4rem; }
+.device-list { list-style: none; padding: 0; margin: 0 0 0.8rem; }
+.device-list li { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 0.35rem 0; border-bottom: 1px solid var(--dm-tile-border); list-style: none; }
+#push-ask article { margin: 0; }

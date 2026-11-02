@@ -1,20 +1,29 @@
-"""Push notifications: who gets what, deduplication, the one-tap 'done', settings page."""
+"""Push notifications: who gets what, deduplication, the one-tap 'done', devices, settings page."""
 
+import base64
+import json
+import os
 from datetime import datetime, time, timedelta
 
 import pytest
 from sqlalchemy import select
 
-from domownik import notify
+from domownik import notify, webpush
 from domownik.config import get_settings, today
-from domownik.models import Completion, Item, NotificationLog, Task, User
+from domownik.models import Completion, Item, NotificationLog, PushSubscription, Task, User
 from domownik.security import hash_password
 
 
 @pytest.fixture
 def sent(monkeypatch):
+    """Every delivered push as (subscription endpoint, decoded payload)."""
     out: list[dict] = []
-    monkeypatch.setattr(notify, "send", lambda body: out.append(body))
+
+    def fake_deliver(sub, data, *, urgent=False):
+        out.append(json.loads(data) | {"_endpoint": sub.endpoint, "_urgent": urgent})
+        return True
+
+    monkeypatch.setattr(webpush, "deliver", fake_deliver)
     return out
 
 
@@ -42,8 +51,9 @@ def _task(db, item, title, due, **kw) -> Task:
     return t
 
 
-def _with_topic(db, user, topic="domownik-test-topic-1"):
-    user.ntfy_topic = topic
+def _with_topic(db, user, endpoint="https://push.example.com/dev-1"):
+    """A user with one phone that enabled notifications."""
+    db.add(PushSubscription(user_id=user.id, endpoint=endpoint, p256dh="pk", auth="au", label="Android · Chrome"))
     db.commit()
     return user
 
@@ -67,7 +77,7 @@ def test_morning_digest_picks_overdue_today_and_newly_soon(db, user):
     assert "Opłaty – 3 pozycji" in msg  # same-day payments → one line
     assert "Ubezpieczenie" not in msg and "Netflix" not in msg
     assert d.title() == "Domownik: 1 zaległe · 1 na dziś · 4 wkrótce"
-    assert "zł" not in msg and "123" not in msg  # no amounts through a public server
+    assert "−123,45\xa0zł" in msg and "Opłaty – 3 pozycji · −370,35\xa0zł" in msg  # encrypted end-to-end
 
 
 def test_assignee_gets_own_and_unassigned_only(db, user):
@@ -75,7 +85,7 @@ def test_assignee_gets_own_and_unassigned_only(db, user):
     db.add(other)
     db.commit()
     _with_topic(db, user)
-    _with_topic(db, other, "domownik-test-topic-2")
+    _with_topic(db, other, "https://push.example.com/dev-2")
     item = _item(db)
     t = today()
     _task(db, item, "Moje", t, assignee_id=user.id)
@@ -98,14 +108,14 @@ def test_run_slot_once_a_day_and_dedup_over_days(db, user, sent):
     assert notify.run_slot(db, "morning", t) == 1
     assert notify.run_slot(db, "morning", t) == 0  # slot already done today
     body = sent[0]
-    assert body["topic"] == user.ntfy_topic and body["priority"] == 4
-    assert body["actions"][0]["label"] == "Otwórz"
-    assert any(a["action"] == "http" and "/n/done/" in a["url"] for a in body["actions"])
+    assert body["_endpoint"] == "https://push.example.com/dev-1" and body["_urgent"] is True
+    assert body["url"] == "/" and body["tag"] == "domownik-morning"
+    assert body["actions"][0]["title"].startswith("✓ ") and body["actions"][0]["url"].startswith("/n/done/")
 
     # next day: "soon" is not repeated, overdue waits for its 3-day repeat
     assert notify.run_slot(db, "morning", t + timedelta(days=1)) == 0
     assert notify.run_slot(db, "morning", t + timedelta(days=3)) == 1
-    assert "Zaległe" in sent[-1]["message"] and "Wkrótce" not in sent[-1]["message"]
+    assert "Zaległe" in sent[-1]["body"] and "Wkrótce" not in sent[-1]["body"]
 
 
 def test_today_announcement_does_not_hide_first_overdue_day(db, user, sent):
@@ -114,19 +124,17 @@ def test_today_announcement_does_not_hide_first_overdue_day(db, user, sent):
     _task(db, _item(db), "Rata", t)
     notify.run_slot(db, "morning", t)
     notify.run_slot(db, "morning", t + timedelta(days=1))
-    assert "Rata – zaległe" in sent[-1]["message"]
+    assert "Rata – zaległe" in sent[-1]["body"]
 
 
 def test_failed_send_is_retried(db, user, monkeypatch):
-    import httpx
-
     _with_topic(db, user)
     _task(db, _item(db), "Śmieci", today())
 
-    def boom(body):
-        raise httpx.ConnectError("offline")
+    def boom(sub, data, *, urgent=False):
+        raise webpush.PushError("offline")
 
-    monkeypatch.setattr(notify, "send", boom)
+    monkeypatch.setattr(webpush, "deliver", boom)
     assert notify.run_slot(db, "morning", today()) == 0
     assert db.scalar(select(NotificationLog)) is None  # nothing recorded → next tick tries again
 
@@ -139,12 +147,12 @@ def test_evening_is_about_tomorrow(db, user, sent):
     _task(db, item, "Dziś", t)
     notify.run_slot(db, "evening", t)
     assert sent[0]["title"] == "Domownik: na jutro"
-    assert "Jutro: Strój na bal" in sent[0]["message"] and "Dziś" not in sent[0]["message"]
+    assert "Jutro: Strój na bal" in sent[0]["body"] and "Dziś" not in sent[0]["body"]
 
 
 def test_switched_off_slot_and_no_topic(db, user, sent):
     _task(db, _item(db), "Śmieci", today())
-    assert notify.run_slot(db, "morning", today()) == 0  # no topic
+    assert notify.run_slot(db, "morning", today()) == 0  # no device
     _with_topic(db, user)
     user.notify_morning = False
     db.commit()
@@ -179,21 +187,97 @@ def test_done_from_push(client, db, user):
     assert client.post("/n/done/zly-token").status_code == 403
 
 
-def test_settings_page(auth_client, db, user, sent):
+def test_expired_device_is_removed(db, user, monkeypatch):
+    _with_topic(db, user)
+    _with_topic(db, user, "https://push.example.com/dev-old")
+    _task(db, _item(db), "Śmieci", today())
+    got = []
+
+    def deliver(sub, data, *, urgent=False):
+        got.append(sub.endpoint)
+        return not sub.endpoint.endswith("old")  # 410 Gone for the old phone
+
+    monkeypatch.setattr(webpush, "deliver", deliver)
+    assert notify.run_slot(db, "morning", today()) == 1
+    assert len(got) == 2
+    assert [s.endpoint for s in db.scalars(select(PushSubscription))] == ["https://push.example.com/dev-1"]
+
+
+def test_subscribe_api_and_settings_page(auth_client, db, user, sent):
     page = auth_client.get("/ustawienia")
-    assert "Wygeneruj temat" in page.text
+    assert "Włącz powiadomienia na tym urządzeniu" in page.text and "Twoje urządzenia" not in page.text
 
-    auth_client.post("/ustawienia/temat")
-    db.refresh(user)
-    assert user.ntfy_topic and user.ntfy_topic.startswith("domownik-") and len(user.ntfy_topic) >= 20
+    key = auth_client.get("/push/key").json()["key"]
+    assert len(base64.urlsafe_b64decode(key + "==")) == 65  # uncompressed P-256 point
 
-    auth_client.post("/ustawienia", data={"ntfy_topic": user.ntfy_topic, "notify_morning": "1"})
+    sub = {"endpoint": "https://fcm.googleapis.com/fcm/send/abc", "keys": {"p256dh": "BPk", "auth": "xyz"}}
+    ua = {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 14; 23113RKC6G) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36"
+    }
+    assert auth_client.post("/push/subscribe", json=sub, headers=ua).json() == {"ok": True}
+    auth_client.post("/push/subscribe", json=sub, headers=ua)  # same browser again → still one device
+    (dev,) = db.scalars(select(PushSubscription))
+    assert dev.user_id == user.id and dev.label == "Android · Chrome"
+    assert auth_client.post("/push/subscribe", json={"endpoint": "http://x", "keys": {}}).status_code == 400
+
+    page = auth_client.get("/ustawienia")
+    assert "Android · Chrome" in page.text
+    r = auth_client.post("/ustawienia/test")
+    assert "Wysłano powiadomienie próbne (1 urządzenie)" in r.text
+    assert sent[-1]["title"].startswith("Domownik") and sent[-1]["_endpoint"] == sub["endpoint"]
+
+    auth_client.post("/ustawienia", data={"notify_morning": "1"})
     db.refresh(user)
     assert user.notify_morning is True and user.notify_evening is False
 
-    r = auth_client.post("/ustawienia", data={"ntfy_topic": "krótki"})
-    assert r.status_code == 422
+    auth_client.post("/push/unsubscribe", json={"endpoint": sub["endpoint"]})
+    assert db.scalar(select(PushSubscription)) is None
 
-    r = auth_client.post("/ustawienia/test")
-    assert "Wysłano powiadomienie próbne" in r.text
-    assert sent[-1]["topic"] == user.ntfy_topic
+
+def test_subscribe_requires_csrf(auth_client):
+    sub = {"endpoint": "https://fcm.googleapis.com/fcm/send/abc", "keys": {"p256dh": "BPk", "auth": "xyz"}}
+    assert auth_client.post("/push/subscribe", json=sub, headers={"X-CSRF-Token": "zly"}).status_code == 403
+
+
+def test_service_worker_served_from_root(client):
+    r = client.get("/sw.js")
+    assert r.status_code == 200 and "javascript" in r.headers["content-type"]
+    assert 'addEventListener("push"' in r.text
+
+
+def test_real_encryption_and_vapid(db, user, monkeypatch):
+    """pywebpush really encrypts for a browser key and signs with our VAPID key; only HTTP is faked."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+
+    browser = ec.generate_private_key(ec.SECP256R1())
+    p256dh = (
+        base64.urlsafe_b64encode(
+            browser.public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
+        )
+        .rstrip(b"=")
+        .decode()
+    )
+    auth = base64.urlsafe_b64encode(os.urandom(16)).rstrip(b"=").decode()
+    sub = PushSubscription(user_id=user.id, endpoint="https://fcm.googleapis.com/fcm/send/x", p256dh=p256dh, auth=auth)
+
+    captured = {}
+
+    class Resp:
+        status_code = 201
+        text = ""
+        headers: dict = {}
+
+    def fake_post(url, data=None, headers=None, timeout=None, **kw):
+        captured.update(url=url, data=data, headers=headers)
+        return Resp()
+
+    import requests
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    assert webpush.deliver(sub, json.dumps({"title": "Zażółć"}), urgent=True) is True
+    assert captured["url"] == sub.endpoint
+    assert captured["headers"]["content-encoding"] == "aes128gcm"
+    assert captured["headers"]["Urgency"] == "high"
+    assert captured["headers"]["authorization"].startswith("vapid t=")
+    assert b"Za" not in captured["data"]  # encrypted

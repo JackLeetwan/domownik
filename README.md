@@ -24,11 +24,14 @@ potem `docker compose up -d`.
 
 ## Powiadomienia
 
-Przez [ntfy](https://ntfy.sh): każdy w **Ustawieniach** generuje swój temat i subskrybuje go w aplikacji ntfy.
+Web Push wysyłany przez samego Domownika (service worker `/sw.js`, klucze VAPID w `data/secrets/`) –
+bez dodatkowych aplikacji. Po zalogowaniu na nowym urządzeniu wyskakuje pytanie „Włączyć powiadomienia?”;
+zarządzanie w **Ustawieniach**. Na iPhonie wymaga dodania do ekranu początkowego (iOS 16.4+).
 Scheduler w kontenerze (co 5 min) wysyła rano (8:00) skrót: zaległe (co 3 dni), na dziś, nowe „wkrótce”;
-wieczorem (19:00) – co jest jutro. Bez kwot w treści. Przycisk ✓ w powiadomieniu odhacza zadanie
-(podpisany link, ważny 14 dni; telefon musi być w tailnecie). Podgląd: `domownik notify morning`.
-Na kopiach bazy uruchamiaj z `DOMOWNIK_SCHEDULER=false`.
+wieczorem (19:00) – co jest jutro. Przycisk ✓ w powiadomieniu odhacza zadanie (podpisany link, 14 dni;
+telefon musi być w tailnecie). Podgląd: `domownik notify morning`.
+Na kopiach bazy uruchamiaj z `DOMOWNIK_SCHEDULER=false`. Po przywróceniu kopii (bez `secrets/`)
+urządzenia trzeba włączyć ponownie.
 
 ## Kopie zapasowe
 

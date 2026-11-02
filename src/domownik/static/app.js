@@ -62,6 +62,143 @@
     setTimeout(() => { btn.textContent = label; }, 2000);
   });
 
+  // ------------------------------------------------------------------ push notifications
+  // Web Push straight from Domownik: service worker /sw.js + one subscription per browser.
+  const PUSH_SNOOZE_DAYS = 7;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const pushSupported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  const loggedIn = () => !!document.getElementById("sidebar");
+
+  function csrf() {
+    try { return JSON.parse(document.body.getAttribute("hx-headers"))["X-CSRF-Token"] || ""; } catch (_) { return ""; }
+  }
+  function keyBytes(b64) {
+    const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+    const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+    return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+  }
+  async function postJSON(url, body) {
+    const r = await fetch(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  }
+  async function pushRegistration() {
+    await navigator.serviceWorker.register("/sw.js");
+    return navigator.serviceWorker.ready;
+  }
+  async function pushSubscribe() {
+    const reg = await pushRegistration();
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const { key } = await (await fetch("/push/key", { credentials: "same-origin" })).json();
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) });
+    }
+    await postJSON("/push/subscribe", sub.toJSON());
+    try { sessionStorage.setItem("dm-push-synced", "1"); } catch (_) { /* private mode */ }
+  }
+  async function pushEnable() {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return permission;
+    await pushSubscribe();
+    return "granted";
+  }
+  async function pushDisable() {
+    const reg = await pushRegistration();
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await postJSON("/push/unsubscribe", { endpoint: sub.endpoint });
+      await sub.unsubscribe();
+    }
+  }
+
+  // settings page: what is the state of *this* device
+  async function renderPushStatus(root) {
+    const status = root.querySelector && root.querySelector("[data-push-status]");
+    if (!status) return;
+    const enableBtn = root.querySelector("[data-push-enable]");
+    const disableBtn = root.querySelector("[data-push-disable]");
+    const show = (text, on, off) => { status.textContent = text; enableBtn.hidden = !on; disableBtn.hidden = !off; };
+    if (!pushSupported) {
+      show(isIOS && !standalone
+        ? "Na iPhonie: w Safari stuknij Udostępnij → „Do ekranu początkowego”, otwórz Domownika z nowej ikony i wróć tutaj."
+        : "Ta przeglądarka nie obsługuje powiadomień. Na telefonie użyj Chrome (Android) albo Safari z ekranu początkowego (iPhone).", false, false);
+      return;
+    }
+    if (Notification.permission === "denied") {
+      show("Powiadomienia są zablokowane dla Domownika. Odblokuj je w ustawieniach przeglądarki (ikona kłódki przy adresie → Powiadomienia), potem odśwież stronę.", false, false);
+      return;
+    }
+    let sub = null;
+    try { sub = await (await pushRegistration()).pushManager.getSubscription(); } catch (_) { /* no SW */ }
+    if (Notification.permission === "granted" && sub) show("✅ Powiadomienia są włączone na tym urządzeniu.", false, true);
+    else show("Na tym urządzeniu powiadomienia są wyłączone.", true, false);
+    if (!enableBtn.dataset.dmInit) {
+      enableBtn.dataset.dmInit = disableBtn.dataset.dmInit = "1";
+      enableBtn.addEventListener("click", async () => {
+        enableBtn.disabled = true;
+        try {
+          const result = await pushEnable();
+          if (result === "granted") window.location.reload();
+          else renderPushStatus(document);
+        } catch (e) { toast(`Nie udało się włączyć powiadomień: ${e.message}`); }
+        enableBtn.disabled = false;
+      });
+      disableBtn.addEventListener("click", async () => {
+        try { await pushDisable(); window.location.reload(); } catch (e) { toast(`Nie udało się: ${e.message}`); }
+      });
+    }
+  }
+  document.addEventListener("htmx:load", (e) => renderPushStatus(e.detail.elt));
+
+  // once per page load: keep an existing subscription in sync, or ask (politely) on a new device
+  async function pushOnLoad() {
+    if (!loggedIn() || location.pathname.startsWith("/ustawienia")) return;
+    const snoozed = Number(store.get("dm-push-snooze") || 0) > Date.now();
+    if (!pushSupported) {
+      if (isIOS && !standalone && !snoozed) askPush(true);
+      return;
+    }
+    if (Notification.permission === "granted") {
+      let synced = false;
+      try { synced = sessionStorage.getItem("dm-push-synced") === "1"; } catch (_) { /* private mode */ }
+      if (!synced) pushSubscribe().catch(() => { /* offline – next time */ });
+    } else if (Notification.permission === "default" && !snoozed) {
+      setTimeout(() => askPush(false), 1200);
+    }
+  }
+  function askPush(iosHint) {
+    const dlg = document.getElementById("push-ask");
+    if (!dlg || dlg.open) return;
+    const yes = dlg.querySelector("[data-push-ask-yes]");
+    const no = dlg.querySelector("[data-push-ask-no]");
+    if (iosHint) {
+      dlg.querySelector("[data-push-ask-text]").textContent =
+        "Na iPhonie powiadomienia działają, gdy Domownik jest na ekranie początkowym: stuknij Udostępnij → „Do ekranu początkowego”, a potem otwieraj go z ikony.";
+      yes.hidden = true;
+      no.textContent = "OK";
+    }
+    yes.onclick = async () => {
+      dlg.close();
+      try {
+        const result = await pushEnable();
+        if (result === "granted") toast("🔔 Powiadomienia włączone.");
+        else if (result === "denied") toast("Powiadomienia zablokowane – możesz je włączyć później w Ustawieniach.");
+      } catch (e) { toast(`Nie udało się włączyć powiadomień: ${e.message}`); }
+    };
+    no.onclick = () => {
+      store.set("dm-push-snooze", String(Date.now() + PUSH_SNOOZE_DAYS * 86400000));
+      dlg.close();
+    };
+    dlg.showModal();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", pushOnLoad);
+  else pushOnLoad();
+
   // ------------------------------------------------------------------ errors
   // htmx swallows failed requests by default – then a click "does nothing".
   function toast(msg) {
