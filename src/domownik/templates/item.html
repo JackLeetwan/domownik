@@ -116,8 +116,8 @@
 
 {% if inactive %}
 <details>
-  <summary>Zakończone zadania jednorazowe ({{ inactive|length }})</summary>
-  <ul>{% for t in inactive %}<li><a href="/tasks/{{ t.id }}/edit">{{ t.title }}</a></li>{% endfor %}</ul>
+  <summary>Zakończone zadania ({{ inactive|length }})</summary>
+  <ul>{% for t in inactive %}<li><a href="/tasks/{{ t.id }}/edit">{{ t.title }}</a>{% if t.recurrence.count %} <small class="muted">· seria {{ t.recurrence.count }}/{{ t.recurrence.count }} zakończona</small>{% endif %}</li>{% endfor %}</ul>
 </details>
 {% endif %}
 {% endblock %}

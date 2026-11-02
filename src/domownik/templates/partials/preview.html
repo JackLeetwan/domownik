@@ -1,3 +1,3 @@
 {% if error %}<p class="error">{{ error }}</p>{% else %}
-<p class="muted"><strong>{{ text }}</strong>{% if dates %} · najbliższe: {% for d in dates %}{{ d|d(weekday=True) }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</p>
+<p class="muted"><strong>{{ text }}</strong>{% if dates and dates|length > 1 %} · kolejne: {% for d in dates %}{{ d|d(weekday=True) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if last %} … ostatni: {{ last|d }}{% endif %}{% elif not has_date and text != 'jednorazowo' %} · wpisz datę, a pokażę kolejne terminy{% endif %}</p>
 {% endif %}

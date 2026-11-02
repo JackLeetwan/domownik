@@ -2,96 +2,125 @@
 {% block content %}
 {% set crumbs_link_last = True %}{% include "partials/breadcrumbs.html" %}
 {% set r = task.recurrence or {} %}
+{% set freq = preset_of(r, task.next_due_date) %}
+{% set end = end_of(r) %}
 <h1>{% if is_new %}Nowe zadanie{% else %}Edytuj zadanie{% endif %}</h1>
-<form method="post" action="{% if is_new %}/tasks/new{% else %}/tasks/{{ task.id }}/edit{% endif %}" id="task-form" hx-push-url="false">
+<form method="post" action="{% if is_new %}/tasks/new{% else %}/tasks/{{ task.id }}/edit{% endif %}" id="task-form" class="task-form" data-task-form hx-push-url="false">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <div id="form-error"></div>
-  <div class="grid">
-    <label>Tytuł <input name="title" value="{{ task.title or '' }}" required placeholder="np. Odkamienianie ekspresu"></label>
-    <label>Kategoria
-      <select name="category">{% for k, (lbl, ic) in categories.items() %}<option value="{{ k }}" {% if k == task.category %}selected{% endif %}>{{ ic }} {{ lbl }}</option>{% endfor %}</select>
-    </label>
-  </div>
-  <label>Gdzie
-    <select name="item_id">{% for it in items %}<option value="{{ it.id }}" {% if it.id == task.item_id %}selected{% endif %}>{{ label(it.id) }}</option>{% endfor %}</select>
-  </label>
+  <label>Tytuł <input name="title" value="{{ task.title or '' }}" required placeholder="np. Odkamienianie ekspresu"></label>
 
-  <fieldset class="rule" hx-get="/tasks/preview" hx-trigger="change, keyup delay:400ms, load" hx-target="#rule-preview" hx-include="#task-form" hx-push-url="false">
-    <legend>Powtarzanie</legend>
-    <label>Tryb
-      <select name="mode" data-mode>
-        <option value="interval" {% if r.mode == 'interval' %}selected{% endif %}>Co określony czas</option>
-        <option value="monthly" {% if r.mode == 'monthly' %}selected{% endif %}>Co miesiąc, w dniu…</option>
-        <option value="fixed" {% if r.mode == 'fixed' %}selected{% endif %}>Stałe daty w roku</option>
-        <option value="easter" {% if r.mode == 'easter' %}selected{% endif %}>Względem Wielkanocy</option>
-        <option value="nth_weekday" {% if r.mode == 'nth_weekday' %}selected{% endif %}>N-ty dzień tygodnia w miesiącu</option>
-        <option value="once" {% if r.mode == 'once' %}selected{% endif %}>Jednorazowo</option>
-      </select>
-    </label>
-    <div class="grid" data-for="interval">
-      <label>Co <input type="number" name="every" min="1" value="{{ r.every or 1 }}"></label>
-      <label>Jednostka
-        <select name="unit">{% for u, labels in UNIT_LABELS.items() %}<option value="{{ u }}" {% if u == r.unit %}selected{% endif %}>{{ labels[2] }}</option>{% endfor %}</select>
-      </label>
-      <label>Licz od
-        <select name="anchor">
-          <option value="completion" {% if r.anchor != 'due' %}selected{% endif %}>dnia wykonania</option>
-          <option value="due" {% if r.anchor == 'due' %}selected{% endif %}>poprzedniego terminu</option>
+  <div class="rule" hx-get="/tasks/preview" hx-trigger="change, keyup delay:400ms, load" hx-target="#rule-preview" hx-include="#task-form" hx-push-url="false">
+    <div class="form-row">
+      <label>Kiedy <input type="date" name="next_due_date" value="{{ task.next_due_date.isoformat() if task.next_due_date else '' }}" required></label>
+      <label>Powtarzanie
+        <select name="freq">
+          {% for k, l in FREQ_LABELS.items() %}{% if k != 'km' or is_car %}<option value="{{ k }}" {% if k == freq %}selected{% endif %}>{{ l }}</option>{% endif %}{% endfor %}
         </select>
       </label>
-      <label>lub co km <input type="number" name="km" min="0" value="{{ r.km or '' }}" placeholder="opcjonalnie"></label>
     </div>
-    <div class="grid" data-for="monthly">
-      <label>Dzień miesiąca <input type="number" name="day" min="1" max="31" value="{{ r.day or 10 }}"></label>
+
+    <div class="rule-custom" data-freq-for="custom km">
+      <label data-freq-for="custom">Jak
+        <select name="mode">
+          <option value="interval" {% if r.mode in ('interval', 'once', None) %}selected{% endif %}>Co określony czas</option>
+          <option value="monthly" {% if r.mode == 'monthly' %}selected{% endif %}>Co miesiąc, w dniu…</option>
+          <option value="fixed" {% if r.mode == 'fixed' %}selected{% endif %}>Stałe daty w roku</option>
+          <option value="easter" {% if r.mode == 'easter' %}selected{% endif %}>Względem Wielkanocy</option>
+          <option value="nth_weekday" {% if r.mode == 'nth_weekday' %}selected{% endif %}>N-ty dzień tygodnia w miesiącu</option>
+        </select>
+      </label>
+      <div data-for="interval">
+        <div class="form-row">
+          <label>Co ile <input type="number" name="every" min="1" value="{{ r.every or 1 }}"></label>
+          <label><span class="visually-hidden">Jednostka</span>&nbsp;
+            <select name="unit" aria-label="Jednostka">{% for u, labels in UNIT_LABELS.items() %}<option value="{{ u }}" {% if u == (r.unit or 'month') %}selected{% endif %}>{{ labels[2] }}</option>{% endfor %}</select>
+          </label>
+        </div>
+        <label>Kolejny termin liczony od
+          <select name="anchor">
+            <option value="due" {% if r.anchor == 'due' %}selected{% endif %}>poprzedniego terminu (stały rytm)</option>
+            <option value="completion" {% if r.anchor != 'due' %}selected{% endif %}>dnia wykonania</option>
+          </select>
+        </label>
+        {% if is_car %}
+        <label>Albo co ile km <input type="number" name="km" min="0" value="{{ r.km or '' }}" placeholder="np. 15000" data-km></label>
+        {% endif %}
+      </div>
+      <div data-for="monthly">
+        <label>Dzień miesiąca <input type="number" name="day" min="1" max="31" value="{{ r.day or 10 }}"></label>
+      </div>
+      <div data-for="fixed">
+        <label>Daty (MM-DD, po przecinku) <input name="dates" value="{{ (r.dates or [])|join(', ') }}" placeholder="03-15, 09-15"></label>
+      </div>
+      <div data-for="easter">
+        <label>Przesunięcie [dni] <input type="number" name="offset" value="{{ r.offset or 0 }}"></label>
+        <small class="muted">0 = Wielkanoc, 60 = Boże Ciało, −46 = Środa Popielcowa</small>
+      </div>
+      <div class="form-row form-row-3" data-for="nth_weekday">
+        <label>Który <select name="n">{% for v, l in [(1,'1.'),(2,'2.'),(3,'3.'),(4,'4.'),(5,'5.'),(-1,'ostatni')] %}<option value="{{ v }}" {% if v == r.n %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+        <label>Dzień <select name="weekday">{% for k, l in WEEKDAY_LABELS.items() %}<option value="{{ k }}" {% if k == r.weekday %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+        <label>Miesiąc <select name="month">{% for m in range(1, 13) %}<option value="{{ m }}" {% if m == r.month %}selected{% endif %}>{{ MONTH_GENITIVE[m] }}</option>{% endfor %}</select></label>
+      </div>
     </div>
-    <div data-for="fixed">
-      <label>Daty (MM-DD, po przecinku) <input name="dates" value="{{ (r.dates or [])|join(', ') }}" placeholder="03-15, 09-15"></label>
+
+    <div class="form-row" data-repeating>
+      <label>Kończy się
+        <select name="end">
+          <option value="never" {% if end == 'never' %}selected{% endif %}>nigdy</option>
+          <option value="count" {% if end == 'count' %}selected{% endif %}>po … razach</option>
+          <option value="until" {% if end == 'until' %}selected{% endif %}>w dniu…</option>
+        </select>
+      </label>
+      <label data-end-for="count">Ile razy <input type="number" name="count" min="1" max="1000" value="{{ r.count or '' }}" placeholder="np. 6"></label>
+      <label data-end-for="until">Ostatni dzień <input type="date" name="until" value="{{ r.until or '' }}"></label>
     </div>
-    <div class="grid" data-for="easter">
-      <label>Przesunięcie [dni] <input type="number" name="offset" value="{{ r.offset or 0 }}"></label>
-      <small class="muted">0 = Wielkanoc, 60 = Boże Ciało, −46 = Środa Popielcowa</small>
-    </div>
-    <div class="grid" data-for="nth_weekday">
-      <label>Który <select name="n">{% for v, l in [(1,'1.'),(2,'2.'),(3,'3.'),(4,'4.'),(5,'5.'),(-1,'ostatni')] %}<option value="{{ v }}" {% if v == r.n %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
-      <label>Dzień <select name="weekday">{% for k, l in WEEKDAY_LABELS.items() %}<option value="{{ k }}" {% if k == r.weekday %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
-      <label>Miesiąc <select name="month">{% for m in range(1, 13) %}<option value="{{ m }}" {% if m == r.month %}selected{% endif %}>{{ MONTH_GENITIVE[m] }}</option>{% endfor %}</select></label>
-    </div>
-    <div class="grid">
-      <label>Najbliższy termin <input type="date" name="next_due_date" value="{{ task.next_due_date.isoformat() if task.next_due_date else '' }}"></label>
-      <label data-for="interval">Najbliższy przy km <input type="number" name="next_due_km" value="{{ task.next_due_km or '' }}" placeholder="opcjonalnie"></label>
-      <label>Przypominaj [dni przed] <input type="number" name="lead_days" min="0" value="{{ task.lead_days }}"></label>
-    </div>
+    {% if r.count and r.done %}<small class="muted" data-repeating>Z tej serii wykorzystano już {{ r.done }} z {{ r.count }}.</small>{% endif %}
     <output id="rule-preview" aria-live="polite"></output>
-  </fieldset>
+  </div>
 
-  <fieldset>
-    <legend>Pieniądze</legend>
-    <div class="grid">
-      <label>Rodzaj
-        <select name="direction">{% for k, l in directions.items() %}<option value="{{ k }}" {% if k == task.direction %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  <div class="money-row">
+    <div class="seg" role="radiogroup" aria-label="Rodzaj kwoty">
+      <label class="seg-btn"><input type="radio" name="direction" value="expense" {% if task.direction == 'expense' %}checked{% endif %}> Wydatek</label>
+      <label class="seg-btn"><input type="radio" name="direction" value="income" {% if task.direction == 'income' %}checked{% endif %}> Przychód</label>
+    </div>
+    <label>Kwota [zł] <input name="amount" inputmode="decimal" value="{{ task.amount_gr|pln_input }}" placeholder="opcjonalnie"></label>
+  </div>
+
+  <details class="more" {% if more_open %}open{% endif %}>
+    <summary>Więcej szczegółów</summary>
+    <div class="form-row">
+      <label>Kategoria
+        <select name="category">{% for k, (lbl, ic) in categories.items() %}<option value="{{ k }}" {% if k == task.category %}selected{% endif %}>{{ ic }} {{ lbl }}</option>{% endfor %}</select>
       </label>
-      <label>Kwota [zł] <input name="amount" inputmode="decimal" value="{{ task.amount_gr|pln_input }}"></label>
-      <label>Kategoria budżetu
-        <select name="budget_category_id">
-          <option value="">—</option>
-          {% for c in budget_categories %}<option value="{{ c.id }}" {% if c.id == task.budget_category_id %}selected{% endif %}>{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}
+      <label>Kto się zajmuje
+        <select name="assignee_id">
+          <option value="">— ktokolwiek —</option>
+          {% for u in users %}<option value="{{ u.id }}" {% if u.id == task.assignee_id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}
         </select>
       </label>
     </div>
-    <label><input type="checkbox" name="autopay" value="1" {% if task.autopay %}checked{% endif %}> Płatne automatycznie (zlecenie stałe / polecenie zapłaty)</label>
-  </fieldset>
-
-  <div class="grid">
-    <label>Kto się zajmuje
-      <select name="assignee_id">
-        <option value="">— ktokolwiek —</option>
-        {% for u in users %}<option value="{{ u.id }}" {% if u.id == task.assignee_id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}
+    <label class="inline-num">Przypomnij <input type="number" name="lead_days" min="0" value="{{ task.lead_days }}"> dni wcześniej</label>
+    <label>Gdzie
+      <select name="item_id">{% for it in items %}<option value="{{ it.id }}" {% if it.id == task.item_id %}selected{% endif %}>{{ label(it.id) }}</option>{% endfor %}</select>
+    </label>
+    <label>Pozycja w budżecie
+      <select name="budget_category_id">
+        <option value="">—</option>
+        {% for c in budget_categories %}<option value="{{ c.id }}" {% if c.id == task.budget_category_id %}selected{% endif %}>{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}
       </select>
     </label>
+    <label><input type="checkbox" name="autopay" value="1" {% if task.autopay %}checked{% endif %}> Płatne automatycznie (zlecenie stałe / polecenie zapłaty)</label>
+    {% if is_car %}
+    <label>Najbliższy termin przy przebiegu [km] <input type="number" name="next_due_km" value="{{ task.next_due_km or '' }}" placeholder="opcjonalnie"></label>
+    {% endif %}
+    <label>Notatki <textarea name="notes" rows="2">{{ task.notes or '' }}</textarea></label>
+  </details>
+
+  <div class="form-actions">
+    <button type="submit">Zapisz</button>
+    <a href="/items/{{ task.item_id }}" role="button" class="secondary outline">Anuluj</a>
   </div>
-  <label>Notatki <textarea name="notes" rows="2">{{ task.notes or '' }}</textarea></label>
-  <button type="submit">Zapisz</button>
-  <a href="/items/{{ task.item_id }}" role="button" class="secondary outline">Anuluj</a>
 </form>
 {% if not is_new %}
 <form method="post" action="/tasks/{{ task.id }}/delete" class="danger-zone" hx-confirm="Usunąć zadanie „{{ task.title }}” razem z historią?">

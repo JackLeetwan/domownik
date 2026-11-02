@@ -16,6 +16,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from domownik.domain import recurrence as _recurrence
+
 
 class Base(DeclarativeBase):
     type_annotation_map = {dict[str, Any]: JSON}
@@ -54,6 +56,9 @@ CATEGORIES: dict[str, tuple[str, str]] = {
 }
 
 DIRECTIONS = {"expense": "Wydatek", "income": "Przychód", "none": "Bez kwoty"}
+
+# a counted series in these categories is a run of instalments ("rata 3/6"); elsewhere just "3/6"
+INSTALMENT_CATEGORIES = ("payment", "tax", "insurance", "income")
 
 
 class User(Base):
@@ -200,6 +205,27 @@ class Task(Base):
     @property
     def category_label(self) -> str:
         return CATEGORIES.get(self.category, ("Inne", ""))[0]
+
+    def series_label_at(self, offset: int = 0) -> str | None:
+        """'rata 3/6' for the current occurrence of a counted series (offset = occurrences later)."""
+        pos = _recurrence.series_position(self.recurrence or {})
+        if pos is None:
+            return None
+        k, n = min(pos[0] + offset, pos[1]), pos[1]
+        return f"rata {k}/{n}" if self.category in INSTALMENT_CATEGORIES else f"{k}/{n}"
+
+    @property
+    def series_label(self) -> str | None:
+        return self.series_label_at(0)
+
+    def title_at(self, offset: int = 0) -> str:
+        """Title with the series position, for places that show plain text (timeline, notifications)."""
+        lbl = self.series_label_at(offset)
+        return f"{self.title} ({lbl})" if lbl else self.title
+
+    @property
+    def full_title(self) -> str:
+        return self.title_at(0)
 
 
 class Completion(Base):

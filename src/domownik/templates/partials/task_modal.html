@@ -1,6 +1,6 @@
 <header>
   <button class="close" aria-label="Zamknij" data-close>✕</button>
-  <h3 id="modal-title">{{ task.category_icon }} {{ task.title }}</h3>
+  <h3 id="modal-title">{{ task.category_icon }} {{ task.title }}{% if task.series_label %} <small class="badge series">{{ task.series_label }}</small>{% endif %}</h3>
   <p class="muted">{{ zone }} · {{ task.recurrence|rule }}</p>
 </header>
 <p>
@@ -12,7 +12,8 @@
 </p>
 {% include "partials/assign_control.html" %}
 {% if task.autopay %}<p class="muted"><small>🔁 Płatne automatycznie – w dniu terminu zaksięguje się samo z kwotą z planu. Tu możesz je oznaczyć wcześniej albo z inną kwotą.</small></p>{% endif %}
-{% if upcoming %}<p class="muted">Kolejne: {% for d in upcoming %}{{ d|d }}{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+{% if upcoming %}<p class="muted">Kolejne: {% for d in upcoming %}{{ d|d }}{% if not loop.last %}, {% endif %}{% endfor %}{% if left is not none and left > upcoming|length + 1 %} …{% endif %}</p>
+{% elif left == 1 %}<p class="muted">To ostatni termin tej serii.</p>{% endif %}
 {% if task.notes %}<p class="notes">{{ task.notes }}</p>{% endif %}
 
 <form hx-post="/tasks/{{ task.id }}/done" hx-target="#done-error" class="done-form">
@@ -33,10 +34,27 @@
   </details>
   <footer class="modal-actions">
     <button type="submit">✓ Zrobione</button>
+    {% if postpone_to %}
+    <details class="postpone">
+      <summary role="button" class="outline secondary">Przełóż…</summary>
+      <p class="muted"><small>Przesuwa tylko ten termin – kolejne zostają jak były, nic nie trafia do historii.</small></p>
+      <div id="postpone-error"></div>
+      <div class="postpone-row">
+        {% for lbl, d in postpone_to %}
+        <button type="button" class="outline" hx-post="/tasks/{{ task.id }}/postpone" hx-vals='{"to": "{{ d.isoformat() }}"}' hx-target="#postpone-error" title="{{ d|d(weekday=True) }}">{{ lbl }} <small>· {{ d|d }}</small></button>
+        {% endfor %}
+        <input type="date" name="to" form="postpone-{{ task.id }}" min="{{ today.isoformat() }}" required aria-label="Wybierz datę">
+        <button type="submit" form="postpone-{{ task.id }}" class="outline secondary">Przełóż na ten dzień</button>
+      </div>
+    </details>
+    {% endif %}
     {% if task.recurrence.mode != 'once' %}
-    <button type="button" class="outline secondary" hx-post="/tasks/{{ task.id }}/skip" hx-confirm="Pominąć ten termin bez zapisu w historii?">Pomiń termin</button>
+    <button type="button" class="outline secondary" hx-post="/tasks/{{ task.id }}/skip"
+            title="Ten termin przepada bez wpisu w historii; zadanie przechodzi do następnego"
+            hx-confirm="{% if task.series_label %}Pominąć ten termin ({{ task.series_label }})? Nie trafi do historii, ale liczy się jako wykorzystany{% if left == 1 %} – to ostatnia, seria się zakończy{% endif %}. Żeby tylko przesunąć termin, użyj „Przełóż”.{% else %}Pominąć ten termin bez zapisu w historii? Zadanie przejdzie do następnego terminu. Żeby tylko przesunąć termin, użyj „Przełóż”.{% endif %}">Pomiń termin</button>
     {% endif %}
     <a href="/tasks/{{ task.id }}/edit" role="button" class="outline secondary" hx-boost="false">Edytuj</a>
     <a href="/items/{{ task.item_id }}" role="button" class="outline secondary" hx-boost="false">Strefa</a>
   </footer>
 </form>
+{% if postpone_to %}<form id="postpone-{{ task.id }}" hx-post="/tasks/{{ task.id }}/postpone" hx-target="#postpone-error" hidden></form>{% endif %}

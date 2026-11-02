@@ -177,11 +177,12 @@ def done_from_push(token: str, db: Session = Depends(get_db)):
     if task is None or user is None or not user.is_active:
         return HTMLResponse("Nie ma takiego zadania.", status_code=404)
     if not task.active or task.next_due_date is None or task.next_due_date.isoformat() != data["d"]:
-        return HTMLResponse(f"Już odhaczone: {task.title}")  # tapped twice, or done in the app meanwhile
+        return HTMLResponse(f"Już odhaczone: {task.full_title}")  # tapped twice, or done in the app meanwhile
+    title = task.full_title  # before completing: the series number moves on
     services.complete_task(
         db, task, user=user, done_on=today(), amount_gr=task.amount_gr, km=None, vendor=None, notes="Z powiadomienia"
     )
-    return HTMLResponse(f"Zrobione: {task.title}")
+    return HTMLResponse(f"Zrobione: {title}")
 
 
 @router.get("/n/done/{token}")

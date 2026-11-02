@@ -9,6 +9,15 @@ A rule is a plain dict stored as JSON on a task:
     {"mode": "nth_weekday", "month": 5, "weekday": "sun", "n": 1}
     {"mode": "once"}
 
+Every repeating rule may also end (a series, e.g. six instalments):
+
+    {..., "count": 6, "done": 2}        – six occurrences in total, two already used up
+    {..., "until": "2027-03-31"}        – no occurrence after that day
+
+``done`` is state, not configuration: it grows with every completion or skip and
+shrinks on undo. ``postponed_from`` (also state) remembers the original due date of
+an occurrence moved with "Przełóż", so that due-anchored schedules keep their rhythm.
+
 ``anchor`` (interval only):
   * ``completion`` – the next due date is counted from the day the task was done,
   * ``due`` – from the previous due date, regardless of when it was done.
@@ -74,6 +83,48 @@ class RuleError(ValueError):
 
 def validate(rule: Rule) -> Rule:
     """Return a normalised copy of ``rule`` or raise RuleError."""
+    out = _validate_core(rule)
+    if out["mode"] == "once":
+        return out
+    return out | _validate_end(rule)
+
+
+def _validate_end(rule: Rule) -> Rule:
+    """Series end (count / until) and the state kept alongside it."""
+    out: Rule = {}
+    count = rule.get("count")
+    until = rule.get("until")
+    if count not in (None, "", 0) and until not in (None, ""):
+        raise RuleError("Wybierz jeden koniec serii: liczbę razy albo datę")
+    if count not in (None, "", 0):
+        try:
+            count = int(count)
+        except (TypeError, ValueError) as exc:
+            raise RuleError("Liczba powtórzeń musi być liczbą") from exc
+        if not 1 <= count <= 1000:
+            raise RuleError("Liczba powtórzeń musi być w zakresie 1–1000")
+        out["count"] = count
+        done = int(rule.get("done") or 0)
+        if done < 0:
+            raise RuleError("Zły licznik serii")
+        out["done"] = done
+    elif until not in (None, ""):
+        out["until"] = _iso(until, "końca serii").isoformat()
+    if rule.get("postponed_from"):
+        out["postponed_from"] = _iso(rule["postponed_from"], "przełożenia").isoformat()
+    return out
+
+
+def _iso(value: Any, what: str) -> date:
+    if isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(str(value).strip())
+    except ValueError as exc:
+        raise RuleError(f"Zła data {what}: {value!r}") from exc
+
+
+def _validate_core(rule: Rule) -> Rule:
     mode = rule.get("mode")
     if mode not in MODES:
         raise RuleError(f"Nieznany tryb powtarzania: {mode!r}")
@@ -221,14 +272,115 @@ def occurrences(rule: Rule, first: date | None, start: date, end: date) -> list[
 
     Occurrences before ``first`` are never produced (they are either done or
     represented by ``first`` itself when overdue). For completion-anchored
-    intervals the projection assumes each occurrence is done on time.
+    intervals the projection assumes each occurrence is done on time. A series
+    with an end (count / until) produces nothing after its last occurrence.
     """
     if first is None or end < start:
         return []
     rule = validate(rule)
+    return [d for d in _series(rule, first, end) if d >= start]
+
+
+def _series(rule: Rule, first: date, end: date) -> Iterator[date]:
+    """Remaining occurrences from ``first`` (the current one) up to ``end``, honouring the series end."""
+    if first > end:
+        return
     if rule["mode"] == "once":
-        return [first] if start <= first <= end else []
-    return [d for d in _iter_from(rule, first, end) if d >= start]
+        yield first
+        return
+    left = remaining(rule)
+    if left is not None and left <= 0:
+        return
+    until = date.fromisoformat(rule["until"]) if "until" in rule else None
+    yield first
+    n = 1
+    orig = _postponed(rule)
+    if orig is not None:
+        rest: Iterator[date] = (d for d in _iter_from(rule, orig, end) if d > first)
+    else:
+        rest = _iter_from(rule, first, end)
+        next(rest, None)
+    for d in rest:
+        if (left is not None and n >= left) or (until is not None and d > until):
+            return
+        yield d
+        n += 1
+
+
+def keeps_rhythm(rule: Rule) -> bool:
+    """Do later occurrences follow the schedule rather than the day the task was done?"""
+    return is_calendar(rule) or (rule["mode"] == "interval" and rule.get("anchor") == "due")
+
+
+def _postponed(rule: Rule) -> date | None:
+    if rule.get("postponed_from") and keeps_rhythm(rule):
+        return date.fromisoformat(rule["postponed_from"])
+    return None
+
+
+def remaining(rule: Rule) -> int | None:
+    """How many occurrences are left in a counted series (the current one included); None = no count."""
+    if "count" not in rule:
+        return None
+    return rule["count"] - rule.get("done", 0)
+
+
+def series_position(rule: Rule) -> tuple[int, int] | None:
+    """(number of the current occurrence, total) for a counted series, e.g. (3, 6) → "rata 3/6"."""
+    try:
+        rule = validate(rule)
+    except RuleError:
+        return None
+    if "count" not in rule:
+        return None
+    return min(rule["done"] + 1, rule["count"]), rule["count"]
+
+
+def advance(rule: Rule, *, previous_due: date | None, done_on: date) -> tuple[Rule, date | None]:
+    """The current occurrence is used up (done or skipped): new rule state and the next due date.
+
+    The next date is None when the task does not repeat or the series has just ended.
+    """
+    rule = validate(rule)
+    if rule["mode"] == "once":
+        return rule, None
+    orig = _postponed(rule)
+    nxt = next_due(rule, previous_due=orig or previous_due, done_on=done_on)
+    if orig is not None and previous_due is not None:
+        # moved past one or more regular dates: continue with the first regular date after it
+        for _ in range(MAX_ITER):
+            if nxt is None or nxt > previous_due:
+                break
+            nxt = next_due(rule, previous_due=nxt, done_on=nxt)
+    new = {k: v for k, v in rule.items() if k != "postponed_from"}
+    if "count" in new:
+        new["done"] = new["done"] + 1
+        if new["done"] >= new["count"]:
+            nxt = None
+    if "until" in new and nxt is not None and nxt > date.fromisoformat(new["until"]):
+        nxt = None
+    return new, nxt
+
+
+def retreat(rule: Rule) -> Rule:
+    """Undo of ``advance`` for the series counter (the completion is being reverted)."""
+    rule = validate(rule)
+    if rule.get("done"):
+        rule["done"] -= 1
+    rule.pop("postponed_from", None)
+    return rule
+
+
+def postpone(rule: Rule, *, current_due: date | None) -> Rule:
+    """Rule state after the current occurrence was moved to another day ("Przełóż").
+
+    Remembers the original date (only for schedules that keep their rhythm), so the
+    next occurrences are still counted from it, not from the new day.
+    """
+    rule = validate(rule)
+    if current_due is not None and keeps_rhythm(rule) and "postponed_from" not in rule:
+        rule["postponed_from"] = current_due.isoformat()
+    return rule
 
 
 def _iter_from(rule: Rule, first: date, end: date) -> Iterator[date]:
@@ -248,11 +400,21 @@ def _iter_from(rule: Rule, first: date, end: date) -> Iterator[date]:
 
 
 def describe(rule: Rule) -> str:
-    """Human readable Polish description of a rule."""
+    """Human readable Polish description of a rule (with the series end, if any)."""
     try:
         rule = validate(rule)
     except RuleError:
         return "?"
+    text = _describe_core(rule)
+    if "count" in rule:
+        text += f", {rule['count']} {'raz' if rule['count'] == 1 else 'razy'}"
+    elif "until" in rule:
+        end = date.fromisoformat(rule["until"])
+        text += f", do {end.day} {MONTH_GENITIVE[end.month]} {end.year}"
+    return text
+
+
+def _describe_core(rule: Rule) -> str:
     mode = rule["mode"]
     if mode == "once":
         return "jednorazowo"

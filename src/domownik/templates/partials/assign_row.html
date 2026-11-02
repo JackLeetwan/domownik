@@ -4,7 +4,7 @@
 <li class="arow" id="arow-{{ task.id }}">
   <input type="checkbox" name="task_id" value="{{ task.id }}" form="bulk" aria-label="Zaznacz: {{ task.title }}">
   <a class="arow-text" href="#" hx-get="/tasks/{{ task.id }}" hx-target="#modal-body" hx-push-url="false">
-    <strong>{{ task.category_icon }} {{ task.title }}</strong>
+    <strong>{{ task.category_icon }} {{ task.full_title }}</strong>
     <small class="muted">{% if sub %}{{ sub }} · {% endif %}{{ row.due.date|d if row.due.date else 'bez terminu' }}</small>
   </a>
   {% set ctx = 'list' %}{% include "partials/assign_seg.html" %}

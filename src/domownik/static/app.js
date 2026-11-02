@@ -276,10 +276,44 @@
       apply();
     });
   }
+  // Short task form: "Powtarzanie" choice reveals the full rule editor ("Inaczej…") and the series end
+  function syncTaskForm(root) {
+    const forms = root.matches && root.matches("form[data-task-form]") ? [root] : root.querySelectorAll ? root.querySelectorAll("form[data-task-form]") : [];
+    forms.forEach((form) => {
+      if (form.dataset.dmInit) return;
+      form.dataset.dmInit = "1";
+      const freq = form.querySelector("select[name=freq]");
+      const mode = form.querySelector("select[name=mode]");
+      const end = form.querySelector("select[name=end]");
+      const due = form.querySelector("input[name=next_due_date]");
+      const km = form.querySelector("input[data-km]");
+      // hidden fields must not block native validation and are not sent (disabled)
+      const show = (el, on) => {
+        el.hidden = !on;
+        const fields = el.matches("input, select, textarea") ? [el] : el.querySelectorAll("input, select, textarea");
+        fields.forEach((f) => { f.disabled = !on; });
+      };
+      const apply = () => {
+        const f = freq.value;
+        const custom = f === "custom" || f === "km";
+        const m = f === "km" ? "interval" : mode.value;
+        form.querySelectorAll("[data-freq-for]").forEach((el) => show(el, el.dataset.freqFor.split(" ").includes(f)));
+        form.querySelectorAll("[data-for]").forEach((el) => { if (custom) show(el, el.dataset.for === m); });
+        form.querySelectorAll("[data-repeating]").forEach((el) => show(el, f !== "once"));
+        form.querySelectorAll("[data-end-for]").forEach((el) => show(el, f !== "once" && el.dataset.endFor === end.value));
+        // a date is needed unless the schedule itself says when (calendar rules, mileage)
+        due.required = !(f === "km" || (f === "custom" && m !== "interval"));
+        if (km) km.required = f === "km";
+      };
+      [freq, mode, end].forEach((el) => el.addEventListener("change", apply));
+      apply();
+    });
+  }
   // htmx:load fires for the initial page and for every swapped-in fragment / boosted page
   document.addEventListener("htmx:load", (e) => {
     const root = e.detail.elt;
     syncRuleForm(root);
+    syncTaskForm(root);
     const card = root.matches && root.matches(".timeline-card") ? root : root.querySelector && root.querySelector(".timeline-card");
     if (card) initTimeline(card);
     updateBulk();

@@ -156,9 +156,9 @@ def build_digests(db: Session, slot: str, today: date, *, preview_for: User | No
             if len(rs) >= services.PAYMENT_GROUP_MIN:
                 title = f"Opłaty – {len(rs)} pozycji"
             elif len(rs) > 1:
-                title = ", ".join(r.task.title for r in rs)
+                title = ", ".join(r.task.full_title for r in rs)
             else:
-                title = rs[0].task.title
+                title = rs[0].task.full_title
             tasks = [r.task for r in rs]
             digests[user.id].lines.append(Line(rank, _line_text(rank, title, due, today, tasks), tasks, due))
         digests[user.id].lines.sort(key=lambda ln: (ln.rank, ln.due, ln.text))

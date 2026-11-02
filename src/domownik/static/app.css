@@ -489,7 +489,7 @@ code.topic { user-select: all; word-break: break-all; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .avatar { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); } }
 .who-hint { margin: 0.4rem 0 0; }
 .seg { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.seg .seg-btn { display: inline-flex; align-items: center; gap: 0.3rem; width: auto; margin: 0; padding: 0.28rem 0.7rem; border-radius: 999px; border: 1px solid var(--dm-tile-border); background: var(--dm-tile-bg); color: var(--pico-color); font-size: 0.85rem; line-height: 1.3; box-shadow: none; }
+.seg .seg-btn { display: inline-flex; align-items: center; gap: 0.3rem; width: auto; margin: 0; padding: 0.28rem 0.7rem; border-radius: 999px; border: 1px solid var(--dm-tile-border); background: var(--dm-tile-bg); color: inherit; font-size: 0.85rem; line-height: 1.3; box-shadow: none; }
 .seg .seg-btn .avatar { width: 1.15rem; height: 1.15rem; margin: 0; font-size: 0.58rem; }
 .seg .seg-btn[aria-pressed="true"] { background: var(--pico-primary-background); border-color: var(--pico-primary-background); color: #fff; font-weight: 600; }
 .seg .seg-btn:disabled { opacity: 0.5; }
@@ -516,3 +516,40 @@ code.topic { user-select: all; word-break: break-all; }
 .care .task-row .avatar { display: none; } /* all rows are that person – the heading shows the initials */
 .care .agenda-head h2 { margin: 0; }
 .small-link { font-size: 0.9rem; }
+
+/* Short task form: two fields per row even on a phone, details tucked under "Więcej szczegółów" */
+.task-form { max-width: 44rem; }
+.task-form .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 0.75rem; align-items: end; }
+.task-form .form-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.task-form .form-row > [hidden] { display: none; }
+.task-form label { margin-bottom: 0.25rem; }
+.task-form input:not([type=checkbox], [type=radio]), .task-form select, .task-form textarea { margin-bottom: 0.6rem; }
+.task-form .rule-custom { border-left: 3px solid var(--dm-tile-border); padding-left: 0.75rem; margin-bottom: 0.5rem; }
+.task-form .rule output { margin-bottom: 0.4rem; }
+.task-form .rule output p { margin: 0; font-size: 0.88rem; }
+.task-form .money-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 0.75rem; align-items: end; }
+.task-form .money-row .seg { flex-wrap: nowrap; margin-bottom: 0.85rem; }
+.task-form .seg label.seg-btn { cursor: pointer; margin: 0; }
+.task-form .seg label.seg-btn input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.task-form .seg label.seg-btn:has(input:checked) { background: var(--pico-primary-background); border-color: var(--pico-primary-background); color: #fff; font-weight: 600; }
+.task-form .seg label.seg-btn:has(input:focus-visible) { outline: 2px solid var(--pico-primary); outline-offset: 2px; }
+.task-form details.more { margin: 0.25rem 0 1rem; padding: 0.5rem 0.75rem; border: 1px solid var(--dm-tile-border); border-radius: var(--pico-border-radius); }
+.task-form details.more > summary { margin: 0; }
+.task-form details.more[open] > summary { margin-bottom: 0.75rem; }
+.task-form .inline-num { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; }
+.task-form .inline-num input { width: 4.5rem; margin-bottom: 0 !important; }
+.task-form .form-actions { display: flex; gap: 0.5rem; }
+.task-form .form-actions > * { width: auto; margin: 0; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.badge.series { font-size: 0.7rem; padding: 0.05rem 0.4rem; vertical-align: middle; background: color-mix(in srgb, var(--pico-primary) 16%, transparent); color: var(--pico-color); }
+
+/* "Przełóż" in the task window */
+.postpone { margin: 0.25rem 0 0; }
+.postpone > summary { font-size: 0.9rem; }
+.postpone-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.postpone-row > * { width: auto; margin: 0; }
+.postpone-row input[type=date] { width: auto; margin: 0; }
+.modal-actions details.postpone { margin: 0; }
+.modal-actions details.postpone > summary { margin: 0; }
+.modal-actions details.postpone[open] { flex-basis: 100%; order: 10; }
+.modal-actions details.postpone[open] > summary { margin-bottom: 0.4rem; }

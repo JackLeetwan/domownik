@@ -10,7 +10,7 @@
     {% if not st.overdue and not st.soon %}<span class="badge ok">{% if st.task_count %}w porządku{% else %}brak zadań{% endif %}</span>{% endif %}
   </span>
   {% if st.next_row %}
-  <span class="tile-next muted">Najbliżej: {{ st.next_row.task.title }} · {{ st.next_row.due.date|d }}</span>
+  <span class="tile-next muted">Najbliżej: {{ st.next_row.task.full_title }} · {{ st.next_row.due.date|d }}</span>
   {% endif %}
   {% if st.year_cost_gr %}<span class="tile-cost muted">W tym roku: {{ st.year_cost_gr|pln }}</span>{% endif %}
 </a>

@@ -178,3 +178,98 @@ class TestDescribe:
     )
     def test_describe(self, rule, text):
         assert describe(rule) == text
+
+
+class TestSeries:
+    MONTHLY = {"mode": "monthly", "day": 10}
+
+    def test_validate_keeps_end_and_state(self):
+        r = validate(self.MONTHLY | {"count": "6"})
+        assert r == {"mode": "monthly", "day": 10, "count": 6, "done": 0}
+        assert validate(self.MONTHLY | {"until": "2027-03-31"})["until"] == "2027-03-31"
+        assert validate({"mode": "once", "count": 3}) == {"mode": "once"}
+
+    @pytest.mark.parametrize(
+        "extra", [{"count": 0.5}, {"count": 2000}, {"until": "31.03.2027"}, {"count": 2, "until": "2027-01-01"}]
+    )
+    def test_validate_rejects_bad_end(self, extra):
+        with pytest.raises(RuleError):
+            validate(self.MONTHLY | extra)
+
+    def test_occurrences_stop_after_count(self):
+        r = self.MONTHLY | {"count": 6, "done": 2}
+        got = occurrences(r, D(2026, 1, 10), D(2026, 1, 1), D(2030, 1, 1))
+        assert got == [D(2026, m, 10) for m in (1, 2, 3, 4)]
+
+    def test_occurrences_stop_after_until(self):
+        r = {"mode": "interval", "every": 1, "unit": "week", "anchor": "due", "until": "2026-01-20"}
+        got = occurrences(r, D(2026, 1, 1), D(2026, 1, 1), D(2026, 12, 31))
+        assert got == [D(2026, 1, 1), D(2026, 1, 8), D(2026, 1, 15)]
+
+    def test_advance_counts_and_ends(self):
+        from domownik.domain.recurrence import advance, series_position
+
+        r = validate(self.MONTHLY | {"count": 3})
+        assert series_position(r) == (1, 3)
+        r, nxt = advance(r, previous_due=D(2026, 1, 10), done_on=D(2026, 1, 9))
+        assert nxt == D(2026, 2, 10) and r["done"] == 1 and series_position(r) == (2, 3)
+        r, nxt = advance(r, previous_due=nxt, done_on=nxt)
+        r, nxt = advance(r, previous_due=D(2026, 3, 10), done_on=D(2026, 3, 10))
+        assert nxt is None and r["done"] == 3  # the last instalment ends the series
+
+    def test_advance_until(self):
+        from domownik.domain.recurrence import advance
+
+        r = self.MONTHLY | {"until": "2026-02-15"}
+        _, nxt = advance(r, previous_due=D(2026, 1, 10), done_on=D(2026, 1, 10))
+        assert nxt == D(2026, 2, 10)
+        _, nxt = advance(r, previous_due=D(2026, 2, 10), done_on=D(2026, 2, 10))
+        assert nxt is None
+
+    def test_retreat_gives_instalment_back(self):
+        from domownik.domain.recurrence import retreat
+
+        assert retreat(self.MONTHLY | {"count": 3, "done": 3})["done"] == 2
+        assert retreat(self.MONTHLY | {"count": 3, "done": 0})["done"] == 0
+        assert "done" not in retreat(self.MONTHLY)
+
+    def test_postponed_occurrence_keeps_the_rhythm(self):
+        from domownik.domain.recurrence import advance, postpone
+
+        r = postpone(self.MONTHLY | {"count": 6}, current_due=D(2026, 1, 10))
+        assert r["postponed_from"] == "2026-01-10"
+        # shown: the moved date, then the regular ones
+        assert occurrences(r, D(2026, 1, 14), D(2026, 1, 1), D(2026, 3, 31)) == [
+            D(2026, 1, 14),
+            D(2026, 2, 10),
+            D(2026, 3, 10),
+        ]
+        r2, nxt = advance(r, previous_due=D(2026, 1, 14), done_on=D(2026, 1, 14))
+        assert nxt == D(2026, 2, 10) and "postponed_from" not in r2 and r2["done"] == 1
+        due = {"mode": "interval", "every": 1, "unit": "month", "anchor": "due"}
+        r = postpone(due, current_due=D(2026, 1, 31))
+        _, nxt = advance(r, previous_due=D(2026, 2, 3), done_on=D(2026, 2, 3))
+        assert nxt == D(2026, 2, 28)
+
+    def test_postponed_past_next_regular_date(self):
+        from domownik.domain.recurrence import advance, postpone
+
+        weekly = {"mode": "interval", "every": 1, "unit": "week", "anchor": "due"}
+        r = postpone(weekly, current_due=D(2026, 1, 1))
+        assert occurrences(r, D(2026, 1, 10), D(2026, 1, 1), D(2026, 1, 25)) == [
+            D(2026, 1, 10),
+            D(2026, 1, 15),
+            D(2026, 1, 22),
+        ]
+        _, nxt = advance(r, previous_due=D(2026, 1, 10), done_on=D(2026, 1, 10))
+        assert nxt == D(2026, 1, 15)
+
+    def test_completion_anchor_ignores_postpone(self):
+        from domownik.domain.recurrence import postpone
+
+        r = postpone({"mode": "interval", "every": 1, "unit": "month"}, current_due=D(2026, 1, 1))
+        assert "postponed_from" not in r
+
+    def test_describe_series(self):
+        assert describe(self.MONTHLY | {"count": 6}) == "co miesiąc, 10. dnia, 6 razy"
+        assert describe(self.MONTHLY | {"until": "2027-03-31"}) == "co miesiąc, 10. dnia, do 31 marca 2027"

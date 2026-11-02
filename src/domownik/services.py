@@ -211,8 +211,10 @@ def zone_stats(db: Session, tree: Tree, items: list[Item], today: date) -> dict[
         st = ZoneStats()
         st.open_issues = sum(issues_by_item[i] for i in sub)
         st.open_todos = sum(todos_by_item[i] for i in sub)
+        # a household member linked to an account also "owns" the tasks assigned to that account
+        owner = item.user_id if item.is_member else None
         for row in all_rows:
-            if row.task.item_id not in sub:
+            if row.task.item_id not in sub and (owner is None or row.task.assignee_id != owner):
                 continue
             st.task_count += 1
             if row.due.status == "overdue":
@@ -328,13 +330,13 @@ def complete_task(
                 item_id=task.item_id,
                 task_id=task.id,
                 completion_id=comp.id,
-                note=task.title,
+                note=task.full_title,
                 created_by_id=user.id if user else None,
             )
         )
 
     rule = task.recurrence
-    nxt = recurrence.next_due(rule, previous_due=task.next_due_date, done_on=done_on)
+    task.recurrence, nxt = recurrence.advance(rule, previous_due=task.next_due_date, done_on=done_on)
     task.next_due_date = nxt
     if rule.get("km"):
         base_km = km or None
@@ -514,6 +516,7 @@ def undo_completion(db: Session, comp: Completion) -> None:
         # otherwise the very next page view would book it again; the payment evidently did not go through
         task.autopay = False
     task.next_due_date = comp.due_date
+    task.recurrence = recurrence.retreat(task.recurrence)  # gives the instalment back
     task.active = True
     if comp.km:
         m = db.scalar(
@@ -570,13 +573,19 @@ def timeline(
         }
         if due.by_km and due.date and start <= due.date <= end:
             points.append(base | {"date": due.date.isoformat(), "kind": "forecast", "status": due.status})
-        dates = recurrence.occurrences(task.recurrence, task.next_due_date, start, end)[:MAX_POINTS_PER_TASK]
+        first = task.next_due_date
+        dates = recurrence.occurrences(task.recurrence, first, min(start, first or start), end)
         for n, d in enumerate(dates):
+            if d < start:
+                continue
+            if n >= MAX_POINTS_PER_TASK:
+                break
             if n == 0 and d == task.next_due_date:
                 status = compute_due(d, task.lead_days, today).status
             else:
                 status = "future"
-            points.append(base | {"date": d.isoformat(), "kind": "due", "status": status})
+            # each occurrence of a counted series carries its own number ("rata 4/6")
+            points.append(base | {"title": task.title_at(n), "date": d.isoformat(), "kind": "due", "status": status})
 
     stmt = (
         select(Completion)
