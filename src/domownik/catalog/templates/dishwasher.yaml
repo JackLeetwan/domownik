@@ -1,0 +1,17 @@
+key: dishwasher
+name: Zmywarka
+kind: appliance
+icon: "🍽️"
+order: 54
+tasks:
+  - title: Czyszczenie filtra zmywarki
+    category: diy
+    recurrence: {mode: interval, every: 1, unit: month, anchor: completion}
+    lead_days: 2
+    direction: none
+  - title: Cykl czyszczący / odkamienianie zmywarki
+    category: diy
+    recurrence: {mode: interval, every: 3, unit: month, anchor: completion}
+    lead_days: 3
+    amount: 20
+    budget: AGD i urządzenia

@@ -1,0 +1,30 @@
+{% set active = n.is_active(today()) %}
+<article class="note-card{% if n.pinned and active %} pinned{% endif %}">
+  <div class="note-body">{% if n.pinned and active %}📌 {% endif %}{{ n.body }}</div>
+  <div class="note-meta">
+    {% if n.created_by %}<span>{{ n.created_by.name }}</span>{% endif %}
+    <span>{{ n.created_at.date()|d }}</span>
+    {% if n.valid_until %}<span>{% if active %}ważna do {{ n.valid_until|d }}{% else %}wygasła {{ n.valid_until|d }}{% endif %}</span>{% endif %}
+  </div>
+  <div class="note-actions">
+    {% if active %}
+    <form method="post" action="/notatki/{{ n.id }}/pin" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">{% if n.pinned %}Odepnij{% else %}📌 Przypnij{% endif %}</button></form>
+    <form method="post" action="/notatki/{{ n.id }}/archive" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">✓ Do archiwum</button></form>
+    {% else %}
+    <form method="post" action="/notatki/{{ n.id }}/archive" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">↶ Przywróć</button></form>
+    <form method="post" action="/notatki/{{ n.id }}/delete" class="inline" hx-confirm="Usunąć notatkę na zawsze?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">Usuń</button></form>
+    {% endif %}
+  </div>
+  {% if active %}
+  <details>
+    <summary>Edytuj</summary>
+    <form method="post" action="/notatki/{{ n.id }}/edit">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <textarea name="body" rows="3" required>{{ n.body }}</textarea>
+      <label>Ważna do <input type="date" name="valid_until" value="{{ n.valid_until.isoformat() if n.valid_until else '' }}"></label>
+      <label><input type="checkbox" name="pinned" role="switch" {% if n.pinned %}checked{% endif %}> 📌 Przypięta</label>
+      <button type="submit" class="small">Zapisz</button>
+    </form>
+  </details>
+  {% endif %}
+</article>

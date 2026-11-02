@@ -1,0 +1,30 @@
+services:
+  app:
+    build: .
+    image: domownik:latest
+    restart: unless-stopped
+    # Owner of ./data inside the container. Default 1000 = typical first Linux user.
+    # With Docker userns-remap (this PC: container root == host user jl) set DOMOWNIK_UID=0 in .env.
+    user: "${DOMOWNIK_UID:-1000}:${DOMOWNIK_GID:-1000}"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/data
+    # localhost only – reachable from phones via `tailscale serve`, not from the LAN/internet
+    ports:
+      - "127.0.0.1:${DOMOWNIK_PORT:-8000}:8000"
+
+  # Optional for a cloud/VPS deployment: HTTPS via Caddy (`docker compose --profile cloud up -d`)
+  caddy:
+    profiles: ["cloud"]
+    image: caddy:2.10
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    command: caddy reverse-proxy --from ${DOMOWNIK_DOMAIN:-localhost} --to app:8000
+    volumes:
+      - caddy_data:/data
+    depends_on: [app]
+
+volumes:
+  caddy_data:

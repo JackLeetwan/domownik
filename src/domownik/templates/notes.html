@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Notatki · Domownik{% endblock %}
+{% block content %}
+<header class="item-head"><h1>📝 Notatki</h1></header>
+
+<form class="note-add" method="post" action="/notatki">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <textarea name="body" rows="2" required placeholder="Karteczka dla wszystkich, np. „W piątek odbiór paczki z paczkomatu”"></textarea>
+  <div class="note-opts">
+    <label><input type="checkbox" name="pinned" role="switch"> 📌 Przypnij na górze</label>
+    <label>Ważna do <input type="date" name="valid_until"></label>
+    <button type="submit" class="small">Dodaj</button>
+  </div>
+  <small class="muted">Notatka z datą „ważna do” sama trafi do archiwum następnego dnia.</small>
+</form>
+
+{% if notes %}
+<div class="notes-grid">{% for n in notes %}{% include "partials/note_card.html" %}{% endfor %}</div>
+{% else %}
+<p class="muted">Brak notatek.</p>
+{% endif %}
+
+{% if archive %}
+<details class="notes-archive">
+  <summary>Archiwum ({{ archive|length }})</summary>
+  <div class="notes-grid">{% for n in archive %}{% include "partials/note_card.html" %}{% endfor %}</div>
+</details>
+{% endif %}
+{% endblock %}

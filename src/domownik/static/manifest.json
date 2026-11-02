@@ -1,0 +1,31 @@
+{
+  "name": "Domownik",
+  "short_name": "Domownik",
+  "lang": "pl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2f6f5e",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Zakupy",
+      "short_name": "Zakupy",
+      "url": "/zakupy",
+      "icons": [
+        {
+          "src": "/static/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}

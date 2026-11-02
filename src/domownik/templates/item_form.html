@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+{% set crumbs_link_last = True %}{% include "partials/breadcrumbs.html" %}
+<h1>{{ tpl.icon }} {{ tpl.name }}</h1>
+<form method="post" action="/items/new/{{ tpl.key }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  {% if parent %}<input type="hidden" name="parent_id" value="{{ parent.id }}">{% endif %}
+  <div class="grid">
+    <label>Nazwa <input name="name" value="{{ tpl.name if tpl.kind not in ('car', 'person', 'child') else '' }}" placeholder="{% if tpl.kind == 'car' %}np. Skoda Octavia{% elif tpl.kind in ('person', 'child') %}Imię{% endif %}" required></label>
+    <label>Ikona <input name="icon" value="{{ tpl.icon }}" maxlength="8"></label>
+  </div>
+  {% if tpl.attributes %}
+  <div class="grid attrs">
+    {% for a in tpl.attributes %}
+    <label>{{ a.label }} <input name="attr_{{ a.key }}"></label>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% include "partials/task_picker.html" %}
+  <label>Notatki <textarea name="notes" rows="2"></textarea></label>
+  <button type="submit">Dodaj</button>
+</form>
+{% endblock %}

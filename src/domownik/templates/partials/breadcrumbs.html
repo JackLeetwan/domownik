@@ -1,0 +1,11 @@
+<div class="crumbs-bar">
+  <a href="/" class="home-btn" role="button">← Pulpit</a>
+  <nav aria-label="breadcrumb" class="crumbs">
+    <ul>
+      {% for p in path %}
+        {% if loop.last and not crumbs_link_last %}<li>{{ p.display_icon }} {{ p.name }}</li>
+        {% else %}<li><a href="/items/{{ p.id }}">{{ p.display_icon }} {{ p.name }}</a></li>{% endif %}
+      {% endfor %}
+    </ul>
+  </nav>
+</div>

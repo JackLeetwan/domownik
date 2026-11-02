@@ -1,0 +1,31 @@
+<section class="member-health" id="wizyty">
+  <h2>Wizyty i badania</h2>
+  {% if health_rows %}
+  <ul class="task-list">{% set show_zone = False %}{% for row in health_rows %}{% include "partials/task_row.html" %}{% endfor %}</ul>
+  {% else %}
+  <p class="muted">Nic zaplanowanego.</p>
+  {% endif %}
+  <details class="quick-add">
+    <summary>＋ Wizyta, badanie, szczepienie</summary>
+    <form method="post" action="/items/{{ item.id }}/visit">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        <label>Co<input name="title" required placeholder="np. Ortopeda – dr Nowak, USG kolana"></label>
+        <label>Kiedy<input type="date" name="on" required value="{{ today().isoformat() }}"></label>
+      </div>
+      <div class="grid">
+        <label>Rodzaj
+          <select name="category">
+            <option value="health">🩺 Zdrowie</option>
+            <option value="event">📅 Inne wydarzenie</option>
+          </select>
+        </label>
+        <label>Przypomnij (dni wcześniej)<input type="number" name="lead_days" min="0" value="2"></label>
+      </div>
+      <label>Notatka<textarea name="notes" rows="2" placeholder="godzina, adres, co zabrać (skierowanie, wyniki), na czczo…"></textarea></label>
+      <button type="submit">Dodaj</button>
+    </form>
+    <p class="muted"><small>Wizyty cykliczne (dentysta co pół roku, badania co rok) dodasz przyciskiem „＋ Zadanie” albo z szablonu. Po wizycie kliknij „Zrobione” i wpisz w notatce, co powiedział lekarz – zostanie w historii.</small></p>
+  </details>
+
+</section>

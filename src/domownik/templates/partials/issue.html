@@ -1,0 +1,31 @@
+<li class="issue{% if i.resolved_on %} issue-closed{% endif %}">
+  <div class="issue-head">
+    <strong>{{ i.title }}</strong>
+    {% if item is defined and i.item_id != item.id %}<small class="muted"><a href="/items/{{ i.item_id }}">{{ label(i.item_id) }}</a></small>{% endif %}
+    <small class="muted">od {{ i.started_on|d }}{% if i.resolved_on %} · zamknięte {{ i.resolved_on|d }}{% else %} · {{ (today() - i.started_on).days }} dni{% endif %}</small>
+    <form method="post" action="/issues/{{ i.id }}/toggle?next={{ request.url.path|urlencode }}" class="inline">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="outline secondary small">{% if i.resolved_on %}Otwórz ponownie{% else %}✓ Zamknij{% endif %}</button>
+    </form>
+  </div>
+  {% if i.notes %}<p class="notes">{{ i.notes }}</p>{% endif %}
+  <details>
+    <summary><small>Edytuj / dopisz</small></summary>
+    <form method="post" action="/issues/{{ i.id }}/edit?next={{ request.url.path|urlencode }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        <label>Tytuł<input name="title" value="{{ i.title }}" required></label>
+        <label>Od kiedy<input type="date" name="started_on" value="{{ i.started_on.isoformat() }}"></label>
+        {% if i.resolved_on %}<label>Zamknięte<input type="date" name="resolved_on" value="{{ i.resolved_on.isoformat() }}"></label>{% endif %}
+      </div>
+      <label>Notatki<textarea name="notes" rows="4">{{ i.notes or "" }}</textarea></label>
+      <div class="issue-actions">
+        <button type="submit">Zapisz</button>
+      </div>
+    </form>
+    <form method="post" action="/issues/{{ i.id }}/delete?next={{ request.url.path|urlencode }}" class="inline" hx-confirm="Usunąć tę sprawę razem z notatkami?">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="link danger">Usuń</button>
+    </form>
+  </details>
+</li>

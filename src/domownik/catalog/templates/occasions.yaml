@@ -1,0 +1,74 @@
+key: occasions
+name: Okazje i święta
+kind: group
+icon: "🎁"
+order: 80
+tasks:
+  - title: Boże Narodzenie – prezenty
+    category: occasion
+    recurrence: {mode: fixed, dates: ["12-24"]}
+    lead_days: 30
+    amount: 2000
+    budget: Prezenty i okazje
+  - title: Mikołajki
+    category: occasion
+    recurrence: {mode: fixed, dates: ["12-06"]}
+    lead_days: 14
+    amount: 150
+    budget: Prezenty i okazje
+  - title: Wielkanoc
+    category: occasion
+    recurrence: {mode: easter, offset: 0}
+    lead_days: 21
+    amount: 400
+    budget: Prezenty i okazje
+  - title: Dzień Babci
+    category: occasion
+    recurrence: {mode: fixed, dates: ["01-21"]}
+    lead_days: 14
+    amount: 150
+    budget: Prezenty i okazje
+  - title: Dzień Dziadka
+    category: occasion
+    recurrence: {mode: fixed, dates: ["01-22"]}
+    lead_days: 14
+    amount: 150
+    budget: Prezenty i okazje
+  - title: Walentynki
+    category: occasion
+    recurrence: {mode: fixed, dates: ["02-14"]}
+    lead_days: 7
+    amount: 150
+    budget: Prezenty i okazje
+  - title: Dzień Kobiet
+    category: occasion
+    recurrence: {mode: fixed, dates: ["03-08"]}
+    lead_days: 7
+    amount: 100
+    budget: Prezenty i okazje
+  - title: Dzień Matki
+    category: occasion
+    recurrence: {mode: fixed, dates: ["05-26"]}
+    lead_days: 14
+    amount: 150
+    budget: Prezenty i okazje
+  - title: Dzień Dziecka
+    category: occasion
+    recurrence: {mode: fixed, dates: ["06-01"]}
+    lead_days: 14
+    amount: 200
+    budget: Prezenty i okazje
+  - title: Dzień Ojca
+    category: occasion
+    recurrence: {mode: fixed, dates: ["06-23"]}
+    lead_days: 14
+    amount: 150
+    budget: Prezenty i okazje
+  - title: Rocznica ślubu
+    category: occasion
+    recurrence: {mode: fixed, dates: ["?"]}
+    lead_days: 21
+    amount: 400
+    budget: Prezenty i okazje
+    ask_date: true
+    default: false

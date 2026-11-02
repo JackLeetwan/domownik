@@ -1,0 +1,41 @@
+<header>
+  <button class="close" aria-label="Zamknij" data-close>✕</button>
+  <h3 id="modal-title">{{ task.category_icon }} {{ task.title }}</h3>
+  <p class="muted">{{ zone }} · {{ task.recurrence|rule }}</p>
+</header>
+<p>
+  {% if due.date %}
+  <span class="badge {{ due.status }}">{{ due.days_left|days }}</span>
+  termin: <strong>{{ due.date|d(weekday=True) }}</strong>{% if due.by_km %} (prognoza z przebiegu, {{ task.next_due_km }} km){% endif %}
+  {% else %}<span class="badge">bez terminu</span>{% endif %}
+  {% if task.amount_gr and task.direction != 'none' %} · {{ task.amount_gr|pln }}{% endif %}
+  {% if task.assignee %} · 👤 {{ task.assignee.name }}{% endif %}
+</p>
+{% if upcoming %}<p class="muted">Kolejne: {% for d in upcoming %}{{ d|d }}{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+{% if task.notes %}<p class="notes">{{ task.notes }}</p>{% endif %}
+
+<form hx-post="/tasks/{{ task.id }}/done" hx-target="#done-error" class="done-form">
+  <div id="done-error"></div>
+  <div class="grid">
+    <label>Zrobione dnia <input type="date" name="done_on" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}"></label>
+    {% if task.direction != 'none' %}
+    <label>{% if task.direction == 'income' %}Otrzymano{% else %}Koszt{% endif %} [zł] <input name="amount" inputmode="decimal" value="{{ task.amount_gr|pln_input }}"></label>
+    {% endif %}
+    {% if is_car %}
+    <label>Przebieg [km] <input type="number" name="km" min="0" placeholder="{{ last_km or '' }}"></label>
+    {% endif %}
+  </div>
+  <details>
+    <summary>Więcej (wykonawca, notatka)</summary>
+    <label>Wykonawca / sklep <input name="vendor"></label>
+    <label>Notatka <textarea name="notes" rows="2"></textarea></label>
+  </details>
+  <footer class="modal-actions">
+    <button type="submit">✓ Zrobione</button>
+    {% if task.recurrence.mode != 'once' %}
+    <button type="button" class="outline secondary" hx-post="/tasks/{{ task.id }}/skip" hx-confirm="Pominąć ten termin bez zapisu w historii?">Pomiń termin</button>
+    {% endif %}
+    <a href="/tasks/{{ task.id }}/edit" role="button" class="outline secondary" hx-boost="false">Edytuj</a>
+    <a href="/items/{{ task.item_id }}" role="button" class="outline secondary" hx-boost="false">Strefa</a>
+  </footer>
+</form>

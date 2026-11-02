@@ -1,0 +1,62 @@
+key: rental
+name: Mieszkanie na wynajem
+kind: rental
+icon: "🔑"
+order: 35
+attributes:
+  - {key: address, label: Adres}
+  - {key: tenant, label: Najemca}
+  - {key: tenant_contact, label: Kontakt do najemcy}
+  - {key: lease_end, label: Koniec umowy}
+  - {key: deposit, label: Kaucja}
+tasks:
+  - title: Czynsz od najemcy
+    category: income
+    direction: income
+    recurrence: {mode: monthly, day: 10}
+    lead_days: 0
+    amount: 2500
+    budget: Czynsz od najemcy
+  - title: Opłata do wspólnoty / administracji
+    category: payment
+    recurrence: {mode: monthly, day: 15}
+    lead_days: 3
+    amount: 600
+    budget: Mieszkanie na wynajem
+  - title: Ryczałt od najmu (PIT)
+    category: tax
+    recurrence: {mode: monthly, day: 20}
+    lead_days: 3
+    amount: 212
+    budget: Podatki
+    hint: płatny do 20. dnia miesiąca za miesiąc poprzedni
+  - title: PIT-28 (roczne zeznanie ryczałt)
+    category: tax
+    recurrence: {mode: fixed, dates: ["04-30"]}
+    lead_days: 30
+    direction: none
+  - title: Odczyt liczników (woda, prąd, gaz)
+    category: diy
+    recurrence: {mode: monthly, day: 1}
+    lead_days: 1
+    direction: none
+    default: false
+  - title: Ubezpieczenie OC wynajmującego / mieszkania
+    category: insurance
+    recurrence: {mode: interval, every: 1, unit: year, anchor: due}
+    lead_days: 30
+    amount: 450
+    budget: Ubezpieczenia
+    ask_date: true
+  - title: Przegląd mieszkania z najemcą
+    category: inspection
+    recurrence: {mode: interval, every: 1, unit: year, anchor: completion}
+    lead_days: 14
+    direction: none
+  - title: Koniec umowy najmu
+    category: event
+    recurrence: {mode: once}
+    lead_days: 60
+    direction: none
+    ask_date: true
+    hint: data końca umowy – czas na przedłużenie lub nowego najemcę

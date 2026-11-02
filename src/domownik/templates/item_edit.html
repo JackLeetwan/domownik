@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+{% set crumbs_link_last = True %}{% include "partials/breadcrumbs.html" %}
+<h1>Edytuj: {{ item.name }}</h1>
+<form method="post" action="/items/{{ item.id }}/edit">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="grid">
+    <label>Nazwa <input name="name" value="{{ item.name }}" required></label>
+    <label>Ikona <input name="icon" value="{{ item.icon or '' }}" maxlength="8"></label>
+    <label>Rodzaj
+      <select name="kind">{% for k, (lbl, ic) in kinds.items() %}<option value="{{ k }}" {% if k == item.kind %}selected{% endif %}>{{ ic }} {{ lbl }}</option>{% endfor %}</select>
+    </label>
+  </div>
+  <div class="grid">
+    <label>Należy do
+      <select name="parent_id">
+        <option value="">— strefa główna (kafelek na pulpicie) —</option>
+        {% for p in parents %}<option value="{{ p.id }}" {% if p.id == item.parent_id %}selected{% endif %}>{{ label(p.id) }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Kolejność <input type="number" name="sort_order" value="{{ item.sort_order }}"></label>
+  </div>
+  <fieldset>
+    <legend>Dane</legend>
+    <div class="grid attrs">
+    {% set known = [] %}
+    {% if tpl %}{% for a in tpl.attributes %}{% set _ = known.append(a.key) %}
+      <label>{{ a.label }} <input name="attr_{{ a.key }}" value="{{ item.attributes.get(a.key, '') }}"></label>
+    {% endfor %}{% endif %}
+    {% for k, v in item.attributes.items() if k not in known and not k.startswith('_') %}
+      <label>{{ k }} <input name="attr_{{ k }}" value="{{ v }}"></label>
+    {% endfor %}
+    </div>
+    <div class="grid">
+      <label>Nowe pole – nazwa <input name="new_attr_key" placeholder="np. Nr polisy"></label>
+      <label>Wartość <input name="new_attr_value"></label>
+    </div>
+  </fieldset>
+  <label>Notatki <textarea name="notes" rows="3">{{ item.notes or '' }}</textarea></label>
+  <button type="submit">Zapisz</button>
+  <a href="/items/{{ item.id }}" role="button" class="secondary outline">Anuluj</a>
+</form>
+<form method="post" action="/items/{{ item.id }}/archive" class="danger-zone" hx-confirm="{% if item.archived %}Przywrócić?{% else %}Zarchiwizować „{{ item.name }}” razem z elementami w środku? Zadania znikną z pulpitu, historia zostaje.{% endif %}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit" class="outline secondary">{% if item.archived %}Przywróć z archiwum{% else %}Archiwizuj{% endif %}</button>
+</form>
+{% endblock %}

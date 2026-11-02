@@ -1,0 +1,23 @@
+key: washing_machine
+name: Pralka
+kind: appliance
+icon: "🫧"
+order: 52
+tasks:
+  - title: Czyszczenie filtra pompy pralki
+    category: diy
+    recurrence: {mode: interval, every: 3, unit: month, anchor: completion}
+    lead_days: 3
+    direction: none
+  - title: Pranie czyszczące (90°C / środek do czyszczenia)
+    category: diy
+    recurrence: {mode: interval, every: 1, unit: month, anchor: completion}
+    lead_days: 2
+    amount: 15
+    budget: AGD i urządzenia
+  - title: Czyszczenie szuflady na detergenty i uszczelki
+    category: diy
+    recurrence: {mode: interval, every: 1, unit: month, anchor: completion}
+    lead_days: 2
+    direction: none
+    default: false

@@ -1,0 +1,26 @@
+<li class="shop-row{% if s.checked_at %} in-cart{% endif %}">
+  <button type="button" class="shop-check" hx-post="/zakupy/{{ s.id }}/check" hx-target="#shopping-list" hx-swap="outerHTML"
+          aria-label="{% if s.checked_at %}Wyjmij z koszyka{% else %}Do koszyka{% endif %}: {{ s.name }}">{% if s.checked_at %}☑{% else %}☐{% endif %}</button>
+  <details class="shop-body">
+    <summary>
+      <span class="shop-name">{{ s.name }}</span>{% if s.qty %} <span class="shop-qty">{{ s.qty }}</span>{% endif %}
+      {% if s.note or s.item %}<br><small class="muted">{% if s.item %}{{ s.item.display_icon }} {{ s.item.name }}{% endif %}{% if s.note and s.item %} · {% endif %}{{ s.note or "" }}</small>{% endif %}
+    </summary>
+    <form hx-post="/zakupy/{{ s.id }}/edit" hx-target="#shopping-list" hx-swap="outerHTML">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        <label>Nazwa<input name="name" value="{{ s.name }}" required></label>
+        <label>Ilość<input name="qty" value="{{ s.qty or '' }}" placeholder="np. 2, 1 kg"></label>
+      </div>
+      <div class="grid">
+        <label>Dział<select name="section">{% for k, lbl in sections.items() %}<option value="{{ k }}" {% if k == s.section %}selected{% endif %}>{{ lbl }}</option>{% endfor %}</select></label>
+        <label>Uwagi<input name="note" value="{{ s.note or '' }}" placeholder="np. bez laktozy, marka"></label>
+      </div>
+      <div class="shop-actions">
+        <button type="submit" class="small">Zapisz</button>
+        <button type="button" class="link danger" hx-post="/zakupy/{{ s.id }}/delete" hx-target="#shopping-list" hx-swap="outerHTML"><small>Usuń</small></button>
+        {% if s.added_by %}<small class="muted">dopisał(a): {{ s.added_by.name }}</small>{% endif %}
+      </div>
+    </form>
+  </details>
+</li>

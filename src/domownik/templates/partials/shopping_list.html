@@ -1,0 +1,31 @@
+{# refreshed every 10 s (other person's changes), but never while you edit or type here #}
+<div id="shopping-list"
+     hx-get="/zakupy/lista" hx-swap="outerHTML"
+     hx-trigger="every 10s [!document.querySelector('#shopping-list details[open]') && !document.getElementById('shopping-list').contains(document.activeElement)], visibilitychange[document.visibilityState === 'visible'] from:document">
+  {% if not groups and not cart %}
+  <p class="muted empty-list">Lista jest pusta. 🎉</p>
+  {% endif %}
+
+  {% for key, label, rows in groups %}
+  <h3 class="shop-section">{{ label }}</h3>
+  <ul class="shop-list">{% for s in rows %}{% include "partials/shopping_row.html" %}{% endfor %}</ul>
+  {% endfor %}
+
+  {% if cart %}
+  <h3 class="shop-section">🧺 W koszyku <small class="muted">({{ cart|length }})</small></h3>
+  <ul class="shop-list shop-cart">{% for s in cart %}{% include "partials/shopping_row.html" %}{% endfor %}</ul>
+
+  <details class="shop-finish">
+    <summary role="button" class="secondary">✓ Zakończ zakupy</summary>
+    <form method="post" action="/zakupy/zakoncz">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <p class="muted"><small>Pozycje z koszyka znikną z listy (zostaną w podpowiedziach). Kwota z paragonu trafi do budżetu jako wydatek „Jedzenie”.</small></p>
+      <div class="grid">
+        <label>Kwota z paragonu (zł)<input name="amount" inputmode="decimal" placeholder="opcjonalnie"></label>
+        <label>Sklep<input name="shop" placeholder="opcjonalnie, np. Biedronka"></label>
+      </div>
+      <button type="submit">Zakończ</button>
+    </form>
+  </details>
+  {% endif %}
+</div>

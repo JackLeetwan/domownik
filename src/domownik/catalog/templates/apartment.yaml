@@ -1,0 +1,31 @@
+key: apartment
+name: Mieszkanie
+kind: apartment
+icon: "🏢"
+order: 30
+attributes:
+  - {key: address, label: Adres}
+tasks:
+  - title: Ubezpieczenie mieszkania
+    category: insurance
+    recurrence: {mode: interval, every: 1, unit: year, anchor: due}
+    lead_days: 30
+    amount: 400
+    budget: Ubezpieczenia
+    ask_date: true
+  - title: Przegląd instalacji gazowej / kominiarski
+    category: inspection
+    recurrence: {mode: interval, every: 1, unit: year, anchor: due}
+    lead_days: 14
+    direction: none
+    ask_date: true
+  - title: Czyszczenie filtra okapu
+    category: diy
+    recurrence: {mode: interval, every: 3, unit: month, anchor: completion}
+    lead_days: 3
+    direction: none
+  - title: Czyszczenie syfonów i odpływów
+    category: diy
+    recurrence: {mode: interval, every: 3, unit: month, anchor: completion}
+    lead_days: 3
+    direction: none

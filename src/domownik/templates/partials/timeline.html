@@ -1,0 +1,22 @@
+<section class="timeline-card" data-item="{{ timeline_item or '' }}">
+  <div class="timeline-toolbar">
+    <div role="group" class="zoom">
+      <button type="button" class="outline secondary" data-range="30">1 mies.</button>
+      <button type="button" class="outline secondary" data-range="91">3 mies.</button>
+      <button type="button" class="outline secondary" data-range="365">Rok</button>
+      <button type="button" class="outline secondary" data-range="1095">3 lata</button>
+    </div>
+    <div class="timeline-actions">
+      <button type="button" class="outline secondary" data-today>Dziś</button>
+      <label class="switch"><input type="checkbox" role="switch" data-lanes> Pasy stref</label>
+    </div>
+  </div>
+  <div id="timeline" class="timeline" aria-label="Oś czasu zadań"></div>
+  <p class="timeline-legend muted">
+    <span class="dot overdue"></span> zaległe
+    <span class="dot soon"></span> wkrótce
+    <span class="dot later"></span> zaplanowane
+    <span class="dot forecast"></span> prognoza z przebiegu
+    <span class="dot done"></span> wykonane
+  </p>
+</section>

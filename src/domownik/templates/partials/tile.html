@@ -1,0 +1,16 @@
+{% set st = stats[it.id] %}
+<a class="tile" href="/items/{{ it.id }}">
+  <span class="tile-icon" aria-hidden="true">{{ it.display_icon }}</span>
+  <span class="tile-name">{{ it.name }}</span>
+  <span class="tile-badges">
+    {% if st.overdue %}<span class="badge overdue" title="zaległe">{{ st.overdue }} zaległe</span>{% endif %}
+    {% if st.soon %}<span class="badge soon" title="wkrótce">{{ st.soon }} wkrótce</span>{% endif %}
+    {% if st.open_issues %}<span class="badge issue" title="otwarte usterki i sprawy">{{ st.open_issues }} {{ "sprawa" if st.open_issues == 1 else "sprawy" }}</span>{% endif %}
+    {% if st.open_todos %}<span class="badge todo" title="do zrobienia, bez terminu">☐ {{ st.open_todos }}</span>{% endif %}
+    {% if not st.overdue and not st.soon %}<span class="badge ok">{% if st.task_count %}w porządku{% else %}brak zadań{% endif %}</span>{% endif %}
+  </span>
+  {% if st.next_row %}
+  <span class="tile-next muted">Najbliżej: {{ st.next_row.task.title }} · {{ st.next_row.due.date|d }}</span>
+  {% endif %}
+  {% if st.year_cost_gr %}<span class="tile-cost muted">W tym roku: {{ st.year_cost_gr|pln }}</span>{% endif %}
+</a>

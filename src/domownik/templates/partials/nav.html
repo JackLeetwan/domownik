@@ -1,0 +1,39 @@
+{# Sidebar on desktop, slide-in drawer ("Więcej") on phones. Needs: nav, user, request #}
+{% set p = request.url.path %}
+<aside class="sidebar" id="sidebar" aria-label="Menu">
+  <a href="/" class="brand sidebar-brand">🏡 Domownik</a>
+  <ul class="side-links">
+    <li><a href="/" {% if p == '/' %}aria-current="page"{% endif %}><span class="ic">🏠</span> Pulpit</a></li>
+    <li><a href="/zakupy" {% if p.startswith('/zakupy') %}aria-current="page"{% endif %}><span class="ic">🛒</span> Zakupy{% if nav.shopping %}<span class="count">{{ nav.shopping }}</span>{% endif %}</a></li>
+    <li><a href="/notatki" {% if p.startswith('/notatki') %}aria-current="page"{% endif %}><span class="ic">📝</span> Notatki{% if nav.notes %}<span class="count">{{ nav.notes }}</span>{% endif %}</a></li>
+    <li><a href="/do-zrobienia" {% if p.startswith('/do-zrobienia') %}aria-current="page"{% endif %}><span class="ic">☐</span> Do zrobienia{% if nav.todos %}<span class="count">{{ nav.todos }}</span>{% endif %}</a></li>
+    <li><span class="side-soon"><span class="ic">💰</span> Budżet <small>wkrótce</small></span></li>
+  </ul>
+  {% if nav.zones %}
+  <p class="side-head">Strefy</p>
+  <ul class="side-links">
+    {% for z in nav.zones %}<li><a href="/items/{{ z.id }}" {% if p == '/items/' ~ z.id %}aria-current="page"{% endif %}><span class="ic">{{ z.display_icon }}</span> <span class="lbl">{{ z.name }}</span></a></li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% if nav.members %}
+  <p class="side-head">Domownicy</p>
+  <ul class="side-links">
+    {% for m in nav.members %}<li><a href="/items/{{ m.id }}" {% if p == '/items/' ~ m.id %}aria-current="page"{% endif %}><span class="ic">{{ m.display_icon }}</span> <span class="lbl">{{ m.name }}</span></a></li>{% endfor %}
+  </ul>
+  {% endif %}
+  <div class="side-foot">
+    <button type="button" class="link theme-toggle" id="theme-toggle" title="Motyw: automatyczny" aria-label="Przełącz motyw">🌓</button>
+    <span class="muted">{{ user.name }}</span>
+    <form method="post" action="/logout" class="inline">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="link">Wyloguj</button>
+    </form>
+  </div>
+</aside>
+<div class="nav-backdrop" data-nav-close></div>
+<nav class="bottombar" aria-label="Szybkie menu">
+  <a href="/" {% if p == '/' %}aria-current="page"{% endif %}><span>🏠</span>Pulpit</a>
+  <a href="/zakupy" {% if p.startswith('/zakupy') %}aria-current="page"{% endif %}><span>🛒{% if nav.shopping %}<b class="count">{{ nav.shopping }}</b>{% endif %}</span>Zakupy</a>
+  <a href="/notatki" {% if p.startswith('/notatki') %}aria-current="page"{% endif %}><span>📝{% if nav.notes %}<b class="count">{{ nav.notes }}</b>{% endif %}</span>Notatki</a>
+  <button type="button" data-nav-toggle aria-controls="sidebar"><span>☰</span>Więcej</button>
+</nav>

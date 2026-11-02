@@ -1,0 +1,56 @@
+{# one 'some day' todo; needs: td, users; optional: show_zone, next #}
+{% set nxt = next_url or request.url.path %}
+<li class="todo{% if td.done_on %} todo-done{% endif %}">
+  <form method="post" action="/todos/{{ td.id }}/toggle?next={{ nxt|urlencode }}" class="inline">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit" class="todo-check" title="{% if td.done_on %}Przywróć{% else %}Zrobione{% endif %}" aria-label="{% if td.done_on %}Przywróć{% else %}Zrobione{% endif %}: {{ td.title }}">{% if td.done_on %}☑{% else %}☐{% endif %}</button>
+  </form>
+  <details class="todo-body">
+    <summary>
+      <span class="todo-title">{{ td.title }}</span>
+      {% if show_zone %}<small class="muted"> · {% if td.item_id %}<a href="/items/{{ td.item_id }}">{{ label(td.item_id) }}</a>{% else %}Ogólne{% endif %}</small>{% endif %}
+      {% if td.est_amount_gr %}<small class="muted"> · ~{{ td.est_amount_gr|pln }}</small>{% endif %}
+      {% if td.assignee %}<small class="muted"> · {{ td.assignee.name }}</small>{% endif %}
+      {% if td.done_on %}<small class="muted"> · zrobione {{ td.done_on|d }}{% if td.done_by %} ({{ td.done_by.name }}){% endif %}</small>{% endif %}
+      {% if td.notes %}<br><small class="muted todo-notes">{{ td.notes }}</small>{% endif %}
+    </summary>
+    <form method="post" action="/todos/{{ td.id }}/edit?next={{ nxt|urlencode }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>Co<input name="title" value="{{ td.title }}" required></label>
+      <label>Notatka<textarea name="notes" rows="3">{{ td.notes or "" }}</textarea></label>
+      <div class="grid">
+        <label>Szacowany koszt (zł)<input name="amount" inputmode="decimal" value="{{ td.est_amount_gr|pln_input }}"></label>
+        <label>Kto<select name="assignee_id"><option value="">—</option>{% for u in users %}<option value="{{ u.id }}" {% if u.id == td.assignee_id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}</select></label>
+      </div>
+      {% if items is defined and items %}
+      <label>Dotyczy
+        <select name="item_id">
+          <option value="">Ogólne (dom, rodzina)</option>
+          {% for i in items %}<option value="{{ i.id }}" {% if i.id == td.item_id %}selected{% endif %}>{{ label(i.id) }}</option>{% endfor %}
+        </select>
+      </label>
+      {% endif %}
+      <button type="submit" class="small">Zapisz</button>
+    </form>
+    {% if not td.done_on %}
+    <form method="post" action="/todos/{{ td.id }}/plan?next={{ nxt|urlencode }}" class="todo-plan">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>📅 Zaplanuj na dzień<input type="date" name="on" required></label>
+      {% if not td.item_id and items is defined and items %}
+      <label>Gdzie na osi czasu
+        <select name="item_id" required>
+          <option value="">— wybierz —</option>
+          {% for i in items %}<option value="{{ i.id }}">{{ label(i.id) }}</option>{% endfor %}
+        </select>
+      </label>
+      {% endif %}
+      <button type="submit" class="small secondary">Zaplanuj</button>
+      <small class="muted">Pozycja stanie się zadaniem z terminem: pojawi się na osi czasu, w przypomnieniach i w budżecie.</small>
+    </form>
+    {% endif %}
+    <form method="post" action="/todos/{{ td.id }}/delete?next={{ nxt|urlencode }}" class="inline" hx-confirm="Usunąć „{{ td.title }}”?">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="link danger"><small>Usuń</small></button>
+    </form>
+  </details>
+</li>

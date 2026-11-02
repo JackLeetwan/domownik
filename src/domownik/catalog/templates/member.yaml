@@ -1,0 +1,44 @@
+key: member
+name: Domownik (dorosły)
+kind: member
+icon: "🧑"
+order: 55
+attributes:
+  - {key: birthday, label: Data urodzenia}
+  - {key: pesel, label: PESEL}
+  - {key: blood_type, label: Grupa krwi}
+  - {key: allergies, label: Alergie}
+  - {key: medications, label: Leki na stałe}
+  - {key: doctor, label: Lekarz rodzinny / przychodnia}
+tasks:
+  - title: Dentysta – kontrola
+    category: health
+    recurrence: {mode: interval, every: 6, unit: month, anchor: completion}
+    lead_days: 14
+    direction: none
+  - title: Badania okresowe (morfologia, lipidogram, glukoza)
+    category: health
+    recurrence: {mode: interval, every: 1, unit: year, anchor: completion}
+    lead_days: 14
+    direction: none
+  - title: Okulista – kontrola
+    category: health
+    recurrence: {mode: interval, every: 2, unit: year, anchor: completion}
+    lead_days: 14
+    direction: none
+    default: false
+  - title: Dermatolog – kontrola znamion
+    category: health
+    recurrence: {mode: interval, every: 1, unit: year, anchor: completion}
+    lead_days: 14
+    direction: none
+    default: false
+  - title: Urodziny
+    category: occasion
+    recurrence: {mode: fixed, dates: ["?"]}
+    lead_days: 14
+    amount: 300
+    budget: Prezenty i okazje
+    ask_date: true
+    hint: data urodzin
+    default: false

@@ -1,0 +1,33 @@
+key: heat_pump
+name: Pompa ciepła
+kind: appliance
+icon: "♨️"
+order: 50
+attributes:
+  - {key: model, label: Model}
+  - {key: installer, label: Instalator / serwis}
+  - {key: warranty_until, label: Gwarancja do}
+tasks:
+  - title: Serwis roczny pompy ciepła
+    category: service
+    recurrence: {mode: interval, every: 1, unit: year, anchor: due}
+    lead_days: 30
+    amount: 600
+    budget: Dom
+    ask_date: true
+    hint: często warunek gwarancji
+  - title: Czyszczenie filtra siatkowego / osadnika
+    category: diy
+    recurrence: {mode: interval, every: 6, unit: month, anchor: completion}
+    lead_days: 7
+    direction: none
+  - title: Kontrola ciśnienia w instalacji
+    category: diy
+    recurrence: {mode: interval, every: 3, unit: month, anchor: completion}
+    lead_days: 3
+    direction: none
+  - title: Czyszczenie jednostki zewnętrznej (liście, śnieg)
+    category: diy
+    recurrence: {mode: fixed, dates: ["10-15", "04-15"]}
+    lead_days: 7
+    direction: none

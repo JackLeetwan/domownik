@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block head %}<link rel="stylesheet" href="/static/vendor/vis-timeline-graph2d.min.css">{% endblock %}
+{% block content %}
+{% if not has_items %}
+<article class="empty">
+  <h2>Witaj w Domowniku 👋</h2>
+  <p>Zacznij od domyślnych stref: Samochody, Dom, Mieszkanie wynajęte, Dzieci i Okazje (święta są już w środku). Potem w każdej strefie dodasz auta, urządzenia i osoby z gotowych szablonów.</p>
+  <form method="post" action="/setup/zones">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit">Utwórz domyślne strefy</button>
+    <a href="/items/new" role="button" class="secondary outline">Albo dodaj własną strefę</a>
+  </form>
+</article>
+{% else %}
+{% include "partials/timeline.html" %}
+
+<section class="tools" aria-label="Narzędzia">
+  <a class="tool" href="/zakupy">
+    <span class="tool-head">🛒 Zakupy{% if shopping %}<span class="count">{{ shopping|length }}</span>{% endif %}</span>
+    <span class="tool-preview">{% if shopping %}{% for s in shopping[:8] %}{{ s.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% if shopping|length > 8 %}…{% endif %}{% else %}Lista jest pusta{% endif %}</span>
+  </a>
+  <a class="tool" href="/notatki">
+    <span class="tool-head">📝 Notatki{% if notes %}<span class="count">{{ notes|length }}</span>{% endif %}</span>
+    <span class="tool-preview">{% if notes %}{% for n in notes[:2] %}{% if n.pinned %}📌 {% endif %}{{ n.body|truncate(70) }}{% if not loop.last %}
+{% endif %}{% endfor %}{% else %}Brak notatek{% endif %}</span>
+  </a>
+  <a class="tool" href="/do-zrobienia">
+    <span class="tool-head">☐ Do zrobienia{% if todos %}<span class="count">{{ todos|length }}</span>{% endif %}</span>
+    <span class="tool-preview">{% if todos %}{% for td in todos[:3] %}{{ td.title }}{% if not loop.last %}, {% endif %}{% endfor %}{% if todos|length > 3 %}…{% endif %}{% else %}Nic na liście{% endif %}</span>
+  </a>
+</section>
+
+<section class="members">
+  <h2 class="section-title">Domownicy</h2>
+  <div class="tiles tiles-members">
+    {% for it in members %}{% include "partials/tile.html" %}{% endfor %}
+    <a class="tile tile-add" href="/items/new/member"><span class="tile-icon">＋</span><span class="tile-name">Domownik</span></a>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Strefy</h2>
+  <div class="tiles">
+    {% for it in roots %}{% include "partials/tile.html" %}{% endfor %}
+    <a class="tile tile-add" href="/items/new"><span class="tile-icon">＋</span><span class="tile-name">Nowa strefa</span></a>
+  </div>
+</section>
+
+<section class="agenda">
+  <header class="agenda-head">
+    <h2>Najbliższe terminy</h2>
+    <div role="group" class="who">
+      <a href="/" role="button" class="{% if who != 'me' %}{% else %}outline {% endif %}secondary">Wszyscy</a>
+      <a href="/?who=me" role="button" class="{% if who == 'me' %}{% else %}outline {% endif %}secondary">Moje</a>
+    </div>
+  </header>
+  {% for key, label in BUCKETS %}
+    {% if buckets[key] %}
+    <h3 class="bucket bucket-{{ key }}">{{ label }} <small class="muted">({{ buckets[key]|length }})</small></h3>
+    <ul class="task-list">
+      {% for row in buckets[key] %}{% include "partials/task_row.html" %}{% endfor %}
+    </ul>
+    {% endif %}
+  {% endfor %}
+  {% if not (buckets.overdue or buckets.week or buckets.month or buckets.later) %}
+  <p class="muted">Brak terminów – dodaj elementy i zadania w strefach.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="/static/vendor/vis-timeline-graph2d.min.js"></script>{% endblock %}

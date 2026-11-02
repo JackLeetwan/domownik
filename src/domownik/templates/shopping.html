@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Zakupy · Domownik{% endblock %}
+{% block content %}
+<header class="item-head">
+  <h1>🛒 Zakupy</h1>
+</header>
+
+<form class="shop-add" method="post" action="/zakupy"
+      hx-post="/zakupy" hx-target="#shopping-list" hx-swap="outerHTML"
+      hx-on::after-request="if (event.detail.successful) { this.reset(); this.querySelector('input[name=text]').focus(); }">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div role="group">
+    <input name="text" list="shop-suggestions" autocomplete="off" required autofocus
+           placeholder="np. 2 mleko, chleb, masło ×2" aria-label="Co dopisać">
+    <button type="submit">Dopisz</button>
+  </div>
+  <datalist id="shop-suggestions">{% for s in suggestions %}<option value="{{ s }}">{% endfor %}</datalist>
+  <small class="muted">Kilka naraz po przecinku. Dział dobiera się sam – możesz go zmienić, klikając w pozycję.</small>
+</form>
+
+{% include "partials/shopping_list.html" %}
+{% endblock %}

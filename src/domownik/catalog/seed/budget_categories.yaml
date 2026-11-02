@@ -1,0 +1,24 @@
+# kind: income | fixed | planned | variable
+- {name: Pensje, kind: income, icon: "💼"}
+- {name: Czynsz od najemcy, kind: income, icon: "🔑"}
+- {name: Premie i inne, kind: income, icon: "✨"}
+- {name: Kredyt i raty, kind: fixed, icon: "🏦"}
+- {name: Leasing, kind: fixed, icon: "📄"}
+- {name: Media, kind: fixed, icon: "💡"}
+- {name: Internet i telefon, kind: fixed, icon: "📶"}
+- {name: Subskrypcje, kind: fixed, icon: "📺"}
+- {name: Przedszkole, kind: fixed, icon: "🎒"}
+- {name: Mieszkanie na wynajem, kind: fixed, icon: "🏢"}
+- {name: Samochody, kind: planned, icon: "🚗"}
+- {name: Dom, kind: planned, icon: "🏠"}
+- {name: AGD i urządzenia, kind: planned, icon: "🔧"}
+- {name: Ubezpieczenia, kind: planned, icon: "🛡️"}
+- {name: Podatki, kind: planned, icon: "🧾"}
+- {name: Zdrowie, kind: planned, icon: "🩺"}
+- {name: Prezenty i okazje, kind: planned, icon: "🎁"}
+- {name: Dziecko – ubrania, kind: planned, icon: "👕"}
+- {name: Jedzenie, kind: variable, icon: "🛒"}
+- {name: Paliwo, kind: variable, icon: "⛽"}
+- {name: Chemia i dom, kind: variable, icon: "🧴"}
+- {name: Rozrywka, kind: variable, icon: "🎬"}
+- {name: Restauracje, kind: variable, icon: "🍕"}

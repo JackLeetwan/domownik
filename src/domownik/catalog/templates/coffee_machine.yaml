@@ -1,0 +1,38 @@
+key: coffee_machine
+name: Ekspres do kawy
+kind: appliance
+icon: "☕"
+order: 51
+attributes:
+  - {key: model, label: Model}
+tasks:
+  - title: Odkamienianie ekspresu
+    category: diy
+    recurrence: {mode: interval, every: 2, unit: month, anchor: completion}
+    lead_days: 3
+    amount: 40
+    budget: AGD i urządzenia
+  - title: Wymiana filtra wody w ekspresie
+    category: diy
+    recurrence: {mode: interval, every: 2, unit: month, anchor: completion}
+    lead_days: 3
+    amount: 60
+    budget: AGD i urządzenia
+  - title: Czyszczenie bloku zaparzającego
+    category: diy
+    recurrence: {mode: interval, every: 1, unit: week, anchor: completion}
+    lead_days: 0
+    direction: none
+  - title: Czyszczenie spieniacza / systemu mleka
+    category: diy
+    recurrence: {mode: interval, every: 2, unit: week, anchor: completion}
+    lead_days: 0
+    direction: none
+    default: false
+  - title: Tabletki czyszczące (odtłuszczanie)
+    category: diy
+    recurrence: {mode: interval, every: 1, unit: month, anchor: completion}
+    lead_days: 2
+    amount: 15
+    budget: AGD i urządzenia
+    default: false

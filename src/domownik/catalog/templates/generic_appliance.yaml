@@ -1,0 +1,9 @@
+key: generic_appliance
+name: Inne urządzenie (bez zadań)
+kind: appliance
+icon: "🔧"
+order: 90
+attributes:
+  - {key: model, label: Model}
+  - {key: warranty_until, label: Gwarancja do}
+tasks: []

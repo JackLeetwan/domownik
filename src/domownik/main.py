@@ -1,0 +1,55 @@
+from __future__ import annotations
+
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.sessions import SessionMiddleware
+
+from domownik.config import get_settings
+from domownik.routers import auth, board, dashboard, items, shopping, tasks
+from domownik.security import LoginRequired
+from domownik.web import HERE, is_htmx, render
+
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    app = FastAPI(title="Domownik", docs_url=None, redoc_url=None, openapi_url=None)
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.resolved_secret_key(),
+        session_cookie="domownik_session",
+        max_age=settings.session_days * 86400,
+        same_site="lax",
+        https_only=settings.https_only,
+    )
+    app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
+    app.include_router(auth.router)
+    app.include_router(dashboard.router)
+    app.include_router(items.router)
+    app.include_router(items.issues_router)
+    app.include_router(items.notes_router)
+    app.include_router(tasks.router)
+    app.include_router(shopping.router)
+    app.include_router(board.router)
+
+    @app.exception_handler(LoginRequired)
+    async def _login_required(request: Request, _exc: LoginRequired):
+        if is_htmx(request):
+            return HTMLResponse("", status_code=401, headers={"HX-Redirect": "/login"})
+        if request.url.path.startswith("/api/"):
+            return HTMLResponse("Unauthorized", status_code=401)
+        return RedirectResponse("/login", status_code=303)
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_error(request: Request, exc: StarletteHTTPException):
+        if is_htmx(request) or request.url.path.startswith("/api/"):
+            return HTMLResponse(f'<p class="error">{exc.detail}</p>', status_code=exc.status_code)
+        return render(
+            request, "error.html", {"code": exc.status_code, "detail": exc.detail}, status_code=exc.status_code
+        )
+
+    return app
+
+
+app = create_app()

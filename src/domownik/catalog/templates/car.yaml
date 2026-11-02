@@ -1,0 +1,72 @@
+key: car
+name: Samochód
+kind: car
+icon: "🚗"
+order: 10
+attributes:
+  - {key: plate, label: Nr rejestracyjny}
+  - {key: model, label: Marka i model}
+  - {key: year, label: Rok produkcji}
+  - {key: vin, label: VIN}
+tasks:
+  - title: Ubezpieczenie OC
+    category: insurance
+    recurrence: {mode: interval, every: 1, unit: year, anchor: due}
+    lead_days: 30
+    amount: 1200
+    budget: Ubezpieczenia
+    ask_date: true
+    hint: data końca obecnej polisy
+  - title: Ubezpieczenie AC
+    category: insurance
+    recurrence: {mode: interval, every: 1, unit: year, anchor: due}
+    lead_days: 30
+    amount: 1500
+    budget: Ubezpieczenia
+    default: false
+    ask_date: true
+  - title: Przegląd techniczny (SKP)
+    category: inspection
+    recurrence: {mode: interval, every: 1, unit: year, anchor: due}
+    lead_days: 14
+    amount: 149
+    budget: Samochody
+    ask_date: true
+    hint: data z dowodu rejestracyjnego
+  - title: Wymiana oleju i filtrów
+    category: service
+    recurrence: {mode: interval, every: 12, unit: month, anchor: completion, km: 15000}
+    lead_days: 21
+    amount: 600
+    budget: Samochody
+  - title: Zmiana opon na zimowe
+    category: service
+    recurrence: {mode: fixed, dates: ["10-25"]}
+    lead_days: 14
+    amount: 160
+    budget: Samochody
+  - title: Zmiana opon na letnie
+    category: service
+    recurrence: {mode: fixed, dates: ["04-10"]}
+    lead_days: 14
+    amount: 160
+    budget: Samochody
+  - title: Wymiana płynu hamulcowego
+    category: service
+    recurrence: {mode: interval, every: 2, unit: year, anchor: completion}
+    lead_days: 21
+    amount: 200
+    budget: Samochody
+  - title: Serwis klimatyzacji
+    category: service
+    recurrence: {mode: fixed, dates: ["05-01"]}
+    lead_days: 21
+    amount: 250
+    budget: Samochody
+  - title: Wymiana rozrządu
+    category: service
+    recurrence: {mode: interval, every: 5, unit: year, anchor: completion, km: 120000}
+    lead_days: 60
+    amount: 2000
+    budget: Samochody
+    default: false

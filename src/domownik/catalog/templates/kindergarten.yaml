@@ -1,0 +1,41 @@
+key: kindergarten
+name: Przedszkole
+kind: group
+icon: "🎒"
+order: 61
+attributes:
+  - {key: name, label: Nazwa przedszkola}
+  - {key: group, label: Grupa}
+  - {key: contact, label: Kontakt}
+tasks:
+  - title: Czesne i wyżywienie
+    category: payment
+    recurrence: {mode: monthly, day: 10}
+    lead_days: 3
+    amount: 900
+    budget: Przedszkole
+  - title: Zajęcia dodatkowe
+    category: payment
+    recurrence: {mode: monthly, day: 10}
+    lead_days: 3
+    amount: 150
+    budget: Przedszkole
+    default: false
+  - title: Ubezpieczenie NNW
+    category: insurance
+    recurrence: {mode: fixed, dates: ["09-15"]}
+    lead_days: 14
+    amount: 80
+    budget: Przedszkole
+  - title: Rada rodziców – składka
+    category: payment
+    recurrence: {mode: fixed, dates: ["09-30"]}
+    lead_days: 14
+    amount: 150
+    budget: Przedszkole
+  - title: Wyprawka na nowy rok
+    category: shopping
+    recurrence: {mode: fixed, dates: ["08-20"]}
+    lead_days: 21
+    amount: 300
+    budget: Przedszkole

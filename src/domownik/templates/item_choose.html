@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+{% set crumbs_link_last = True %}{% include "partials/breadcrumbs.html" %}
+<h1>{% if parent %}Dodaj do: {{ parent.display_icon }} {{ parent.name }}{% else %}Nowa strefa{% endif %}</h1>
+<p class="muted">Wybierz szablon – na następnym kroku zaznaczysz, które zadania dodać, i poprawisz kwoty oraz terminy.</p>
+<section class="tiles">
+  {% for key, tpl in templates.items() %}
+  <a class="tile" href="/items/new/{{ key }}{% if parent %}?parent={{ parent.id }}{% endif %}">
+    <span class="tile-icon" aria-hidden="true">{{ tpl.icon }}</span>
+    <span class="tile-name">{{ tpl.name }}</span>
+    <span class="tile-next muted">{% if tpl.tasks %}{{ tpl.tasks|length }} propozycji zadań{% else %}bez zadań{% endif %}</span>
+  </a>
+  {% endfor %}
+</section>
+{% endblock %}

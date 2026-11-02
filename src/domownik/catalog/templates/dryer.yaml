@@ -1,0 +1,16 @@
+key: dryer
+name: Suszarka
+kind: appliance
+icon: "🌀"
+order: 53
+tasks:
+  - title: Czyszczenie filtra kłaczków (dokładne)
+    category: diy
+    recurrence: {mode: interval, every: 1, unit: month, anchor: completion}
+    lead_days: 2
+    direction: none
+  - title: Czyszczenie skraplacza / wymiennika
+    category: diy
+    recurrence: {mode: interval, every: 3, unit: month, anchor: completion}
+    lead_days: 3
+    direction: none

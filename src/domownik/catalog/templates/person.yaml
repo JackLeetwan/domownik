@@ -1,0 +1,33 @@
+key: person
+name: Osoba (urodziny, imieniny)
+kind: person
+icon: "🙂"
+order: 70
+attributes:
+  - {key: relation, label: Kim jest (np. mama, przyjaciel)}
+  - {key: gift_ideas, label: Pomysły na prezent}
+tasks:
+  - title: Urodziny
+    category: occasion
+    recurrence: {mode: fixed, dates: ["?"]}
+    lead_days: 14
+    amount: 200
+    budget: Prezenty i okazje
+    ask_date: true
+    hint: data urodzin
+  - title: Imieniny
+    category: occasion
+    recurrence: {mode: fixed, dates: ["?"]}
+    lead_days: 7
+    amount: 100
+    budget: Prezenty i okazje
+    ask_date: true
+    default: false
+  - title: Rocznica
+    category: occasion
+    recurrence: {mode: fixed, dates: ["?"]}
+    lead_days: 14
+    amount: 300
+    budget: Prezenty i okazje
+    ask_date: true
+    default: false

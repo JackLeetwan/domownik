@@ -1,0 +1,27 @@
+{% if tpl.tasks %}
+<fieldset class="picker">
+  <legend>Zadania z szablonu – zaznacz, które dodać</legend>
+  {% for t in tpl.tasks %}
+  {% set dup = existing is defined and t.title in existing %}
+  <div class="pick-row">
+    <label class="pick-check">
+      <input type="checkbox" name="pick_{{ loop.index0 }}" value="1" {% if t.default and not dup %}checked{% endif %}>
+      <span>{{ t.title }}{% if dup %} <small class="badge">już jest</small>{% endif %}<br>
+        <small class="muted">{{ CATEGORIES[t.category][1] }} {{ t.describe() }}{% if t.hint %} · {{ t.hint }}{% endif %}</small></span>
+    </label>
+    <input type="hidden" name="title_{{ loop.index0 }}" value="{{ t.title }}">
+    <label class="pick-field">
+      <small>{% if t.ask_date %}{% if t.needs_user_date %}Data{% else %}Najbliższy termin{% endif %}{% else %}Najbliższy termin (opcjonalnie){% endif %}</small>
+      <input type="date" name="due_{{ loop.index0 }}" {% if t.needs_user_date %}data-required-if-checked{% endif %}>
+    </label>
+    {% if t.direction != 'none' %}
+    <label class="pick-field pick-amount">
+      <small>{% if t.direction == 'income' %}Przychód{% else %}Koszt{% endif %} [zł]</small>
+      <input type="text" inputmode="decimal" name="amount_{{ loop.index0 }}" value="{{ t.amount|int if t.amount is not none else '' }}">
+    </label>
+    {% endif %}
+  </div>
+  {% endfor %}
+  <small class="muted">Bez daty: termin zostanie wyliczony od dziś (zadania cykliczne) albo z kalendarza (stałe daty).</small>
+</fieldset>
+{% endif %}

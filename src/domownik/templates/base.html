@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#2f6f5e">
+  <meta name="htmx-config" content='{"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"422","swap":true},{"code":"[45]..","swap":false,"error":true}]}'>
+  <title>{% block title %}Domownik{% endblock %}</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <script>
+    // before first paint: apply the saved theme (auto = follow the system)
+    try { var t = localStorage.getItem("dm-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="/static/vendor/pico.min.css">
+  {% block head %}{% endblock %}
+  <link rel="stylesheet" href="/static/app.css?v=10">
+</head>
+<body hx-boost="true" hx-headers='{"X-CSRF-Token": "{{ csrf }}"}'>
+<div class="shell{% if nav %} has-nav{% endif %}">
+  {% if nav %}{% include "partials/nav.html" %}{% endif %}
+  <div class="page">
+    {% if not nav %}
+    <header class="container topbar">
+      <a href="/" class="brand">🏡 Domownik</a>
+      <nav class="topnav">
+        <button type="button" class="link theme-toggle" id="theme-toggle" title="Motyw: automatyczny" aria-label="Przełącz motyw">🌓</button>
+      </nav>
+    </header>
+    {% endif %}
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+  <dialog id="modal" aria-labelledby="modal-title">
+    <article id="modal-body"></article>
+  </dialog>
+  <script src="/static/vendor/htmx.min.js"></script>
+  {% block scripts %}{% endblock %}
+  <script src="/static/app.js?v=5"></script>
+</body>
+</html>

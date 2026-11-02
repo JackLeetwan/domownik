@@ -1,0 +1,47 @@
+key: house
+name: Dom
+kind: house
+icon: "🏠"
+order: 20
+attributes:
+  - {key: address, label: Adres}
+tasks:
+  - title: Ubezpieczenie domu
+    category: insurance
+    recurrence: {mode: interval, every: 1, unit: year, anchor: due}
+    lead_days: 30
+    amount: 900
+    budget: Ubezpieczenia
+    ask_date: true
+    hint: data końca obecnej polisy
+  - title: Podatek od nieruchomości – rata
+    category: tax
+    recurrence: {mode: fixed, dates: ["03-15", "05-15", "09-15", "11-15"]}
+    lead_days: 7
+    amount: 250
+    budget: Podatki
+  - title: Przegląd kominiarski
+    category: inspection
+    recurrence: {mode: interval, every: 1, unit: year, anchor: due}
+    lead_days: 30
+    amount: 250
+    budget: Dom
+    ask_date: true
+  - title: Czyszczenie rynien
+    category: diy
+    recurrence: {mode: fixed, dates: ["11-10"]}
+    lead_days: 14
+    direction: none
+  - title: Test czujników dymu i CO, wymiana baterii
+    category: diy
+    recurrence: {mode: interval, every: 1, unit: year, anchor: completion}
+    lead_days: 7
+    amount: 40
+    budget: Dom
+  - title: Wymiana filtrów wody (pod zlewem / główny)
+    category: diy
+    recurrence: {mode: interval, every: 6, unit: month, anchor: completion}
+    lead_days: 7
+    amount: 80
+    budget: Dom
+    default: false

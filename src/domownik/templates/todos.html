@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Do zrobienia · Domownik{% endblock %}
+{% block content %}
+<header class="agenda-head">
+  <h1>☐ Do zrobienia <small class="muted">({{ count }})</small></h1>
+  <div role="group" class="who">
+    <a href="/do-zrobienia" role="button" class="{% if who != 'me' %}{% else %}outline {% endif %}secondary">Wszyscy</a>
+    <a href="/do-zrobienia?who=me" role="button" class="{% if who == 'me' %}{% else %}outline {% endif %}secondary">Moje</a>
+  </div>
+</header>
+<p class="muted"><small>Sprawy bez terminu. Gdy któraś dostanie datę, kliknij ją i wybierz „Zaplanuj” – trafi na oś czasu i do przypomnień.</small></p>
+
+<details class="quick-add" {% if not count %}open{% endif %}>
+  <summary>＋ Dodaj sprawę</summary>
+  <form method="post" action="/do-zrobienia">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Co<input name="title" required placeholder="np. umówić hydraulika, oddać książki do biblioteki"></label>
+    <div class="grid">
+      <label>Dotyczy
+        <select name="item_id">
+          <option value="">Ogólne (dom, rodzina)</option>
+          {% for i in items %}<option value="{{ i.id }}">{{ label(i.id) }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Kto<select name="assignee_id"><option value="">—</option>{% for u in users %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}</select></label>
+    </div>
+    <div class="grid">
+      <label>Notatka<input name="notes" placeholder="opcjonalnie"></label>
+      <label>Szacowany koszt (zł)<input name="amount" inputmode="decimal" placeholder="opcjonalnie"></label>
+    </div>
+    <button type="submit">Dodaj</button>
+  </form>
+</details>
+
+{% for group, todos in groups.items() %}
+<h2 class="todo-group">{{ group }} <small>({{ todos|length }})</small></h2>
+<ul class="todo-list">
+  {% for td in todos %}{% set show_zone = td.item_id is not none %}{% include "partials/todo.html" %}{% endfor %}
+</ul>
+{% endfor %}
+{% if not groups %}<p class="muted">Nic do zrobienia. 🎉</p>{% endif %}
+
+{% if done_todos %}
+<details>
+  <summary>Ostatnio zrobione ({{ done_todos|length }})</summary>
+  <ul class="todo-list">{% for td in done_todos %}{% set show_zone = True %}{% include "partials/todo.html" %}{% endfor %}</ul>
+</details>
+{% endif %}
+{% endblock %}

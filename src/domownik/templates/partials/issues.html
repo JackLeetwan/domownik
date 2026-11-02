@@ -1,0 +1,24 @@
+<section class="notes-section" id="sprawy">
+  <h2>{% if item.is_member %}Problemy i sprawy w toku{% else %}Usterki i problemy{% endif %}</h2>
+  {% if open_issues %}
+  <ul class="issue-list">{% for i in open_issues %}{% include "partials/issue.html" %}{% endfor %}</ul>
+  {% endif %}
+  <details class="quick-add">
+    <summary>＋ {% if item.is_member %}Nowy problem / sprawa{% else %}Zgłoś usterkę / problem{% endif %}</summary>
+    <form method="post" action="/items/{{ item.id }}/issues">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        <label>Co się dzieje<input name="title" required placeholder="{% if item.is_member %}np. kaszel, ból kolana, wysypka{% else %}np. stuk z przodu przy skręcie, przecieka kran{% endif %}"></label>
+        <label>Od kiedy<input type="date" name="started_on" value="{{ today().isoformat() }}"></label>
+      </div>
+      <label>Notatki<textarea name="notes" rows="3" placeholder="{% if item.is_member %}objawy, leki i dawki, zalecenia lekarza…{% else %}kiedy występuje, co już sprawdzone, kogo zapytać…{% endif %}"></textarea></label>
+      <button type="submit">Zapisz</button>
+    </form>
+  </details>
+  {% if closed_issues %}
+  <details>
+    <summary>Zamknięte ({{ closed_issues|length }})</summary>
+    <ul class="issue-list">{% for i in closed_issues %}{% include "partials/issue.html" %}{% endfor %}</ul>
+  </details>
+  {% endif %}
+</section>

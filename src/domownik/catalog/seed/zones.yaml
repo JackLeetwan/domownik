@@ -1,0 +1,7 @@
+# Default top-level zones created on first run ("Utwórz domyślne strefy").
+# suggest: templates offered as quick-add tiles inside the zone
+- {name: Samochody, template: group, icon: "🚗", suggest: [car]}
+- {name: Dom, template: house, suggest: [heat_pump, coffee_machine, washing_machine, dryer, dishwasher, generic_appliance]}
+- {name: Mieszkanie wynajęte, template: rental, suggest: [washing_machine, dishwasher, generic_appliance]}
+- {name: Dzieci, template: group, icon: "🧒", suggest: [child]}
+- {name: Okazje, template: occasions, suggest: [person]}

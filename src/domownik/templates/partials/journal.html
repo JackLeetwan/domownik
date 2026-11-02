@@ -1,0 +1,38 @@
+<section class="notes-section" id="dziennik">
+  <h2>Dziennik</h2>
+  <details class="quick-add">
+    <summary>＋ Wpis</summary>
+    <form method="post" action="/items/{{ item.id }}/journal">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid journal-grid">
+        <label>Kiedy<input type="date" name="on" value="{{ today().isoformat() }}"></label>
+      </div>
+      <label>Co zauważyłeś / co zrobiono<textarea name="body" rows="3" required placeholder="np. kod błędu E5 po mrozie – reset pomógł"></textarea></label>
+      <button type="submit">Zapisz</button>
+    </form>
+  </details>
+  {% if item.journal %}
+  <ul class="journal">
+    {% for e in item.journal %}
+    <li>
+      <span class="journal-date">{{ e.noted_on|d }}</span>
+      <details class="journal-body">
+        <summary><span class="notes">{{ e.body }}</span>{% if e.created_by %} <small class="muted">· {{ e.created_by.name }}</small>{% endif %}</summary>
+        <form method="post" action="/journal/{{ e.id }}/edit">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <label>Kiedy<input type="date" name="on" value="{{ e.noted_on.isoformat() }}"></label>
+          <textarea name="body" rows="3" required>{{ e.body }}</textarea>
+          <button type="submit" class="small">Zapisz</button>
+        </form>
+        <form method="post" action="/journal/{{ e.id }}/delete" class="inline" hx-confirm="Usunąć ten wpis?">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button type="submit" class="link danger"><small>Usuń</small></button>
+        </form>
+      </details>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted"><small>Krótkie notatki z datą: co się działo, co zauważyłeś, co zrobił serwis.</small></p>
+  {% endif %}
+</section>
