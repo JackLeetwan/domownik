@@ -51,7 +51,7 @@ def test_visit_lands_in_health_section(auth_client, db):
     assert t.recurrence == {"mode": "once", "date": on.isoformat()} and t.next_due_date == on
     assert t.direction == "none" and t.amount_gr is None
     page = auth_client.get(f"/items/{adam.id}").text
-    health, rest = page.split("Pozostałe zadania", 1)
+    health, rest = page.split("<h2>Zadania</h2>", 1)
     assert "Ortopeda" in health and "Dentysta" in health
     assert "Ortopeda" not in rest
 

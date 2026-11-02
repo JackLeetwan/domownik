@@ -45,7 +45,7 @@
 {% include "partials/issues.html" %}
 
 <section>
-  <h2>{% if item.is_member %}Pozostałe zadania{% else %}Zadania{% if kids %} – {{ item.name }}{% endif %}{% endif %}</h2>
+  <h2>Zadania</h2>
   {% if own_rows %}
   <ul class="task-list">{% set show_zone = False %}{% for row in own_rows %}{% include "partials/task_row.html" %}{% endfor %}</ul>
   {% else %}
@@ -63,7 +63,7 @@
 
 {% if sub_rows %}
 <section>
-  <h2>W tej strefie</h2>
+  <h2>Zadania w tej strefie</h2>
   <ul class="task-list">{% set show_zone = True %}{% for row in sub_rows %}{% include "partials/task_row.html" %}{% endfor %}</ul>
 </section>
 {% endif %}
@@ -81,7 +81,7 @@
       <tr>
         <td>{{ c.done_on|d }}</td>
         <td>{{ c.task.category_icon }} {{ c.task.title }}{% if c.km %} <small class="muted">· {{ c.km }} km</small>{% endif %}{% if c.vendor %} <small class="muted">· {{ c.vendor }}</small>{% endif %}{% if c.notes %}<br><small class="muted">{{ c.notes }}</small>{% endif %}</td>
-        <td>{{ c.actual_amount_gr|pln }}</td>
+        <td>{% if c.task.direction == 'income' %}{{ c.actual_amount_gr|pln(sign=True) }}{% elif c.task.direction == 'expense' and c.actual_amount_gr %}{{ (-c.actual_amount_gr)|pln(sign=True) }}{% else %}{{ c.actual_amount_gr|pln }}{% endif %}</td>
         <td>{{ c.performed_by.name if c.performed_by else ('automatycznie' if c.notes == 'Zapłacone automatycznie' else '') }}</td>
         <td>
           {% if c.id in undoable %}

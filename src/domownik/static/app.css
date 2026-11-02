@@ -167,7 +167,7 @@ body div.vis-tooltip { font-family: var(--pico-font-family); font-size: 0.82rem;
 .crumbs ul { flex-wrap: wrap; }
 .crumbs { margin: 0; font-size: 0.9rem; }
 .crumbs-bar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
-.home-btn { padding: 0.35rem 0.9rem; font-size: 0.9rem; white-space: nowrap; }
+.home-link { font-size: 0.9rem; white-space: nowrap; text-decoration: none; }
 .item-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .item-head h1 { margin: 0; }
 .item-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -194,7 +194,10 @@ body div.vis-tooltip { font-family: var(--pico-font-family); font-size: 0.82rem;
 
 /* modal */
 dialog article { max-width: 640px; width: 100%; }
-dialog header .close { float: right; width: auto; padding: 0.2rem 0.6rem; margin: 0; background: none; border: 0; color: var(--pico-muted-color); font-size: 1.1rem; }
+/* our own ✕ text button: drop Pico's built-in close icon (it drew a second, overlapping ✕) */
+dialog > article > header .close { float: right; display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; padding: 0; margin: -0.35rem -0.5rem 0 0.5rem; background: none; background-image: none; border: 0; border-radius: 8px; box-shadow: none; opacity: 1; color: var(--pico-muted-color); font-size: 1.15rem; line-height: 1; }
+dialog > article > header .close:hover { background: color-mix(in srgb, var(--pico-muted-color) 15%, transparent); color: var(--pico-color); }
+dialog > article > header .close:focus-visible { outline: 2px solid var(--pico-primary); outline-offset: 0; }
 .modal-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .modal-actions > * { width: auto; margin: 0; }
 
@@ -322,7 +325,7 @@ button.danger { color: var(--pico-del-color, #c62828); }
 :root { --dm-side-w: 232px; }
 .has-nav .page { min-width: 0; }
 .has-nav main.container { max-width: 1280px; width: 100%; margin-inline: auto; padding-top: 1rem; }
-.sidebar { background: var(--dm-tile-bg); border-right: 1px solid var(--dm-tile-border); padding: 1rem 0.75rem; display: flex; flex-direction: column; gap: 0.15rem; overflow-y: auto; overflow-x: hidden; }
+.sidebar { background: var(--dm-tile-bg); border-right: 1px solid var(--dm-tile-border); padding: 1rem 0.75rem 0; display: flex; flex-direction: column; gap: 0.15rem; overflow-y: auto; overflow-x: hidden; }
 .sidebar-brand { display: block; padding: 0.25rem 0.6rem 0.75rem; }
 .side-links { list-style: none; margin: 0; padding: 0; }
 .side-links li { list-style: none; margin: 0; }
@@ -334,14 +337,14 @@ button.danger { color: var(--pico-del-color, #c62828); }
 .side-soon small { margin-left: auto; font-size: 0.7rem; }
 .side-links .count, .bottombar .count { margin-left: auto; min-width: 1.4rem; padding: 0 0.4rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-align: center; background: var(--pico-primary-background); color: #fff; }
 .side-head { margin: 0.9rem 0 0.2rem; padding: 0 0.6rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pico-muted-color); }
-.side-foot { margin-top: auto; padding: 1rem 0.6rem 0.25rem; display: flex; align-items: center; gap: 0.8rem; font-size: 0.9rem; border-top: 1px solid var(--dm-tile-border); flex-wrap: wrap; row-gap: 0.3rem; }
+.side-foot { margin-top: auto; position: sticky; bottom: 0; background: inherit; padding: 0.75rem 0.6rem 1rem; display: flex; align-items: center; gap: 0.8rem; font-size: 0.9rem; border-top: 1px solid var(--dm-tile-border); flex-wrap: wrap; row-gap: 0.3rem; }
 .side-foot .theme-toggle { font-size: 1.15rem; }
 .side-foot form { margin-left: auto; }
 .bottombar, .nav-backdrop { display: none; }
 
 @media (min-width: 1024px) {
   .shell.has-nav { display: grid; grid-template-columns: var(--dm-side-w) minmax(0, 1fr); min-height: 100vh; }
-  .has-nav .sidebar { position: sticky; top: 0; height: 100vh; }
+  .has-nav .sidebar { position: sticky; top: 0; height: 100vh; height: 100dvh; align-self: start; }
 }
 @media (max-width: 1023.98px) {
   .has-nav .sidebar { position: fixed; z-index: 50; top: 0; bottom: 0; left: 0; width: min(80vw, 300px); transform: translateX(-105%); transition: transform 0.18s ease; box-shadow: 0 0 24px rgba(0,0,0,0.25); background: var(--pico-background-color); }
@@ -364,6 +367,10 @@ button.danger { color: var(--pico-del-color, #c62828); }
 .tool-preview { font-size: 0.85rem; color: var(--pico-muted-color); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
 @media (max-width: 480px) { .tools { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; } .tool { min-height: 0; padding: 0.6rem; align-items: center; text-align: center; } .tool-head { flex-direction: column; gap: 0.1rem; font-size: 0.85rem; } .tool-head .count { margin: 0; } .tool-preview { display: none; } }
 .section-title { font-size: 1.1rem; margin: 0 0 0.5rem; }
+.tools-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0; margin: 0 0 1.25rem; font-size: 0.9rem; }
+.tools-compact a { text-decoration: none; color: var(--pico-color); white-space: nowrap; }
+.tools-compact a + a::before { content: "·"; margin: 0 0.6rem; color: var(--pico-muted-color); }
+.tools + .tools-compact { margin-top: -0.75rem; }
 
 /* ---------------------------------------------------------------- notes board */
 .note-add textarea { margin-bottom: 0.5rem; }
@@ -394,6 +401,7 @@ button.danger { color: var(--pico-del-color, #c62828); }
 /* Pico styles `aside li / aside a` – neutralise inside our sidebar */
 .sidebar .side-links li { padding: 0; margin: 0; }
 .sidebar .side-links a, .sidebar .side-soon { margin: 0; color: var(--pico-color); white-space: nowrap; line-height: 1.3; }
+.sidebar .side-soon { color: var(--pico-muted-color); opacity: 0.6; cursor: not-allowed; user-select: none; }
 .sidebar .side-links a[aria-current] { color: var(--pico-color); }
 .sidebar .side-links a span:not(.ic):not(.count) { overflow: hidden; text-overflow: ellipsis; }
 .sidebar .sidebar-brand { color: var(--pico-primary); }

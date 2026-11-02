@@ -95,6 +95,10 @@ def _apply_form(task: Task, form, db: Session) -> None:
     task.active = True
 
 
+# Pre-selected category of a new task, guessed from the kind of item it belongs to
+DEFAULT_CATEGORY_BY_KIND = {"car": "service", "appliance": "service"}
+
+
 @router.get("/tasks/new")
 def new_task_form(request: Request, item: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     tree = Tree.load(db)
@@ -102,6 +106,7 @@ def new_task_form(request: Request, item: int, db: Session = Depends(get_db), us
         raise HTTPException(404)
     task = Task(
         item_id=item,
+        category=DEFAULT_CATEGORY_BY_KIND.get(tree.items[item].kind, "other"),
         recurrence={"mode": "interval", "every": 1, "unit": "month", "anchor": "completion"},
         lead_days=7,
         direction="expense",

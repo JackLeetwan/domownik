@@ -141,6 +141,7 @@ def test_complete_task_flow(auth_client, db, user):
     assert comp.due_date == due and comp.actual_amount_gr == 4500 and comp.performed_by_id == user.id
     tr = db.scalar(select(Transaction).where(Transaction.completion_id == comp.id))
     assert tr.amount_gr == -4500 and tr.item_id == item.id
+    assert "<td>−45" in auth_client.get(f"/items/{item.id}").text  # history: expense with a minus, like the lists
 
     # undo restores the previous due date and removes the transaction (cascade)
     auth_client.post(f"/completions/{comp.id}/undo")
@@ -244,7 +245,7 @@ def test_zone_tree_and_breadcrumbs(auth_client, db):
         },
     )
     page = auth_client.get(f"/items/{dom.id}")
-    assert "Ekspres" in page.text and "W tej strefie" in page.text and "Odkamienianie ekspresu" in page.text
+    assert "Ekspres" in page.text and "Zadania w tej strefie" in page.text and "Odkamienianie ekspresu" in page.text
     dash = auth_client.get("/")
     assert "1 zaległe" in dash.text
     stats = services.zone_stats(db, Tree.load(db), [dom], today())
@@ -283,3 +284,16 @@ def test_quick_add_falls_back_for_zones_without_setting(auth_client, db):
     db.commit()
     assert "＋ Samochód" in auth_client.get(f"/items/{old.id}").text
     assert "＋ Pompa ciepła" in auth_client.get(f"/items/{house.id}").text
+
+
+def test_new_task_default_category(auth_client, db):
+    from domownik.models import Item
+
+    car = Item(name="Auto 1", kind="car")
+    flat = Item(name="Mieszkanie 1", kind="apartment")
+    db.add_all([car, flat])
+    db.commit()
+    page = auth_client.get(f"/tasks/new?item={car.id}").text
+    assert '<option value="service" selected>' in page
+    page = auth_client.get(f"/tasks/new?item={flat.id}").text
+    assert '<option value="other" selected>' in page and '<option value="insurance" selected>' not in page

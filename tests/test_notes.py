@@ -38,7 +38,7 @@ def test_todo_add_toggle_and_dashboard(auth_client, db, user):
     assert r.headers["location"] == "/"
     db.refresh(td)
     assert td.done_on == today() and td.done_by_id == user.id
-    assert "Nic na liście" in auth_client.get("/").text
+    assert '☐ Do zrobienia <small class="muted">0</small>' in auth_client.get("/").text  # empty list → compact shortcut
     assert "Zrobione (1)" in auth_client.get(f"/items/{fiat.id}").text
 
 
@@ -81,7 +81,7 @@ def test_issue_on_car_and_zone(auth_client, db):
     auth_client.post(f"/items/{fiat.id}/issues", data={"title": "Stuk przy skręcie"})
     assert db.scalar(select(Issue)).item_id == fiat.id
     page = auth_client.get(f"/items/{fiat.id}").text
-    assert "Usterki i problemy" in page and "Stuk przy skręcie" in page
+    assert "Usterki i sprawy" in page and "Stuk przy skręcie" in page
     assert "Stuk przy skręcie" in auth_client.get(f"/items/{cars.id}").text
     assert "1 sprawa" in auth_client.get("/").text
 

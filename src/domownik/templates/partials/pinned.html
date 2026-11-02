@@ -1,11 +1,21 @@
 {# Pinned, stable facts: attributes + free-form notes, editable in place #}
+{% set pin_hints = {
+  'car': 'rozmiar opon, kod do radia, nr VIN, olej…',
+  'house': 'nr seryjny, filtr, kod do alarmu…',
+  'apartment': 'nr seryjny, filtr, kod do alarmu…',
+  'rental': 'nr licznika, kod do alarmu, kontakt do najemcy…',
+  'appliance': 'nr seryjny, filtr, model…',
+  'member': 'rozmiar butów, grupa krwi, PESEL do formularzy…',
+  'child': 'rozmiar butów, grupa krwi, PESEL do formularzy…',
+  'person': 'rozmiar ubrań, ulubione rzeczy, adres…',
+} %}
 <article class="facts">
   <dl>
     {% for k, v in item.attributes.items() if not k.startswith('_') %}<div><dt>{{ attr_labels.get(k, k) }}</dt><dd>{{ v }}</dd></div>{% endfor %}
     {% if last_km %}<div><dt>Przebieg</dt><dd>{{ "{:,}".format(last_km).replace(",", " ") }} km</dd></div>{% endif %}
   </dl>
   <details class="pinned">
-    <summary>{% if item.notes %}<span class="notes">📌 {{ item.notes }}</span> <small class="muted">✎</small>{% else %}<span class="muted">📌 Przypnij informacje (rozmiar opon, kod do radia, nr seryjny, filtr…)</span>{% endif %}</summary>
+    <summary>{% if item.notes %}<span class="notes">📌 {{ item.notes }}</span> <small class="muted">✎</small>{% else %}<span class="muted">📌 Przypnij informacje ({{ pin_hints.get(item.kind, 'nr polisy, nr umowy, numer konta…') }})</span>{% endif %}</summary>
     <form method="post" action="/items/{{ item.id }}/notes">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <textarea name="notes" rows="4" placeholder="Stałe informacje, które warto mieć pod ręką">{{ item.notes or "" }}</textarea>

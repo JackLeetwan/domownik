@@ -1,5 +1,5 @@
 <section class="notes-section" id="sprawy">
-  <h2>{% if item.is_member %}Problemy i sprawy w toku{% else %}Usterki i problemy{% endif %}</h2>
+  <h2>Usterki i sprawy</h2>
   {% if open_issues %}
   <ul class="issue-list">{% for i in open_issues %}{% include "partials/issue.html" %}{% endfor %}</ul>
   {% endif %}
