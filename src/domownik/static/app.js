@@ -47,6 +47,21 @@
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") setNav(false); });
   document.addEventListener("htmx:beforeRequest", (ev) => { if (ev.detail.boosted) setNav(false); });
 
+  // ------------------------------------------------------------------ copy to clipboard
+  document.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest && ev.target.closest("[data-copy]");
+    if (!btn) return;
+    const label = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(btn.dataset.copy);
+      btn.textContent = "✓ skopiowano";
+    } catch (_) {
+      window.prompt("Skopiuj:", btn.dataset.copy); // no clipboard API (plain http)
+      return;
+    }
+    setTimeout(() => { btn.textContent = label; }, 2000);
+  });
+
   // ------------------------------------------------------------------ errors
   // htmx swallows failed requests by default – then a click "does nothing".
   function toast(msg) {

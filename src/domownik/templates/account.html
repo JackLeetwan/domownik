@@ -25,12 +25,25 @@
       </form>
     </li>
     {% if user.ntfy_topic %}
-    <li>Na telefonie: <a href="ntfy://{{ server.split('://', 1)[1] }}/{{ user.ntfy_topic }}">otwórz ten link</a> (subskrybuje od razu), albo w ntfy kliknij <strong>＋</strong> i wpisz temat powyżej{% if server != 'https://ntfy.sh' %} (serwer: <code>{{ server }}</code>){% endif %}.</li>
+    <li>
+      <strong>Zasubskrybuj temat w aplikacji ntfy na telefonie</strong> – wybierz jeden sposób:
+      <ul>
+        <li><strong>Ręcznie (zawsze działa):</strong> w aplikacji ntfy stuknij okrągły <strong>＋</strong> w prawym dolnym rogu,
+          wklej temat <button type="button" class="link" data-copy="{{ user.ntfy_topic }}">📋 kopiuj temat</button>,
+          zostaw wyłączone „Use another server”{% if server != 'https://ntfy.sh' %} (albo włącz i wpisz <code>{{ server }}</code>){% endif %} i stuknij <strong>Subscribe</strong>.</li>
+        <li><strong>Jednym stuknięciem (Android):</strong> otwórz tę stronę <em>na telefonie</em> i stuknij
+          <a href="ntfy://{{ server.split('://', 1)[1] }}/{{ user.ntfy_topic }}?display=Domownik" hx-boost="false">subskrybuj w ntfy</a>.
+          Na komputerze ani po wklejeniu w pasek adresu ten link nic nie zrobi.</li>
+      </ul>
+    </li>
     <li>
       <form method="post" action="/ustawienia/test" class="inline">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <button type="submit" class="small">Wyślij powiadomienie próbne</button>
       </form>
+      <br><small class="muted">Nie dochodzi? Sprawdź, czy wiadomość jest na serwerze:
+        <a href="{{ server }}/{{ user.ntfy_topic }}" target="_blank" rel="noopener" hx-boost="false">podgląd tematu w przeglądarce</a>
+        – jeśli tam jest, a na telefonie nie, temat w aplikacji jest wpisany inaczej.</small>
     </li>
     {% endif %}
   </ol>
