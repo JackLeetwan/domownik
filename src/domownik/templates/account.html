@@ -53,6 +53,53 @@
   </small></p>
 </section>
 
+<section id="kalendarz">
+  <h2>Kalendarz w telefonie</h2>
+  <p class="muted">Terminy zadań, grafik tygodnia i końce gwarancji w kalendarzu telefonu (subskrypcja – odświeża się sama, tylko do odczytu). Bez kwot: same tytuły i strefy, bo kalendarze synchronizują się z chmurą.</p>
+
+  {% if ics_url %}
+  <article class="ics-link">
+    <strong>Twój osobisty link</strong>
+    <code class="ics-url">{{ ics_url }}</code>
+    <button type="button" class="small" data-copy="{{ ics_url }}">📋 Kopiuj link</button>
+    <p class="muted"><small>Link widać tylko teraz – Domownik zapisuje wyłącznie jego skrót. Traktuj go jak hasło: kto go ma, widzi Twój kalendarz. Zgubiony? Wygeneruj nowy.</small></p>
+  </article>
+  {% elif user.ics_token_hash %}
+  <p>✅ Link do kalendarza jest aktywny. <small class="muted">Ze względów bezpieczeństwa nie da się go pokazać ponownie – jeśli go nie masz, wygeneruj nowy (stary przestanie działać).</small></p>
+  {% endif %}
+
+  <div class="ics-actions">
+    <form method="post" action="/ustawienia/kalendarz/nowy" class="inline"{% if user.ics_token_hash %} hx-confirm="Wygenerować nowy link? Kalendarz podpięty starym linkiem przestanie się odświeżać."{% endif %}>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="small{% if user.ics_token_hash %} outline{% endif %}">{% if user.ics_token_hash %}🔄 Wygeneruj nowy link{% else %}📅 Utwórz link do kalendarza{% endif %}</button>
+    </form>
+    {% if user.ics_token_hash %}
+    <form method="post" action="/ustawienia/kalendarz/wylacz" class="inline" hx-confirm="Wyłączyć link? Kalendarz w telefonie przestanie się odświeżać.">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="link danger"><small>Wyłącz link</small></button>
+    </form>
+    {% endif %}
+  </div>
+
+  <form method="post" action="/ustawienia/kalendarz/zakres" class="ics-scope">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <fieldset>
+      <legend>Co pokazywać</legend>
+      {% for key, lbl in ics_scopes.items() %}
+      <label><input type="radio" name="scope" value="{{ key }}" {% if user.ics_scope == key %}checked{% endif %} onchange="this.form.requestSubmit()"> {{ lbl }}</label>
+      {% endfor %}
+    </fieldset>
+    <noscript><button type="submit" class="small">Zapisz</button></noscript>
+  </form>
+
+  <details>
+    <summary>Jak dodać do telefonu</summary>
+    <p><strong>iPhone:</strong> Ustawienia → Kalendarz → Konta → Dodaj konto → Inne → <em>Dodaj subskrybowany kalendarz</em> → wklej link → Dalej → Zachowaj. Działa, bo telefon łączy się z Domownikiem przez Tailscale (musi być włączony, gdy kalendarz się odświeża).</p>
+    <p><strong>Android:</strong> Kalendarz Google pobiera subskrypcje ze swoich serwerów w internecie, a Domownik jest dostępny tylko w Twojej sieci Tailscale – więc dodanie linku w Kalendarzu Google <em>nie zadziała</em>. Potrzebna jest aplikacja, która pobiera kalendarz z samego telefonu, np. <strong>ICSx⁵</strong> (F-Droid / Sklep Play): ＋ → wklej link → wydarzenia pojawią się w zwykłym kalendarzu telefonu. Domownik nie udostępnia kalendarza publicznie.</p>
+    <p class="muted"><small>Zakres: od 30 dni wstecz do roku naprzód. Wydarzenia całodniowe dla terminów, grafik z godzinami (czas polski). Przypomnienia zostają w powiadomieniach Domownika – kalendarz nie dodaje własnych alarmów.</small></p>
+  </details>
+</section>
+
 <section>
   <h2>Kto się czym zajmuje</h2>
   <p class="muted">Zadanie przypisane do osoby przypomina się tylko jej; wspólne – wszystkim.{% if not any_assigned %} <strong>Na razie nic nie jest przypisane</strong>, więc każdy dostaje wszystkie przypomnienia.{% endif %}</p>

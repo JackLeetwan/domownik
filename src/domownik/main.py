@@ -48,6 +48,9 @@ def _tick() -> None:
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     settings = get_settings()
+    from domownik import ics
+
+    ics.install_log_filter()  # after uvicorn has set up its loggers: no calendar tokens in the access log
     scheduler = None
     if settings.scheduler:
         from apscheduler.schedulers.background import BackgroundScheduler

@@ -74,6 +74,9 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(200))
     notify_morning: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
     notify_evening: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    # calendar subscription (/ics/<token>.ics): only the SHA-256 of the random token is kept
+    ics_token_hash: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
+    ics_scope: Mapped[str] = mapped_column(String(10), default="all", server_default="all")  # all | mine
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

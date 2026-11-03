@@ -43,6 +43,29 @@ najpilniejszych, z rotacją „Teraz: osoba”. Po „✓ Zrobione” kolej prze
 faktycznie zrobiła (odhaczenie za kogoś też się liczy); „cofnij” przywraca poprzednią kolej. Zaległe
 obowiązki danej osoby to jedna linia porannego powiadomienia – nie trafiają na oś czasu ani do terminów.
 
+## Szybkie dodawanie, kontakty, liczniki
+
+„＋” (telefon: przycisk nad dolnym paskiem, desktop: „＋ Dodaj” w menu) – zadanie, zakup, notatka,
+„do zrobienia”, wydatek albo odczyt licznika z dowolnego ekranu; formularze korzystają z tych samych tras
+co strony (nagłówek `X-Quick-Add`), po zapisie strona odświeża się w miejscu.
+
+`/kontakty` – fachowcy, serwis auta, przedszkole, ubezpieczyciel, lekarz: telefony, e-mail, www, adres,
+powiązanie z wieloma elementami (sekcja „Kontakty” na stronie elementu), podpowiedzi „Wykonawca” przy
+„✓ Zrobione”, wyszukiwarka.
+
+Liczniki (prąd, woda, gaz, ciepło) przy domu/mieszkaniu: odczyty ze zdjęciem, zużycie od poprzedniego,
+średnie, wykres miesięczny (SVG z serwera), koszt z ceny za jednostkę, „nowy licznik / reset”.
+Przebieg auta widać w tym samym układzie – tylko do odczytu, prognozy zadań z przebiegu bez zmian.
+
+## Kalendarz w telefonie (ICS)
+
+**Ustawienia → Kalendarz w telefonie** tworzy osobisty link `/ics/<token>.ics` (subskrypcja, bez logowania):
+terminy zadań (z powtórzeniami, jak oś czasu), grafik tygodnia z godzinami (Europe/Warsaw) i końce gwarancji,
+od 30 dni wstecz do roku naprzód; filtr „wszystko” / „moje i wspólne”. Bez kwot. W bazie jest tylko SHA-256
+tokenu, „Wygeneruj nowy link” unieważnia stary, w logu dostępu uvicorna token jest zamazany (`/ics/…`).
+iPhone: subskrybowany kalendarz (przez Tailscale). Kalendarz Google pobiera ICS ze swoich serwerów, więc
+adresu w tailnecie nie zobaczy – na Androidzie potrzebna jest aplikacja typu ICSx⁵.
+
 ## Powiadomienia
 
 Web Push wysyłany przez samego Domownika (service worker `/sw.js`, klucze VAPID w `data/secrets/`) –

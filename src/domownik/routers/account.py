@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import notify, services, webpush
-from domownik.config import get_settings, today
+from domownik import ics, notify, services, webpush
+from domownik.config import get_settings, now, today
 from domownik.db import get_db
 from domownik.models import PushSubscription, Task, User
 from domownik.security import current_user, verify_csrf
@@ -83,6 +83,8 @@ def settings_page(request: Request, db: Session = Depends(get_db), user: User = 
             "message": flash.get("message"),
             "error": flash.get("error"),
             "any_assigned": services.any_assigned(db),
+            "ics_url": flash.get("ics_url"),
+            "ics_scopes": ics.SCOPES,
         },
     )
 
@@ -117,6 +119,67 @@ def remove_device(request: Request, sub_id: int, db: Session = Depends(get_db), 
         db.delete(sub)
         db.commit()
     return _back(request, message="Usunięto urządzenie.")
+
+
+# ---------------------------------------------------------------- calendar subscription (ICS)
+
+
+def _site_url(request: Request) -> str:
+    """The address phones use: DOMOWNIK_BASE_URL when it is set, else the one this page was opened at."""
+    base = get_settings().base_url.rstrip("/")
+    if not base or base == "http://localhost:8000":
+        base = str(request.base_url).rstrip("/")
+    return base
+
+
+@router.post("/ustawienia/kalendarz/nowy", dependencies=[Depends(verify_csrf)])
+def ics_new_link(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    token = ics.new_token(user)
+    db.commit()
+    # shown once (only the hash is stored) – carried to the next page view in the session, then dropped
+    request.session["flash"] = {"message": "Nowy link gotowy – poprzedni (jeśli był) już nie działa.", "error": None}
+    request.session["flash"]["ics_url"] = f"{_site_url(request)}/ics/{token}.ics"
+    return RedirectResponse("/ustawienia#kalendarz", status_code=303)
+
+
+@router.post("/ustawienia/kalendarz/wylacz", dependencies=[Depends(verify_csrf)])
+def ics_off(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    user.ics_token_hash = None
+    db.commit()
+    request.session["flash"] = {"message": "Link do kalendarza wyłączony.", "error": None}
+    return RedirectResponse("/ustawienia#kalendarz", status_code=303)
+
+
+@router.post("/ustawienia/kalendarz/zakres", dependencies=[Depends(verify_csrf)])
+async def ics_scope(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    form = await request.form()
+    if form.get("scope") in ics.SCOPES:
+        user.ics_scope = form["scope"]
+        db.commit()
+    request.session["flash"] = {
+        "message": "Zapisano – kalendarz pobierze zmiany przy najbliższym odświeżeniu.",
+        "error": None,
+    }
+    return RedirectResponse("/ustawienia#kalendarz", status_code=303)
+
+
+@router.get("/ics/{token}.ics")
+def ics_feed(token: str, db: Session = Depends(get_db)):
+    """No session – calendar apps cannot log in; the personal token in the URL authorises."""
+    user = ics.user_for_token(db, token)
+    if user is None:
+        return Response("Nie ma takiego kalendarza.", status_code=404, media_type="text/plain; charset=utf-8")
+    body = ics.build(db, user, today(), now())
+    return Response(
+        body,
+        media_type="text/calendar; charset=utf-8",
+        headers={
+            "Content-Disposition": 'inline; filename="domownik.ics"',
+            "Cache-Control": "private, max-age=300",
+            "X-Content-Type-Options": "nosniff",
+            "Referrer-Policy": "no-referrer",
+        },
+    )
 
 
 # ---------------------------------------------------------------- push subscription API (static/app.js)
