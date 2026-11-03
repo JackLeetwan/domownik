@@ -7,7 +7,7 @@
   </form>
   <details class="todo-body">
     <summary>
-      <span class="todo-title">{{ td.title }}</span>
+      <span class="todo-title">{% if td.private_to_id %}🔒 {% endif %}{{ td.title }}</span>
       {% if show_zone %}<small class="muted"> · {% if td.item_id %}<a href="/items/{{ td.item_id }}">{{ label(td.item_id) }}</a>{% else %}Ogólne{% endif %}</small>{% endif %}
       {% if td.est_amount_gr %}<small class="muted"> · ~{{ td.est_amount_gr|pln }}</small>{% endif %}
       {% if td.assignee %}<small class="muted"> · {{ td.assignee.name }}</small>{% endif %}
@@ -30,6 +30,7 @@
         </select>
       </label>
       {% endif %}
+      {% with obj = td %}{% include "partials/private_field.html" %}{% endwith %}
       <button type="submit" class="small">Zapisz</button>
     </form>
     {% if not td.done_on %}

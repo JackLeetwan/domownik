@@ -107,9 +107,10 @@ def _nav(name: str, ctx: dict):
     if not ctx.get("user") or name.startswith("partials/"):
         return None
     from domownik import services  # local: services imports models, avoid import cycles at module load
-    from domownik.db import session_factory
+    from domownik.db import session_factory, set_viewer
 
     with session_factory()() as db:
+        set_viewer(db, ctx["user"].id)
         return services.nav_context(db, today(), ctx["user"].id)
 
 

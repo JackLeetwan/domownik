@@ -1,7 +1,7 @@
 {# One note on the board; swapped in place after ticking a point. Needs: n, NOTE_COLORS #}
 {% set active = n.is_active(today()) %}
 <article class="note-card{% if n.color %} c-{{ n.color }}{% endif %}{% if n.pinned and active %} pinned{% endif %}" id="note-{{ n.id }}" data-note-text="{{ n.text|lower }}">
-  {% if n.label %}<span class="note-label">{{ n.label }}</span>{% endif %}
+  {% if n.label or n.private_to_id %}<span class="note-label">{% if n.private_to_id %}🔒 tylko dla Ciebie{% if n.label %} · {% endif %}{% endif %}{{ n.label or '' }}</span>{% endif %}
   {% if n.title %}<h3 class="note-title">{% if n.pinned and active %}📌 {% endif %}{{ n.title }}</h3>{% endif %}
   {% if n.is_list %}
   <ul class="note-list">

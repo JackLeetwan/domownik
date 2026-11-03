@@ -65,6 +65,7 @@
       {% for i in items %}<option value="{{ i.id }}" {% if i.id == current_item %}selected{% endif %}>{{ label(i.id) }}</option>{% endfor %}
     </select>
   </label>
+  {% with obj = none %}{% include "partials/private_field.html" %}{% endwith %}
   <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
 </form>
 
@@ -89,6 +90,7 @@
     <label><input type="checkbox" name="pinned" role="switch"> 📌 Przypnij na górze</label>
     <label>Ważna do <input type="date" name="valid_until"></label>
   </div>
+  {% with obj = none %}{% include "partials/private_field.html" %}{% endwith %}
   <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
 </form>
 
@@ -105,6 +107,7 @@
     </label>
     <label>Kto<select name="assignee_id"><option value="">—</option>{% for u in users %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}</select></label>
   </div>
+  {% with obj = none %}{% include "partials/private_field.html" %}{% endwith %}
   <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
 </form>
 

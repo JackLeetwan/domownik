@@ -250,6 +250,8 @@ class Task(Base):
     # points for whoever ticks it off; with needs_approval someone else has to confirm them
     points: Mapped[int | None] = mapped_column(Integer)
     needs_approval: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    # visible only to this account (None = shared with the household) – see db.private_filter
+    private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
     # Money in grosze (1/100 PLN); amount is the planned value of one occurrence
     amount_gr: Mapped[int | None] = mapped_column(Integer)
     direction: Mapped[str] = mapped_column(String(10), default="expense")
@@ -261,7 +263,7 @@ class Task(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     item: Mapped[Item] = relationship(back_populates="tasks")
-    assignee: Mapped[User | None] = relationship()
+    assignee: Mapped[User | None] = relationship(foreign_keys=[assignee_id])
     budget_category: Mapped[BudgetCategory | None] = relationship()
     completions: Mapped[list[Completion]] = relationship(
         back_populates="task", cascade="all, delete-orphan", order_by="Completion.done_on.desc()"
@@ -439,6 +441,8 @@ class Todo(Base):
     done_on: Mapped[date | None] = mapped_column(Date)
     done_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    # visible only to this account (None = shared with the household) – see db.private_filter
+    private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     item: Mapped[Item | None] = relationship(back_populates="todos")
@@ -494,6 +498,8 @@ class BoardNote(Base):
     items: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON)
     color: Mapped[str | None] = mapped_column(String(12))  # NOTE_COLORS key; None = yellow
     label: Mapped[str | None] = mapped_column(String(40))  # free category ("Rachunki", "Wakacje")
+    # visible only to this account (None = shared with the household) – see db.private_filter
+    private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
     pinned: Mapped[bool] = mapped_column(Boolean, default=False)
     valid_until: Mapped[date | None] = mapped_column(Date)  # after this day it goes to the archive
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -501,7 +507,7 @@ class BoardNote(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime | None] = mapped_column(DateTime)
 
-    created_by: Mapped[User | None] = relationship()
+    created_by: Mapped[User | None] = relationship(foreign_keys=[created_by_id])
     comments: Mapped[list[Comment]] = relationship(
         cascade="all, delete-orphan", passive_deletes=True, order_by="Comment.id"
     )

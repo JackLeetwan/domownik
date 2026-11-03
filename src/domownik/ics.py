@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from domownik import schedule, services
+from domownik.db import set_viewer
 from domownik.domain.tree import Tree
 from domownik.models import Task, User, Warranty
 
@@ -170,6 +171,7 @@ def _timed(uid: str, d: date, start: str, end: str | None, summary: str, descrip
 
 
 def build(db: Session, user: User, today: date, now: datetime, *, host: str = "domownik") -> str:
+    set_viewer(db, user.id)  # the feed is personal: someone else's private tasks stay out
     start, end = today - timedelta(days=PAST_DAYS), today + timedelta(days=FUTURE_DAYS)
     mine = user.id if user.ics_scope == "mine" else None
     stamp = now.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")

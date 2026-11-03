@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from domownik import catalog, documents, meters, services
+from domownik import catalog, documents, meters, privacy, services
 from domownik.config import get_settings, today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
@@ -561,6 +561,10 @@ async def edit_todo(request: Request, todo_id: int, db: Session = Depends(get_db
     todo.notes = (form.get("notes") or "").strip() or None
     todo.est_amount_gr = parse_pln(form.get("amount"))
     todo.assignee_id = _int_or_none(form.get("assignee_id"))
+    try:
+        privacy.apply(todo, form, user)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
     if "item_id" in form:  # moving between items / to 'general'
         new_item = _int_or_none(form.get("item_id"))
         if new_item is not None:
@@ -603,6 +607,7 @@ async def plan_todo(request: Request, todo_id: int, db: Session = Depends(get_db
             direction="expense" if todo.est_amount_gr else "none",
             assignee_id=todo.assignee_id,
             notes=todo.notes,
+            private_to_id=todo.private_to_id,
         )
     )
     db.delete(todo)

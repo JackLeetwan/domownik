@@ -17,3 +17,4 @@
   <label>Ważna do <input type="date" name="valid_until" value="{{ n.valid_until.isoformat() if n and n.valid_until else '' }}"></label>
   <label><input type="checkbox" name="pinned" role="switch" {% if n and n.pinned %}checked{% endif %}> 📌 Przypięta</label>
 </div>
+{% with obj = n %}{% include "partials/private_field.html" %}{% endwith %}

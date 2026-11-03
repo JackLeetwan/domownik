@@ -109,7 +109,7 @@
         </select>
       </label>
     </div>
-    {% with obj = task %}{% include "partials/points_fields.html" %}{% endwith %}
+    {% with obj = task %}{% include "partials/points_fields.html" %}{% include "partials/private_field.html" %}{% endwith %}
     <label class="inline-num">Przypomnij <input type="number" name="lead_days" min="0" value="{{ task.lead_days }}"> dni wcześniej</label>
     <label>Gdzie
       <select name="item_id">{% for it in items %}<option value="{{ it.id }}" {% if it.id == task.item_id %}selected{% endif %}>{{ label(it.id) }}</option>{% endfor %}</select>

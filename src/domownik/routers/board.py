@@ -10,7 +10,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import services
+from domownik import privacy, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
@@ -61,7 +61,7 @@ def parse_items(text: str) -> list[dict]:
     return out[:MAX_NOTE_ITEMS]
 
 
-def _fill(n: BoardNote, form) -> None:
+def _fill(n: BoardNote, form, user: User) -> None:
     """Title, content (text or checklist), colour, label, pin, date – from the add / edit form."""
     n.title = str(form.get("title") or "").strip()[:120] or None
     content = str(form.get("body") or "").strip()
@@ -76,6 +76,7 @@ def _fill(n: BoardNote, form) -> None:
     n.label = str(form.get("label") or "").strip()[:40] or None
     n.pinned = bool(form.get("pinned"))
     n.valid_until = _date(form.get("valid_until"))
+    privacy.apply(n, form, user)
 
 
 def note_labels(notes: list[BoardNote]) -> list[str]:
@@ -121,7 +122,7 @@ def notes_page(
 async def add_note(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     form = await request.form()
     n = BoardNote(created_by_id=user.id)
-    _fill(n, form)
+    _fill(n, form, user)
     db.add(n)
     db.commit()
     if is_quick(request):
@@ -140,7 +141,7 @@ def _note(db: Session, note_id: int) -> BoardNote:
 async def edit_note(request: Request, note_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     n = _note(db, note_id)
     form = await request.form()
-    _fill(n, form)
+    _fill(n, form, user)
     n.updated_at = datetime.now()
     db.commit()
     return _redirect("/notatki")
@@ -262,16 +263,19 @@ async def add_todo(request: Request, db: Session = Depends(get_db), user: User =
     item_id = _int(form.get("item_id"))
     if item_id is not None and item_id not in Tree.load(db).items:
         raise HTTPException(400, "Nie ma takiego elementu")
-    db.add(
-        Todo(
-            item_id=item_id,
-            title=title,
-            notes=str(form.get("notes") or "").strip() or None,
-            est_amount_gr=parse_pln(form.get("amount")),
-            assignee_id=_int(form.get("assignee_id")),
-            created_by_id=user.id,
-        )
+    todo = Todo(
+        item_id=item_id,
+        title=title,
+        notes=str(form.get("notes") or "").strip() or None,
+        est_amount_gr=parse_pln(form.get("amount")),
+        assignee_id=_int(form.get("assignee_id")),
+        created_by_id=user.id,
     )
+    try:
+        privacy.apply(todo, form, user)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    db.add(todo)
     db.commit()
     if is_quick(request):
         return quick_saved("Dodano do zrobienia")

@@ -9,7 +9,7 @@ from argon2.exceptions import InvalidHashError, VerificationError
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from domownik.db import get_db
+from domownik.db import get_db, set_viewer
 from domownik.models import User
 
 _hasher = PasswordHasher()
@@ -64,6 +64,7 @@ def current_user_optional(request: Request, db: Session = Depends(get_db)) -> Us
     if user is None or not user.is_active:
         request.session.clear()
         return None
+    set_viewer(db, user.id)  # this request's session hides other people's private rows
     return user
 
 

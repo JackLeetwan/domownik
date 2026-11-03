@@ -488,6 +488,9 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .pantry-row form.inline button.small { margin: 0; padding: 0.25rem 0.6rem; }
 .pantry-row.st-expired .pantry-name { color: var(--dm-overdue); }
 .pantry-edit { margin: 0.4rem 0 0.6rem; }
+.private-switch { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin: 0.25rem 0 0.75rem; }
+.private-switch input { margin: 0; }
+.private-switch small { display: inline; }
 /* ---------------------------------------------------------------- comments */
 .comments { margin: 0.5rem 0 0.75rem; }
 .comment-list { list-style: none; padding: 0; margin: 0 0 0.4rem; }

@@ -10,7 +10,7 @@ from markupsafe import escape
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import budget, documents, points, schedule, services
+from domownik import budget, documents, points, privacy, schedule, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain import recurrence
@@ -341,6 +341,7 @@ async def create_task(request: Request, db: Session = Depends(get_db), user: Use
     task = Task()
     try:
         _apply_form(task, form, db)
+        privacy.apply(task, form, user)
         if not form.get("category"):  # quick add: no category field – guess it like the full form does
             _guess_category(db, task)
         # the reminder of a warranty / contract: a new date here is the new end date
@@ -594,6 +595,7 @@ async def update_task(
     form = await request.form()
     try:
         _apply_form(task, form, db)
+        privacy.apply(task, form, user)
         # the reminder of a warranty / contract: a new date here is the new end date
         linked = documents.warranty_for_task(db, task.id)
         if linked is not None and task.next_due_date and task.recurrence.get("mode") == "once":

@@ -19,6 +19,7 @@ from datetime import date, timedelta
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from domownik.db import VIEWER
 from domownik.domain import recurrence
 from domownik.domain.tree import Tree
 from domownik.models import (
@@ -297,6 +298,9 @@ def _occurrence_status(task: Task, d: date, today: date) -> str:
     return "auto" if task.autopay else "due"
 
 
+PRIVATE_TITLE = "🔒 Prywatne"
+
+
 def compute_month(db: Session, year: int, month: int, today: date, tree: Tree | None = None) -> MonthBudget:
     first, last = month_bounds(year, month)
     tree = tree or Tree.load(db, include_archived=True)
@@ -339,6 +343,7 @@ def compute_month(db: Session, year: int, month: int, today: date, tree: Tree | 
             )
         )
         .options(selectinload(Completion.task).selectinload(Task.item))
+        .execution_options(all_private=True)  # the budget is shared: every amount counts (titles masked below)
     )
     for comp in db.scalars(comp_stmt):
         task = comp.task
@@ -372,6 +377,7 @@ def compute_month(db: Session, year: int, month: int, today: date, tree: Tree | 
             Task.next_due_date <= last,
         )
         .options(selectinload(Task.item))
+        .execution_options(all_private=True)
     )
     for task in db.scalars(task_stmt):
         if task.item_id not in visible:
@@ -428,6 +434,17 @@ def compute_month(db: Session, year: int, month: int, today: date, tree: Tree | 
         ls = [ln for ln in ls if not ln.category.archived or not ln.empty]
         sections.append(Section(kind, label, ls))
     overdue_before.sort(key=lambda e: (e.date, e.title))
+    # someone else's private task: the amount counts, what it is stays private
+    viewer = db.info.get(VIEWER)
+    if VIEWER in db.info:
+        for e in [
+            *overdue_before,
+            *(e for ln in lines.values() for e in ln.entries),
+            *none_out.entries,
+            *none_in.entries,
+        ]:
+            if e.task is not None and e.task.private_to_id not in (None, viewer):
+                e.title, e.task, e.zone = PRIVATE_TITLE, None, ""
     return MonthBudget(year, month, today, sections, none_out, none_in, overdue_before)
 
 

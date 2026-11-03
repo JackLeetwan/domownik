@@ -145,7 +145,7 @@ def build_digests(db: Session, slot: str, today: date, *, preview_for: User | No
     for user in users:
         picked: list[tuple[int, services.TaskRow]] = []
         for r in rows:
-            if r.task.assignee_id not in (None, user.id):
+            if r.task.assignee_id not in (None, user.id) or r.task.private_to_id not in (None, user.id):
                 continue
             days = (r.due.date - today).days
             if slot == "evening":
@@ -374,7 +374,7 @@ def run_timed(db: Session, now: datetime) -> int:
         if task.item_id not in tree.items:
             continue
         for user in users:
-            if task.assignee_id not in (None, user.id):
+            if task.assignee_id not in (None, user.id) or task.private_to_id not in (None, user.id):
                 continue
             if _already(db, user, "at_time", task_id=task.id, ref=task.next_due_date, since=date.min):
                 continue
