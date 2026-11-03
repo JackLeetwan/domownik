@@ -82,6 +82,14 @@ osoby przypisanej). Punkty ⭐ i „Wymaga zatwierdzenia” – w „Więcej szc
 jako lista. Filtr „Moje”.
 Dwuklik na dzień (albo „＋” przy wybranym dniu) – „＋ Dodaj” wydarzenie, zadanie lub wydatek na ten dzień.
 
+Kalendarze z zewnątrz (`/kalendarz/zewnetrzne`): link ICS przedszkola, szkoły, zajęć albo kalendarza z pracy
+(Google: „Tajny adres w formacie iCal”). Pobierane co godzinę, wydarzenia cykliczne rozwinięte na ~13 miesięcy;
+widać je w kalendarzu, w karcie „Dziś” i w powiadomieniu rano / wieczorem (dla całej rodziny albo jednej
+osoby, „🔒 tylko dla mnie” – inni go nie widzą). Tylko do odczytu, nie trafiają na oś czasu ani do eksportu
+ICS. Pobierane są tylko adresy publiczne (nie sieć lokalna). Na stronie widać z linku tylko nazwę serwera.
+
+Przytrzymanie ikony aplikacji w telefonie: skróty „＋ Dodaj”, Zakupy, Kalendarz, Budżet.
+
 Dziecko: na stronie dziecka „💉 Szczepienia i bilanse” – z daty urodzenia terminy szczepień obowiązkowych
 (PSO) i bilansów zdrowia; zaznaczone stają się jednorazowymi zadaniami „Zdrowie” (przypomnienie 2 tygodnie
 wcześniej).

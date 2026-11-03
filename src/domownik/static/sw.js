@@ -6,7 +6,7 @@
    Taps made offline are queued by app.js, not here. */
 "use strict";
 
-const VERSION = "dm-1";
+const VERSION = "dm-2";
 const PAGES = VERSION + "-pages";
 const STATIC = VERSION + "-static";
 const OFFLINE_PAGES = ["/zakupy", "/zakupy/lista"];

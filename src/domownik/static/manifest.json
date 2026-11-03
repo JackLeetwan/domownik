@@ -34,9 +34,46 @@
   ],
   "shortcuts": [
     {
+      "name": "Dodaj",
+      "short_name": "＋ Dodaj",
+      "description": "Zadanie, wydarzenie, wydatek, zakup…",
+      "url": "/?dodaj=1",
+      "icons": [
+        {
+          "src": "/static/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
       "name": "Zakupy",
       "short_name": "Zakupy",
       "url": "/zakupy",
+      "icons": [
+        {
+          "src": "/static/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Kalendarz",
+      "short_name": "Kalendarz",
+      "url": "/kalendarz",
+      "icons": [
+        {
+          "src": "/static/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Budżet",
+      "short_name": "Budżet",
+      "url": "/budzet",
       "icons": [
         {
           "src": "/static/icon-192.png",

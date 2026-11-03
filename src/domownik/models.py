@@ -1020,3 +1020,53 @@ class BankLine(Base):
     description: Mapped[str] = mapped_column(String(300))
     transaction_id: Mapped[int | None] = mapped_column(ForeignKey("transaction.id", ondelete="SET NULL"))
     imported_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class ExternalCalendar(Base):
+    """A calendar from outside, read by its ICS link: the kindergarten, the school, someone's work calendar.
+
+    Fetched every hour (and on "Odśwież"); its events are shown in the calendar, the "Dziś" card and the
+    morning / evening push – read-only, never on the timeline and never in Domownik's own ICS feed.
+    """
+
+    __tablename__ = "external_calendar"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80))
+    url: Mapped[str] = mapped_column(String(1000))
+    icon: Mapped[str] = mapped_column(String(8), default="📅", server_default="📅")
+    # whose calendar it is: their push gets its events; None = the whole family's
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    notify: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    fetched_at: Mapped[datetime | None] = mapped_column(DateTime)
+    error: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    user: Mapped[User | None] = relationship(foreign_keys=[user_id])
+    events: Mapped[list[ExternalEvent]] = relationship(
+        back_populates="calendar", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+
+class ExternalEvent(Base):
+    """One occurrence of an external calendar's event (recurring ones are expanded when fetched)."""
+
+    __tablename__ = "external_event"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    calendar_id: Mapped[int] = mapped_column(ForeignKey("external_calendar.id", ondelete="CASCADE"), index=True)
+    starts_on: Mapped[date] = mapped_column(Date, index=True)
+    ends_on: Mapped[date] = mapped_column(Date)  # last day (inclusive); = starts_on for a one-day event
+    starts_at: Mapped[str | None] = mapped_column(String(5))  # "17:00"; None = all day
+    ends_at: Mapped[str | None] = mapped_column(String(5))
+    title: Mapped[str] = mapped_column(String(200))
+    location: Mapped[str | None] = mapped_column(String(200))
+
+    calendar: Mapped[ExternalCalendar] = relationship(back_populates="events")
+
+    @property
+    def time_label(self) -> str:
+        if not self.starts_at:
+            return "cały dzień"
+        return f"{self.starts_at}–{self.ends_at}" if self.ends_at and self.ends_at != self.starts_at else self.starts_at

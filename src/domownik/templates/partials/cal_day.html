@@ -1,6 +1,7 @@
-{# Tasks of the selected day, under the month grid. Needs: sel, sel_title, entries (+ slots: week schedule) #}
+{# Tasks of the selected day, under the month grid. Needs: sel, sel_title, entries (+ slots: week schedule, ext_events: external calendars) #}
 {% import "partials/cal_macros.html" as cm with context %}
 {% set in_week = in_week is defined and in_week %}
+{% set ext_events = ext_events if ext_events is defined and ext_events else [] %}
 <section {% if not in_week %}id="cal-day" aria-live="polite"{% endif %} class="cal-day{% if in_week %} cal-week-day{% if sel == today() %} is-today{% endif %}{% endif %}" data-sel="{{ sel.isoformat() }}">
   <header class="cal-day-head">
     <h2>{{ sel_title|capitalize if in_week else sel_title }}{% if in_week and sel == today() %} <small class="badge today">dziś</small>{% endif %}</h2>
@@ -8,7 +9,7 @@
   </header>
   {% if holiday(sel) %}<p class="cal-hol-line">🇵🇱 {{ holiday(sel) }} – dzień wolny od pracy</p>{% endif %}
   {% if not entries %}
-  {% if not slots %}<p class="muted">Nic na ten dzień.</p>{% endif %}
+  {% if not slots and not ext_events %}<p class="muted">Nic na ten dzień.</p>{% endif %}
   {% else %}
   <ul class="cal-list">
     {% for e in entries %}
@@ -23,6 +24,14 @@
         </details>
       </li>
       {% else %}{{ cm.task_line(e) }}{% endif %}
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if ext_events %}
+  <h3 class="cal-sched-head">🔗 Z kalendarzy</h3>
+  <ul class="cal-sched cal-ext">
+    {% for x in ext_events %}
+    <li><span class="wk-time">{% if x.starts_at and x.starts_on == sel %}{{ x.time_label }}{% elif x.starts_on != x.ends_on %}{{ x.starts_on|d }}–{{ x.ends_on|d }}{% else %}cały dzień{% endif %}</span> <span>{{ x.calendar.icon }} {{ x.title }}</span>{% if x.location %} <small class="muted">📍 {{ x.location }}</small>{% endif %} <small class="muted cal-ext-src">{{ x.calendar.name }}</small></li>
     {% endfor %}
   </ul>
   {% endif %}

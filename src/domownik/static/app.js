@@ -525,6 +525,13 @@
     const btn = e.target.closest && e.target.closest("[data-cal-add]");
     if (btn) addOnDay(btn.dataset.calAdd);
   });
+  // the app icon's "＋ Dodaj" shortcut (manifest) opens /?dodaj=1 – show the menu, then drop the flag
+  window.addEventListener("load", () => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("dodaj") !== "1" || typeof htmx === "undefined") return;
+    history.replaceState(null, "", location.pathname);
+    htmx.ajax("GET", "/dodaj", { target: "#modal-body", swap: "innerHTML" });
+  });
   // "Więcej opcji…" of the quick task form opens the full form for the item picked
   document.addEventListener("change", (e) => {
     const sel = e.target;

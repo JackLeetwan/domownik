@@ -191,7 +191,7 @@ def _add_household_lines(db: Session, digests: list[Digest], slot: str, today: d
     A slot goes to the person taking care of it, a shared one to everyone. The chores line rides along
     with any other line; on its own it is pushed at most every OVERDUE_REPEAT_DAYS days.
     """
-    from domownik import chores, kitchen, schedule
+    from domownik import chores, extcal, kitchen, schedule
 
     day = today if slot == "morning" else today + timedelta(days=1)
     slots = [o for o in schedule.occurrences(db, day, day, cancelled=False) if o.event.notify]
@@ -211,6 +211,12 @@ def _add_household_lines(db: Session, digests: list[Digest], slot: str, today: d
             )
             prefix = "🗓️ Grafik: " if slot == "morning" else "🗓️ Jutro w grafiku: "
             d.lines.append(Line(RANK_SCHEDULE, prefix + what, [], day))
+        ext = extcal.for_push(db, day, d.user.id)
+        if ext:
+            what = ", ".join(
+                (f"{x.starts_at} " if x.starts_at and x.starts_on == day else "") + x.title for x in ext[:6]
+            ) + ("…" if len(ext) > 6 else "")
+            d.lines.append(Line(RANK_SCHEDULE, ("📅 Dziś: " if slot == "morning" else "📅 Jutro: ") + what, [], day))
         my_late = [s for s in late if s.mine(d.user.id)]
         if not my_late:
             continue
@@ -415,6 +421,13 @@ def tick(db: Session, now: datetime) -> None:
     if now.hour >= s.evening_hour:
         run_slot(db, "evening", today)
     run_timed(db, now)
+    from domownik import extcal
+
+    try:
+        extcal.refresh_due(db, now)
+    except Exception:  # never let a calendar server break the reminders
+        db.rollback()
+        log.exception("external calendars refresh failed")
 
 
 def send_test(db: Session, user: User, digest: Digest | None) -> int:

@@ -19,6 +19,7 @@ from domownik.routers import (
     board,
     budget,
     calendar,
+    calendar_ext,
     chores,
     comments,
     contacts,
@@ -93,6 +94,7 @@ def create_app() -> FastAPI:
     app.include_router(board.router)
     app.include_router(account.router)
     app.include_router(assignments.router)
+    app.include_router(calendar_ext.router)
     app.include_router(calendar.router)
     app.include_router(bank.router)
     app.include_router(budget.router)

@@ -14,7 +14,7 @@
 {% include "partials/timeline.html" %}
 
 {# today's week schedule and overdue chores – a compact card under the timeline, only when there is something #}
-{% if today_slots or late_chores %}
+{% if today_slots or late_chores or today_ext %}
 <section class="today-card" aria-label="Dziś">
   <h2 class="today-head"><a href="/grafik{{ '?who=me' if who == 'me' else '' }}">Dziś</a></h2>
   {% if today_slots %}
@@ -22,6 +22,13 @@
     {% for o in today_slots %}
     <li><span class="wk-time">{{ o.event.time_label }}</span> <a href="/grafik/{{ o.event.id }}">{{ o.event.title }}</a>{% if o.event.item %} <small class="muted">{{ o.event.item.display_icon }} {{ o.event.item.name }}</small>{% endif %}
       <span class="today-who">{% if o.assignee %}{{ avatar(o.assignee) }}{% else %}<span class="avatar av-shared" title="Wspólne" aria-label="Wspólne">👥</span>{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if today_ext %}
+  <ul class="today-list today-ext">
+    {% for x in today_ext %}
+    <li><span class="wk-time">{{ x.time_label if x.starts_on == today() else 'cały dzień' }}</span> <a href="/kalendarz">{{ x.calendar.icon }} {{ x.title }}</a>{% if x.location %} <small class="muted">📍 {{ x.location }}</small>{% endif %}</li>
     {% endfor %}
   </ul>
   {% endif %}

@@ -496,6 +496,7 @@ dependencies = [
     { name = "argon2-cffi" },
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "icalendar" },
     { name = "itsdangerous" },
     { name = "jinja2" },
     { name = "pillow" },
@@ -512,7 +513,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "icalendar" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -524,6 +524,7 @@ requires-dist = [
     { name = "argon2-cffi", specifier = ">=25.1.0" },
     { name = "fastapi", specifier = ">=0.162.0" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "icalendar", specifier = ">=7.3.0" },
     { name = "itsdangerous", specifier = ">=2.2.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "pillow", specifier = ">=13.0.0" },
@@ -540,7 +541,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "icalendar", specifier = ">=7.3.0" },
     { name = "pytest", specifier = ">=9.2.0" },
     { name = "ruff", specifier = ">=0.17.3" },
 ]

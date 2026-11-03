@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Kalendarze z zewnątrz · Domownik{% endblock %}
+{% block content %}
+<header class="item-head">
+  <p class="crumbs"><a href="/kalendarz">📅 Kalendarz</a></p>
+  <h1>🔗 Kalendarze z zewnątrz</h1>
+  <p class="muted"><small>Przedszkole, szkoła, zajęcia dodatkowe, kalendarz z pracy – wklej link ICS, a wydarzenia pokażą się w kalendarzu Domownika, w karcie „Dziś” i w porannym powiadomieniu. Odświeżane co godzinę, tylko do odczytu.</small></p>
+</header>
+
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+{% if cals %}
+<ul class="ext-list">
+  {% for c in cals %}
+  <li class="ext-row{% if c.error %} ext-bad{% endif %}{% if request.query_params.get('ok') == c.id|string %} ext-ok{% endif %}">
+    <div class="ext-main">
+      <strong>{{ c.icon }} {{ c.name }}</strong>
+      {% if c.private_to_id %}<small class="badge">🔒 tylko dla mnie</small>{% endif %}
+      <br><small class="muted">{% if c.user %}{{ c.user.name }}{% else %}cała rodzina{% endif %} · {{ short(c.url) }}</small>
+      <br><small class="{{ 'ext-err' if c.error else 'muted' }}">
+        {% if c.error %}⚠️ {{ c.error }}{% if counts.get(c.id) %} – pokazuję {{ counts.get(c.id) }} wydarzeń z ostatniego pobrania{% endif %}
+        {% elif c.fetched_at %}✓ {{ counts.get(c.id, 0) }} wydarzeń · pobrano {{ c.fetched_at.strftime('%d.%m %H:%M') }}
+        {% else %}jeszcze nie pobrano{% endif %}
+      </small>
+    </div>
+    <div class="ext-actions">
+      <form method="post" action="/kalendarz/zewnetrzne/{{ c.id }}/odswiez"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="outline secondary" title="Pobierz teraz">↻</button></form>
+      <form method="post" action="/kalendarz/zewnetrzne/{{ c.id }}/powiadomienia"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="outline secondary" title="{{ 'Wyłącz' if c.notify else 'Włącz' }} w powiadomieniach" aria-label="{{ 'Wyłącz' if c.notify else 'Włącz' }} w powiadomieniach">{{ '🔔' if c.notify else '🔕' }}</button></form>
+      <form method="post" action="/kalendarz/zewnetrzne/{{ c.id }}/usun" hx-confirm="Usunąć kalendarz „{{ c.name }}”? Wydarzenia znikną z Domownika (w źródle zostają)."><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="outline secondary" title="Usuń" aria-label="Usuń {{ c.name }}">✕</button></form>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% set v = values or {} %}
+<details class="quick-add" {% if not cals or error %}open{% endif %}>
+  <summary>＋ Dodaj kalendarz</summary>
+  <form method="post" action="/kalendarz/zewnetrzne" class="ext-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Nazwa <input name="name" required maxlength="80" placeholder="np. Przedszkole" value="{{ v.name or '' }}"></label>
+    <label>Link ICS <input name="url" required inputmode="url" placeholder="https://… albo webcal://…" value="{{ v.url or '' }}"></label>
+    <fieldset class="ext-icons">
+      <legend><small>Ikona</small></legend>
+      {% for ic in icons %}<label><input type="radio" name="icon" value="{{ ic }}" {% if (v.icon or '📅') == ic %}checked{% endif %}> {{ ic }}</label>{% endfor %}
+    </fieldset>
+    <label>Czyj to kalendarz
+      <select name="owner">
+        <option value="">Cała rodzina – powiadomienia dla wszystkich</option>
+        {% for u in users %}<option value="{{ u.id }}" {% if v.owner == u.id|string %}selected{% endif %}>{{ u.name }} – powiadomienia tylko dla tej osoby</option>{% endfor %}
+      </select>
+    </label>
+    <label><input type="checkbox" name="notify" value="1" checked> Pokazuj w porannym i wieczornym powiadomieniu</label>
+    <label><input type="checkbox" name="private" value="1"> 🔒 Tylko dla mnie (inni go nie zobaczą)</label>
+    <button type="submit">Dodaj i pobierz</button>
+  </form>
+  <details class="ext-help">
+    <summary><small>Skąd wziąć link?</small></summary>
+    <ul>
+      <li><b>Kalendarz Google:</b> na komputerze calendar.google.com → ⚙️ Ustawienia → wybierz kalendarz → „Integracja kalendarza” → <i>Tajny adres w formacie iCal</i>.</li>
+      <li><b>Outlook / Microsoft 365:</b> Ustawienia → Kalendarz → Kalendarze udostępnione → „Opublikuj kalendarz” → link <i>ICS</i>.</li>
+      <li><b>Kalendarz iCloud:</b> udostępnij kalendarz jako publiczny i skopiuj link <i>webcal://</i>.</li>
+      <li><b>Szkoła, przedszkole, klub:</b> szukaj przycisku „Subskrybuj”, „iCal” albo „Dodaj do kalendarza”.</li>
+    </ul>
+    <p class="muted"><small>Link to klucz do kalendarza – Domownik pokazuje z niego tylko nazwę serwera.</small></p>
+  </details>
+</details>
+{% endblock %}

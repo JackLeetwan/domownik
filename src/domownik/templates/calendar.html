@@ -20,6 +20,7 @@
   <a href="/kalendarz?m={{ mkey }}{{ wq }}" aria-current="page">Miesiąc</a>
   <a href="/kalendarz/tydzien?d={{ sel.isoformat() }}{{ wq }}">Tydzień</a>
 </nav>
+<a class="cal-ext-link" href="/kalendarz/zewnetrzne" title="Przedszkole, szkoła, kalendarz z pracy">🔗 Kalendarze z zewnątrz{% if ext_count %} ({{ ext_count }}){% endif %}</a>
 {% if who == 'me' and not any_assigned %}
 <p class="who-hint"><small>Żadne zadanie nie jest jeszcze przypisane, więc „Moje” pokazuje wszystko. <a href="/przypisania">Ustal, kto czym się zajmuje →</a></small></p>
 {% endif %}
@@ -40,10 +41,12 @@
          hx-replace-url="/kalendarz?m={{ mkey }}&d={{ iso }}{{ wq }}">
       <span class="cal-num">{{ day.date.day }}</span>
       {% if hol %}<span class="cal-hol" title="{{ hol }} – dzień wolny">{{ hol }}</span>{% endif %}
-      {% if day.entries %}
-      <span class="cal-dots" aria-hidden="true">{% for s in day.dots[:3] %}<i class="dot {{ s }}"></i>{% endfor %}<b>{{ day.count }}</b></span>
+      {% set xs = ext.get(day.date, []) %}
+      {% if day.entries or xs %}
+      <span class="cal-dots" aria-hidden="true">{% for s in day.dots[:3] %}<i class="dot {{ s }}"></i>{% endfor %}{% if xs %}<i class="dot ext"></i>{% endif %}<b>{{ day.count + xs|length }}</b></span>
       <ul class="cal-chips">
-        {% set MAXC = 4 if day.entries|length <= 4 else 3 %}
+        {% set total = day.entries|length + xs|length %}
+        {% set MAXC = 4 if total <= 4 else 3 %}
         {% for e in day.entries[:MAXC] %}
           {% if e.kind == 'bundle' %}
           <li><button type="button" class="cal-chip st-{{ e.status }}"
@@ -57,7 +60,10 @@
               <span class="ic">{{ e.icon }}</span><span class="lbl">{% if e.time %}{{ e.time.split('–')[0] }} {% endif %}{{ e.title }}</span></button></li>
           {% endif %}
         {% endfor %}
-        {% if day.entries|length > MAXC %}<li class="cal-more">+{{ day.entries|length - MAXC }} więcej</li>{% endif %}
+        {% for x in xs[:MAXC - day.entries[:MAXC]|length] %}
+          <li><span class="cal-chip ext" title="{{ x.calendar.icon }} {{ x.calendar.name }}&#10;{{ x.time_label }} {{ x.title }}{% if x.location %}&#10;📍 {{ x.location }}{% endif %}"><span class="ic">{{ x.calendar.icon }}</span><span class="lbl">{% if x.starts_at and x.starts_on == day.date %}{{ x.starts_at }} {% endif %}{{ x.title }}</span></span></li>
+        {% endfor %}
+        {% if total > MAXC %}<li class="cal-more">+{{ total - MAXC }} więcej</li>{% endif %}
       </ul>
       {% endif %}
     </div>
@@ -71,6 +77,7 @@
   <span class="dot later"></span> zaplanowane
   <span class="dot forecast"></span> prognoza z przebiegu
   <span class="dot done"></span> wykonane
+  {% if ext_count %}<span class="dot ext"></span> z kalendarzy{% endif %}
 </p>
 
 {% include "partials/cal_day.html" %}

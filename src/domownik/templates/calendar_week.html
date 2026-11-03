@@ -18,9 +18,10 @@
   <a href="/kalendarz?d={{ monday.isoformat() }}{{ wq }}">Miesiąc</a>
   <a href="/kalendarz/tydzien?d={{ monday.isoformat() }}{{ wq }}" aria-current="page">Tydzień</a>
 </nav>
+<a class="cal-ext-link" href="/kalendarz/zewnetrzne" title="Przedszkole, szkoła, kalendarz z pracy">🔗 Kalendarze z zewnątrz{% if ext_count %} ({{ ext_count }}){% endif %}</a>
 <div class="cal-week-list">
   {% for day in days %}
-  {% with sel = day.sel, sel_title = day.sel_title, entries = day.entries, slots = day.slots, in_week = true %}{% include "partials/cal_day.html" %}{% endwith %}
+  {% with sel = day.sel, sel_title = day.sel_title, entries = day.entries, slots = day.slots, ext_events = day.ext, in_week = true %}{% include "partials/cal_day.html" %}{% endwith %}
   {% endfor %}
 </div>
 {% endblock %}
