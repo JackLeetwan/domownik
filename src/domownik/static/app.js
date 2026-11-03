@@ -266,6 +266,13 @@
     toast(xhr.status === 400 && text ? text : `Błąd ${xhr.status}: ${text || xhr.statusText}`);
   });
 
+  // ------------------------------------------------------------------ shopping: "Cofnij" after removing
+  // the banner pauses the list's auto-refresh; it goes away by itself after a while
+  document.addEventListener("htmx:afterSwap", () => {
+    const undo = document.querySelector("#shopping-list .shop-undo");
+    if (undo) setTimeout(() => undo.remove(), 8000);
+  });
+
   // ------------------------------------------------------------------ modal
   // look the dialog up at event time – hx-boost replaces the <body> content on every navigation
   const modalEl = () => document.getElementById("modal");

@@ -356,6 +356,10 @@ button.danger { color: var(--pico-del-color, #c62828); }
 .in-cart .shop-name { text-decoration: line-through; opacity: 0.6; }
 .shop-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .shop-actions button { margin: 0; }
+.shop-del { flex: none; align-self: center; width: 2.5rem; height: 2.5rem; margin: 0 0 0 auto; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--pico-muted-color); font-size: 1.05rem; line-height: 1; cursor: pointer; }
+.shop-del:hover, .shop-del:focus-visible { color: var(--pico-del-color, #c62828); background: color-mix(in srgb, var(--pico-del-color, #c62828) 12%, transparent); }
+.shop-undo { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin: 0.5rem 0; padding: 0.5rem 0.75rem; border-radius: 10px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }
+.shop-undo button { margin: 0; }
 .shop-finish { margin-top: 1rem; }
 .shop-finish > summary[role=button] { width: auto; display: inline-block; }
 .empty-list { padding: 1rem 0; }

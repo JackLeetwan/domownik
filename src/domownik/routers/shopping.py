@@ -15,7 +15,7 @@ from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
 from domownik.domain.shopping import SECTIONS, guess_section, parse_entry
-from domownik.models import ShoppingItem, Transaction, User
+from domownik.models import Item, ShoppingItem, Transaction, User
 from domownik.security import current_user, verify_csrf
 from domownik.web import is_quick, quick_saved, render
 
@@ -149,8 +149,48 @@ async def edit(request: Request, sid: int, db: Session = Depends(get_db), user: 
 
 @router.post("/{sid}/delete", dependencies=[Depends(verify_csrf)])
 def delete(request: Request, sid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    db.delete(_get(db, sid))
+    """Off the list (found it at home, added by mistake) – the list shows "Cofnij" for a moment."""
+    s = _get(db, sid)
+    removed = {
+        "name": s.name,
+        "qty": s.qty or "",
+        "section": s.section or "",
+        "note": s.note or "",
+        "item_id": s.item_id or "",
+        "added_by_id": s.added_by_id or "",
+    }
+    db.delete(s)
     db.commit()
+    if request.headers.get("hx-target") == LIST_TARGET:
+        return render(request, "partials/shopping_list.html", _context(db, user) | {"removed": removed})
+    return _respond(request, db, user)
+
+
+@router.post("/przywroc", dependencies=[Depends(verify_csrf)])
+async def restore(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Undo of a removal: the same entry back on the list (unless it was added again meanwhile)."""
+    form = await request.form()
+    name = str(form.get("name") or "").strip()[:120]
+    if name and not db.scalar(
+        select(ShoppingItem).where(ShoppingItem.bought_on.is_(None), func.lower(ShoppingItem.name) == name.lower())
+    ):
+
+        def _id(key: str, model) -> int | None:
+            raw = str(form.get(key) or "")
+            return int(raw) if raw.isdigit() and db.get(model, int(raw)) else None
+
+        section = str(form.get("section") or "")
+        db.add(
+            ShoppingItem(
+                name=name,
+                qty=str(form.get("qty") or "").strip()[:30] or None,
+                section=section if section in SECTIONS else _section_for(db, name),
+                note=str(form.get("note") or "").strip()[:200] or None,
+                item_id=_id("item_id", Item),
+                added_by_id=_id("added_by_id", User) or user.id,
+            )
+        )
+        db.commit()
     return _respond(request, db, user)
 
 

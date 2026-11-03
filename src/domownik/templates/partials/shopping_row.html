@@ -23,4 +23,6 @@
       </div>
     </form>
   </details>
+  <button type="button" class="shop-del" hx-post="/zakupy/{{ s.id }}/delete" hx-target="#shopping-list" hx-swap="outerHTML"
+          title="Usuń z listy" aria-label="Usuń z listy: {{ s.name }}">✕</button>
 </li>

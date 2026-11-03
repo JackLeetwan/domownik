@@ -96,3 +96,25 @@ def test_finish_with_wrong_amount_is_a_message_not_a_500(auth_client, db):
     assert r.status_code == 400 and "Nieprawidłowa kwota" in r.text
     # the amount fields tell the browser what a valid amount is
     assert 'pattern="[0-9 ]*([.,][0-9]{1,2})?"' in auth_client.get("/zakupy").text
+
+
+def test_remove_from_list_with_undo(auth_client, db):
+    auth_client.post("/zakupy", data={"text": "2 jajka"}, headers=HX)
+    s = _items(db)["Jajka"]
+    sid, section = s.id, s.section
+    page = auth_client.get("/zakupy").text
+    assert f'hx-post="/zakupy/{sid}/delete"' in page and 'class="shop-del"' in page
+    r = auth_client.post(f"/zakupy/{sid}/delete", headers=HX)
+    assert r.status_code == 200 and "Usunięto „Jajka”" in r.text and 'hx-post="/zakupy/przywroc"' in r.text
+    assert "Jajka" not in _items(db)
+    # undo brings it back with quantity and section
+    r = auth_client.post(
+        "/zakupy/przywroc",
+        data={"name": "Jajka", "qty": "2", "section": section, "item_id": "", "added_by_id": ""},
+        headers=HX,
+    )
+    back = _items(db)["Jajka"]
+    assert back.qty == "2" and back.section == section and back.bought_on is None
+    # undo twice does not duplicate
+    auth_client.post("/zakupy/przywroc", data={"name": "Jajka"}, headers=HX)
+    assert len([x for x in db.scalars(select(ShoppingItem)) if x.name == "Jajka"]) == 1
