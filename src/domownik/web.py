@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date
 from pathlib import Path
 
 from fastapi import Request
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 
@@ -103,3 +105,23 @@ def render(request: Request, name: str, ctx: dict | None = None, *, status_code:
 
 def is_htmx(request: Request) -> bool:
     return request.headers.get("hx-request") == "true"
+
+
+# ---------------------------------------------------------------- quick add ("＋" on every page)
+# Forms in the quick-add window post to the ordinary routes with this header; the route then answers
+# with an event instead of a redirect – app.js closes the window, shows "Dodano" and refreshes the page.
+QUICK_HEADER = "x-quick-add"
+QUICK_ERROR = "#qa-error"
+
+
+def is_quick(request: Request) -> bool:
+    return request.headers.get(QUICK_HEADER) == "1"
+
+
+def quick_saved(message: str = "Dodano") -> HTMLResponse:
+    return HTMLResponse("", headers={"HX-Trigger": json.dumps({"dm-added": message}), "HX-Reswap": "none"})
+
+
+def error_target(request: Request, default: str) -> str:
+    """Where a 422 message goes: the quick-add window has its own box (ids on the page may repeat)."""
+    return QUICK_ERROR if is_quick(request) else default

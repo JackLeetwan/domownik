@@ -235,7 +235,7 @@
 
   // ------------------------------------------------------------------ errors
   // htmx swallows failed requests by default – then a click "does nothing".
-  function toast(msg) {
+  function toast(msg, ok) {
     let el = document.getElementById("toast");
     if (!el) {
       el = document.createElement("div");
@@ -244,9 +244,10 @@
       document.body.appendChild(el);
     }
     el.textContent = msg;
+    el.classList.toggle("ok", !!ok);
     el.hidden = false;
     clearTimeout(el._t);
-    el._t = setTimeout(() => { el.hidden = true; }, 6000);
+    el._t = setTimeout(() => { el.hidden = true; }, ok ? 2500 : 6000);
   }
   document.addEventListener("htmx:sendError", (e) => {
     const cfg = e.detail.requestConfig || {};
@@ -279,6 +280,25 @@
       e.preventDefault();
       modal.close();
     }
+  });
+
+  // ------------------------------------------------------------------ quick add ("＋")
+  // a quick-add form was saved (HX-Trigger: dm-added): close the window, say so, refresh the page under it
+  document.addEventListener("dm-added", (e) => {
+    const modal = modalEl();
+    if (modal && modal.open) modal.close();
+    toast((e.detail && e.detail.value) || "Dodano", true);
+    if (typeof htmx === "undefined" || !document.querySelector(".shell")) return;
+    htmx.ajax("GET", location.pathname + location.search, {
+      target: ".shell", select: ".shell", swap: "outerHTML", headers: { "HX-Boosted": "true" },
+    });
+  });
+  // "Więcej opcji…" of the quick task form opens the full form for the item picked
+  document.addEventListener("change", (e) => {
+    const sel = e.target;
+    if (!sel.matches || !sel.matches(".qa-form select[name=item_id]")) return;
+    const more = sel.form.querySelector("[data-qa-more]");
+    if (more && sel.value) more.href = `/tasks/new?item=${encodeURIComponent(sel.value)}`;
   });
 
   // ------------------------------------------------------------------ documents

@@ -17,7 +17,7 @@ from domownik.domain.money import parse_pln
 from domownik.domain.shopping import SECTIONS, guess_section, parse_entry
 from domownik.models import ShoppingItem, Transaction, User
 from domownik.security import current_user, verify_csrf
-from domownik.web import render
+from domownik.web import is_quick, quick_saved, render
 
 router = APIRouter(prefix="/zakupy")
 LIST_TARGET = "shopping-list"
@@ -67,6 +67,8 @@ def _context(db: Session, user: User) -> dict:
 
 def _respond(request: Request, db: Session, user: User):
     """HTMX call from /zakupy → fresh list fragment; anything else → back to where it came from."""
+    if is_quick(request):
+        return quick_saved("Dopisano do zakupów")
     if request.headers.get("hx-target") == LIST_TARGET:
         return render(request, "partials/shopping_list.html", _context(db, user))
     nxt = request.query_params.get("next") or "/zakupy"

@@ -25,7 +25,7 @@ from domownik.models import (
     User,
 )
 from domownik.security import current_user, verify_csrf
-from domownik.web import is_htmx, render
+from domownik.web import error_target, is_htmx, is_quick, quick_saved, render
 
 router = APIRouter()
 
@@ -238,6 +238,17 @@ def _more_open(task: Task, default_category: str) -> bool:
     )
 
 
+def _guess_category(db: Session, task: Task) -> None:
+    """Category and budget category a new task of this item would start with (see new_task_form)."""
+    tree = Tree.load(db)
+    item = tree.items.get(task.item_id)
+    if item is None:
+        raise ValueError("Wybierz, czego dotyczy zadanie")
+    task.category = _default_category(item, tree)
+    if task.amount_gr and not task.budget_category_id:
+        task.budget_category_id = budget.suggest_category(db, tree, item.id, task.category)
+
+
 @router.get("/tasks/new")
 def new_task_form(request: Request, item: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     tree = Tree.load(db)
@@ -272,6 +283,8 @@ async def create_task(request: Request, db: Session = Depends(get_db), user: Use
     task = Task()
     try:
         _apply_form(task, form, db)
+        if not form.get("category"):  # quick add: no category field – guess it like the full form does
+            _guess_category(db, task)
         # the reminder of a warranty / contract: a new date here is the new end date
         linked = documents.warranty_for_task(db, task.id)
         if linked is not None and task.next_due_date and task.recurrence.get("mode") == "once":
@@ -280,10 +293,12 @@ async def create_task(request: Request, db: Session = Depends(get_db), user: Use
         return HTMLResponse(
             f'<p class="error">{exc}</p>',
             status_code=422,
-            headers={"HX-Retarget": "#form-error", "HX-Reswap": "innerHTML"},
+            headers={"HX-Retarget": error_target(request, "#form-error"), "HX-Reswap": "innerHTML"},
         )
     db.add(task)
     db.commit()
+    if is_quick(request):
+        return quick_saved("Dodano zadanie")
     return _redirect(f"/items/{task.item_id}")
 
 

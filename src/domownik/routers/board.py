@@ -16,7 +16,7 @@ from domownik.domain.money import parse_pln
 from domownik.domain.tree import Tree
 from domownik.models import BoardNote, Todo, User
 from domownik.security import current_user, verify_csrf
-from domownik.web import render
+from domownik.web import is_quick, quick_saved, render
 
 router = APIRouter()
 
@@ -68,6 +68,8 @@ async def add_note(request: Request, db: Session = Depends(get_db), user: User =
         )
     )
     db.commit()
+    if is_quick(request):
+        return quick_saved("Dodano notatkę")
     return _redirect("/notatki")
 
 
@@ -173,4 +175,6 @@ async def add_todo(request: Request, db: Session = Depends(get_db), user: User =
         )
     )
     db.commit()
+    if is_quick(request):
+        return quick_saved("Dodano do zrobienia")
     return _redirect("/do-zrobienia")

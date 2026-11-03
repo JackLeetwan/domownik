@@ -17,7 +17,7 @@ from domownik.domain.tree import Tree
 from domownik.models import BUDGET_KINDS, BudgetCategory, Item, RecurringIncome, Task, Transaction, User
 from domownik.routers.calendar import _month
 from domownik.security import current_user, verify_csrf
-from domownik.web import render
+from domownik.web import error_target, is_quick, quick_saved, render
 
 router = APIRouter()
 
@@ -130,7 +130,7 @@ async def add_entry(request: Request, db: Session = Depends(get_db), user: User 
         cat = _category(db, form.get("budget_category_id"))
         booked = date.fromisoformat((form.get("booked_on") or "").strip() or today().isoformat())
     except ValueError as exc:
-        return _error(str(exc).replace("Invalid isoformat string", "Zła data"))
+        return _error(str(exc).replace("Invalid isoformat string", "Zła data"), error_target(request, "#bud-error"))
     item_id = None
     raw_item = str(form.get("item_id") or "").strip()
     if raw_item.isdigit() and db.get(Item, int(raw_item)) is not None:
@@ -146,6 +146,8 @@ async def add_entry(request: Request, db: Session = Depends(get_db), user: User 
         )
     )
     db.commit()
+    if is_quick(request):
+        return quick_saved("Dodano wpływ" if cat.is_income else "Dodano wydatek")
     return _to_month(_mkey(booked), str(cat.id))
 
 

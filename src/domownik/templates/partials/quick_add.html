@@ -1,0 +1,105 @@
+{# Quick add window ("＋"): the menu (kind = None) or one short form. Forms post to the ordinary routes
+   with X-Quick-Add – they answer with an event, app.js closes the window and refreshes the page. #}
+<header>
+  <button class="close" aria-label="Zamknij" data-close>✕</button>
+  {% if kind %}
+  <h3 id="modal-title"><a href="/dodaj" hx-get="/dodaj" hx-target="#modal-body" hx-push-url="false" class="qa-back" aria-label="Wróć do wyboru">‹</a> {{ kinds[kind][0] }} {{ kinds[kind][1] }}</h3>
+  {% else %}
+  <h3 id="modal-title">＋ Dodaj</h3>
+  {% endif %}
+</header>
+{% if not kind %}
+<ul class="qa-menu">
+  {% for k, (icon, lbl, hint) in kinds.items() %}
+  <li><a href="/dodaj/{{ k }}" hx-get="/dodaj/{{ k }}" hx-target="#modal-body" hx-push-url="false">
+    <span class="qa-ic" aria-hidden="true">{{ icon }}</span><span><strong>{{ lbl }}</strong><small class="muted">{{ hint }}</small></span>
+  </a></li>
+  {% endfor %}
+</ul>
+{% else %}
+{% set qa = 'hx-headers=\'{"X-Quick-Add": "1"}\' hx-target="#qa-error" hx-swap="innerHTML"' %}
+<div id="qa-error"></div>
+
+{% if kind == 'task' %}
+<form hx-post="/tasks/new" {{ qa|safe }} class="qa-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="freq" value="once">
+  <label>Co trzeba zrobić <input name="title" required autofocus placeholder="np. Wymiana filtra" maxlength="200"></label>
+  <label>Dotyczy
+    <select name="item_id" required>
+      {% if not current_item %}<option value="">— wybierz —</option>{% endif %}
+      {% for i in items %}<option value="{{ i.id }}" {% if i.id == current_item %}selected{% endif %}>{{ label(i.id) }}</option>{% endfor %}
+    </select>
+  </label>
+  <div class="grid">
+    <label>Termin <input type="date" name="next_due_date" required value="{{ today.isoformat() }}"></label>
+    <label>Kwota [zł] <input name="amount" inputmode="decimal" placeholder="opcjonalnie" autocomplete="off"></label>
+  </div>
+  <footer class="modal-actions">
+    <button type="submit">Dodaj</button>
+    <a href="/tasks/new?item={{ current_item or (items[0].id if items else '') }}" role="button" class="outline secondary" hx-boost="false" data-qa-more>Więcej opcji…</a>
+  </footer>
+  <small class="muted">Powtarzanie, przypomnienie, osoba i kategoria – w „Więcej opcji”, albo później w edycji zadania.</small>
+</form>
+
+{% elif kind == 'shopping' %}
+<form hx-post="/zakupy" {{ qa|safe }} class="qa-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Co dopisać <input name="text" list="qa-shop-suggestions" autocomplete="off" required autofocus placeholder="np. 2 mleko, chleb, masło ×2"></label>
+  <datalist id="qa-shop-suggestions">{% for s in suggestions %}<option value="{{ s }}">{% endfor %}</datalist>
+  <small class="muted">Kilka naraz po przecinku. Dział dobiera się sam.</small>
+  <footer class="modal-actions"><button type="submit">Dopisz</button></footer>
+</form>
+
+{% elif kind == 'note' %}
+<form hx-post="/notatki" {{ qa|safe }} class="qa-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <textarea name="body" rows="3" required autofocus aria-label="Treść notatki" placeholder="Karteczka dla wszystkich, np. „W piątek odbiór paczki”"></textarea>
+  <div class="note-opts">
+    <label><input type="checkbox" name="pinned" role="switch"> 📌 Przypnij na górze</label>
+    <label>Ważna do <input type="date" name="valid_until"></label>
+  </div>
+  <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
+</form>
+
+{% elif kind == 'todo' %}
+<form hx-post="/do-zrobienia" {{ qa|safe }} class="qa-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Co trzeba zrobić <input name="title" required autofocus enterkeyhint="done" maxlength="200"></label>
+  <div class="grid">
+    <label>Dotyczy
+      <select name="item_id">
+        <option value="">Ogólne (dom, rodzina)</option>
+        {% for i in items %}<option value="{{ i.id }}" {% if i.id == current_item %}selected{% endif %}>{{ label(i.id) }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Kto<select name="assignee_id"><option value="">—</option>{% for u in users %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}</select></label>
+  </div>
+  <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
+</form>
+
+{% elif kind == 'expense' %}
+<form hx-post="/budzet/wpis" {{ qa|safe }} class="qa-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="grid">
+    <label>Kwota [zł] <input name="amount" inputmode="decimal" required autofocus placeholder="np. 54,90" autocomplete="off"></label>
+    <label>Data <input type="date" name="booked_on" value="{{ today.isoformat() }}"></label>
+  </div>
+  <label>Kategoria
+    <select name="budget_category_id" required>
+      {% for k, klabel in budget_kinds.items() if k != 'income' %}
+      <optgroup label="{{ klabel }}">{% for c in categories if c.kind == k %}<option value="{{ c.id }}" {% if c.id == default_cat %}selected{% endif %}>{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}</optgroup>
+      {% endfor %}
+      <optgroup label="Wpływy (poza planem)">{% for c in categories if c.kind == 'income' %}<option value="{{ c.id }}">{{ c.icon or '' }} {{ c.name }} (+)</option>{% endfor %}</optgroup>
+    </select>
+  </label>
+  <div class="grid">
+    <label>Notatka <input name="note" placeholder="np. apteka" maxlength="300"></label>
+    <label>Dotyczy
+      <select name="item_id"><option value="">—</option>{% for i in items %}<option value="{{ i.id }}" {% if i.id == current_item %}selected{% endif %}>{{ label(i.id) }}</option>{% endfor %}</select>
+    </label>
+  </div>
+  <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
+</form>
+{% endif %}
+{% endif %}
