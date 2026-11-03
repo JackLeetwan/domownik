@@ -80,3 +80,19 @@ def test_section_memory_edit_delete(auth_client, db):
 def test_list_fragment(auth_client):
     r = auth_client.get("/zakupy/lista")
     assert r.status_code == 200 and "Lista jest pusta" in r.text and "<html" not in r.text
+
+
+def test_finish_with_wrong_amount_is_a_message_not_a_500(auth_client, db):
+    auth_client.post("/zakupy", data={"text": "mleko"}, headers=HX)
+    auth_client.post(f"/zakupy/{_items(db)['Mleko'].id}/check", headers=HX)
+    for bad in ("test", "nan", "1e999", "12,3,4"):
+        r = auth_client.post("/zakupy/zakoncz", data={"amount": bad, "shop": "x"}, headers={"HX-Request": "true"})
+        assert r.status_code == 400 and "Nieprawidłowa kwota" in r.text and r.headers["HX-Reswap"] == "none"
+    # nothing happened: the cart is still there, no transaction
+    assert _items(db)["Mleko"].bought_on is None
+    assert db.scalar(select(Transaction)) is None
+    # without htmx: an error page, not a crash
+    r = auth_client.post("/zakupy/zakoncz", data={"amount": "test"})
+    assert r.status_code == 400 and "Nieprawidłowa kwota" in r.text
+    # the amount fields tell the browser what a valid amount is
+    assert 'pattern="[0-9 ]*([.,][0-9]{1,2})?"' in auth_client.get("/zakupy").text

@@ -29,7 +29,7 @@
     </div>
     <div class="grid">
       <label>Notatka<input name="notes" placeholder="opcjonalnie"></label>
-      <label>Szacowany koszt (zł)<input name="amount" inputmode="decimal" placeholder="opcjonalnie"></label>
+      <label>Szacowany koszt (zł)<input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" placeholder="opcjonalnie"></label>
     </div>
   </details>
 </form>

@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from domownik.config import get_settings, now
+from domownik.domain.money import InvalidAmount
 from domownik.routers import (
     account,
     assignments,
@@ -102,6 +103,14 @@ def create_app() -> FastAPI:
         if request.url.path.startswith("/api/"):
             return HTMLResponse("Unauthorized", status_code=401)
         return RedirectResponse("/login", status_code=303)
+
+    @app.exception_handler(InvalidAmount)
+    async def _invalid_amount(request: Request, exc: InvalidAmount):
+        # safety net for every form with a money field: a readable message instead of a 500;
+        # htmx leaves the form as it was (nothing swapped) and app.js shows the text as a toast
+        if is_htmx(request) or request.url.path.startswith("/api/"):
+            return HTMLResponse(str(exc), status_code=400, headers={"HX-Reswap": "none"})
+        return render(request, "error.html", {"code": 400, "detail": str(exc)}, status_code=400)
 
     @app.exception_handler(StarletteHTTPException)
     async def _http_error(request: Request, exc: StarletteHTTPException):

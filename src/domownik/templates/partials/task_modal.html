@@ -22,7 +22,7 @@
   <div class="grid">
     <label>Zrobione dnia <input type="date" name="done_on" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}"></label>
     {% if task.direction != 'none' %}
-    <label>{% if task.direction == 'income' %}Otrzymano{% else %}Koszt{% endif %} [zł] <input name="amount" inputmode="decimal" value="{{ task.amount_gr|pln_input }}"></label>
+    <label>{% if task.direction == 'income' %}Otrzymano{% else %}Koszt{% endif %} [zł] <input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" value="{{ task.amount_gr|pln_input }}"></label>
     {% endif %}
     {% if is_car %}
     <label>Przebieg [km] <input type="number" name="km" min="0" placeholder="{{ last_km or '' }}"></label>

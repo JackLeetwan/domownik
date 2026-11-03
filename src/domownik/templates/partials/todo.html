@@ -19,7 +19,7 @@
       <label>Co<input name="title" value="{{ td.title }}" required></label>
       <label>Notatka<textarea name="notes" rows="3">{{ td.notes or "" }}</textarea></label>
       <div class="grid">
-        <label>Szacowany koszt (zł)<input name="amount" inputmode="decimal" value="{{ td.est_amount_gr|pln_input }}"></label>
+        <label>Szacowany koszt (zł)<input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" value="{{ td.est_amount_gr|pln_input }}"></label>
         <label>Kto<select name="assignee_id"><option value="">—</option>{% for u in users %}<option value="{{ u.id }}" {% if u.id == td.assignee_id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}</select></label>
       </div>
       {% if items is defined and items %}

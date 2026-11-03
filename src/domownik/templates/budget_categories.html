@@ -16,7 +16,7 @@
       <form method="post" action="/budzet/dochody/{{ inc.id }}" class="bud-inc-form">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <label>Nazwa <input name="name" value="{{ inc.name }}" required maxlength="120"></label>
-        <label>Kwota [zł] <input name="amount" inputmode="decimal" value="{{ inc.amount_gr|pln_input }}" required></label>
+        <label>Kwota [zł] <input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" value="{{ inc.amount_gr|pln_input }}" required></label>
         <label>Dzień <input type="number" name="day" min="1" max="31" value="{{ inc.day }}"></label>
         <label>Kategoria
           <select name="budget_category_id"><option value="">—</option>{% for c in income_categories %}<option value="{{ c.id }}" {% if c.id == inc.budget_category_id %}selected{% endif %}>{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}</select>
@@ -41,7 +41,7 @@
     <form method="post" action="/budzet/dochody" class="bud-inc-form">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <label>Nazwa <input name="name" required maxlength="120" placeholder="np. Pensja"></label>
-      <label>Kwota [zł] <input name="amount" inputmode="decimal" required placeholder="np. 6500"></label>
+      <label>Kwota [zł] <input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" required placeholder="np. 6500"></label>
       <label>Dzień <input type="number" name="day" min="1" max="31" value="10"></label>
       <label>Kategoria
         <select name="budget_category_id"><option value="">—</option>{% for c in income_categories %}<option value="{{ c.id }}">{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}</select>
@@ -66,7 +66,7 @@
           <select name="kind">{% for k, l in kinds.items() %}<option value="{{ k }}" {% if k == c.kind %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
         </label>
         {% if kind != 'income' %}
-        <label>Koperta [zł/mies.] <input name="limit" inputmode="decimal" value="{{ c.monthly_limit_gr|pln_input }}" placeholder="bez limitu"></label>
+        <label>Koperta [zł/mies.] <input name="limit" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" value="{{ c.monthly_limit_gr|pln_input }}" placeholder="bez limitu"></label>
         {% else %}<input type="hidden" name="limit" value="{{ c.monthly_limit_gr|pln_input }}"><span class="spacer"></span>{% endif %}
         <button type="submit" class="small">Zapisz</button>
       </form>
@@ -90,7 +90,7 @@
     <label>Rodzaj
       <select name="kind">{% for k, l in kinds.items() %}<option value="{{ k }}" {% if k == 'variable' %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
     </label>
-    <label>Koperta [zł/mies.] <input name="limit" inputmode="decimal" placeholder="bez limitu"></label>
+    <label>Koperta [zł/mies.] <input name="limit" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" placeholder="bez limitu"></label>
     <button type="submit" class="small">Dodaj</button>
   </form>
   <div id="cat-error-new"></div>

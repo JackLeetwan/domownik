@@ -3,17 +3,26 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 
 
+class InvalidAmount(ValueError):
+    """A money field that is not a number – shown to the user, never a 500."""
+
+
+MAX_PLN = Decimal(100_000_000)  # far above any household amount; also stops "1e999"
+
+
 def parse_pln(value: str | None) -> int | None:
-    """'1 234,50' / '1234.5' / '' -> grosze (int) or None."""
+    """'1 234,50' / '1234.5' / '' -> grosze (int) or None; anything else -> InvalidAmount."""
     if value is None:
         return None
-    text = str(value).strip().replace(" ", "").replace(" ", "").replace("zł", "").replace(",", ".")
+    text = str(value).strip().replace(" ", "").replace("\u00a0", "").replace("zł", "").replace(",", ".")
     if not text:
         return None
     try:
         amount = Decimal(text)
-    except InvalidOperation as exc:
-        raise ValueError(f"Nieprawidłowa kwota: {value!r}") from exc
+    except InvalidOperation:
+        amount = None
+    if amount is None or not amount.is_finite() or abs(amount) > MAX_PLN:
+        raise InvalidAmount(f"Nieprawidłowa kwota: „{value}”. Wpisz liczbę, np. 54,90.")
     return int((amount * 100).quantize(Decimal(1)))
 
 

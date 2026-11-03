@@ -15,7 +15,7 @@
       <summary>Więcej opcji</summary>
       <label>Notatka<textarea name="notes" rows="2" placeholder="materiały, sposób, link do poradnika…"></textarea></label>
       <div class="grid">
-        <label>Szacowany koszt (zł)<input name="amount" inputmode="decimal" placeholder="opcjonalnie"></label>
+        <label>Szacowany koszt (zł)<input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" placeholder="opcjonalnie"></label>
         <label>Kto<select name="assignee_id"><option value="">—</option>{% for u in users %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}</select></label>
       </div>
     </details>

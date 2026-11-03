@@ -21,7 +21,7 @@
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <p class="muted"><small>Pozycje z koszyka znikną z listy (zostaną w podpowiedziach). Kwota z paragonu trafi do budżetu jako wydatek „Jedzenie”.</small></p>
       <div class="grid">
-        <label>Kwota z paragonu (zł)<input name="amount" inputmode="decimal" placeholder="opcjonalnie"></label>
+        <label>Kwota z paragonu (zł)<input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" placeholder="opcjonalnie"></label>
         <label>Sklep<input name="shop" placeholder="opcjonalnie, np. Biedronka"></label>
       </div>
       <button type="submit">Zakończ</button>

@@ -261,7 +261,9 @@
     const xhr = e.detail.xhr;
     const tmp = document.createElement("div");
     tmp.innerHTML = xhr.responseText || "";
-    toast(`Błąd ${xhr.status}: ${tmp.textContent.trim().slice(0, 200) || xhr.statusText}`);
+    const text = tmp.textContent.trim().slice(0, 200);
+    // 400 = the server explains what to fix (e.g. a wrong amount) – show just that
+    toast(xhr.status === 400 && text ? text : `Błąd ${xhr.status}: ${text || xhr.statusText}`);
   });
 
   // ------------------------------------------------------------------ modal

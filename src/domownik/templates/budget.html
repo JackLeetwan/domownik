@@ -7,7 +7,7 @@
   <form method="post" action="/budzet/transakcje/{{ tx.id }}/kwota" class="bud-inline">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <input type="hidden" name="m" value="{{ mkey }}">
-    <input name="amount" inputmode="decimal" value="{{ tx.amount_gr|abs|pln_input }}" aria-label="Kwota [zł]" required>
+    <input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" value="{{ tx.amount_gr|abs|pln_input }}" aria-label="Kwota [zł]" required>
     <button type="submit" class="small">Zapisz</button>
   </form>
   <div id="tx-error-{{ tx.id }}"></div>
@@ -44,7 +44,7 @@
   <form method="post" action="/budzet/dochody/{{ e.source.id }}/wplynelo" class="bud-inline bud-confirm">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <input type="hidden" name="m" value="{{ mkey }}">
-    <input name="amount" inputmode="decimal" value="{{ e.planned_gr|pln_input }}" aria-label="Kwota, która wpłynęła [zł]">
+    <input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" value="{{ e.planned_gr|pln_input }}" aria-label="Kwota, która wpłynęła [zł]">
     <button type="submit" class="small">✓ Wpłynęło</button>
     <div id="inc-error-{{ e.source.id }}"></div>
   </form>
@@ -108,7 +108,7 @@
       <form method="post" action="/budzet/kategorie/{{ c.id }}" class="bud-inline">
         <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="back" value="budget"><input type="hidden" name="m" value="{{ mkey }}">
         <input type="hidden" name="name" value="{{ c.name }}"><input type="hidden" name="kind" value="{{ c.kind }}"><input type="hidden" name="icon" value="{{ c.icon or '' }}">
-        <input name="limit" inputmode="decimal" value="{{ c.monthly_limit_gr|pln_input }}" placeholder="np. 1500" aria-label="Miesięczny limit [zł]">
+        <input name="limit" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" value="{{ c.monthly_limit_gr|pln_input }}" placeholder="np. 1500" aria-label="Miesięczny limit [zł]">
         <button type="submit" class="small">Zapisz</button>
       </form>
       <div id="cat-error-{{ c.id }}"></div>
@@ -179,7 +179,7 @@
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div id="bud-error"></div>
     <div class="bud-quick-row">
-      <label>Kwota [zł] <input name="amount" inputmode="decimal" required placeholder="np. 54,90" autocomplete="off"></label>
+      <label>Kwota [zł] <input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" required placeholder="np. 54,90" autocomplete="off"></label>
       <label>Kategoria
         <select name="budget_category_id" required>
           {% for kind, klabel in kinds.items() if kind != 'income' %}
