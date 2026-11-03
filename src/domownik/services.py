@@ -677,6 +677,7 @@ def timeline(
                 "date": comp.done_on.isoformat(),
                 "kind": "done",
                 "status": "done",
+                "completion_id": comp.id,
             }
         )
     return {"points": points, "groups": sorted(groups.values(), key=lambda g: g["order"])}

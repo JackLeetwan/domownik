@@ -72,7 +72,7 @@
   <span class="bud-entry-amt"><b>{{ tx.amount_gr|pln(sign=True) }}</b></span>
   <span class="bud-entry-act">
     {% if tx.completion_id %}
-      {% if tx.task_id %}<a href="/tasks/{{ tx.task_id }}" hx-get="/tasks/{{ tx.task_id }}" hx-target="#modal-body" hx-push-url="false" class="small-link">zadanie</a>{% endif %}
+      {% if tx.task_id %}{% set turl = '/tasks/' ~ tx.task_id ~ ('?wykonanie=' ~ tx.completion_id if tx.completion_id else '') %}<a href="{{ turl }}" hx-get="{{ turl }}" hx-target="#modal-body" hx-push-url="false" class="small-link">zadanie</a>{% endif %}
     {% else %}
     {{ amount_form(tx) }}
     <form method="post" action="/budzet/transakcje/{{ tx.id }}/usun" class="inline" hx-confirm="Usunąć wpis „{{ tx.note or tx.amount_gr|pln }}”?">

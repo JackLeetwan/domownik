@@ -11,6 +11,29 @@
   {% else %}<span class="badge">bez terminu</span>{% endif %}
   {% if task.amount_gr and task.direction != 'none' %} · {{ task.amount_gr|pln }}{% endif %}
 </p>
+{% if focus_comp %}
+{% set fc = focus_comp %}
+<section class="comp-focus">
+  <p><strong>✓ Zrobione {{ fc.done_on|d(weekday=True) }}</strong>{% if fc.actual_amount_gr and task.direction != 'none' %} · {{ fc.actual_amount_gr|pln }}{% endif %}{% if fc.performed_by %} · {{ fc.performed_by.name }}{% endif %}{% if fc.km %} · {{ fc.km }} km{% endif %}</p>
+  {% if fc.vendor or fc.notes %}<p class="muted"><small>{{ fc.vendor or '' }}{% if fc.vendor and fc.notes %} · {% endif %}{{ fc.notes or '' }}</small></p>{% endif %}
+  {% if fc.attachments %}
+  <div class="doc-thumbs">
+    {% for a in fc.attachments %}
+    <a href="/files/{{ a.id }}/view" hx-get="/files/{{ a.id }}/view" hx-target="#modal-body" hx-push-url="false" class="doc-thumb" title="{{ a.description or a.original_name }}">
+      {% if a.has_thumb %}<img src="/files/{{ a.id }}/thumb" alt="{{ a.description or a.original_name }}" loading="lazy" decoding="async">{% else %}<span class="doc-thumb-kind">{{ a.icon }} {{ a.original_name|truncate(18) }}</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if last_comp and last_comp.id == fc.id %}
+  <form hx-post="/completions/{{ fc.id }}/undo" class="inline" hx-confirm="Cofnąć to wykonanie? Zniknie z historii (razem z wydatkiem), a termin wróci na {{ fc.due_date|d if fc.due_date else 'poprzedni' }}.">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link danger">cofnij to wykonanie</button>
+  </form>
+  {% endif %}
+</section>
+{% elif last_comp %}
+<p class="muted">Ostatnio zrobione: {{ last_comp.done_on|d }}{% if last_comp.actual_amount_gr and task.direction != 'none' %} · {{ last_comp.actual_amount_gr|pln }}{% endif %}{% if last_comp.performed_by %} · {{ last_comp.performed_by.name }}{% endif %}</p>
+{% endif %}
 {% include "partials/assign_control.html" %}
 {% if task.autopay %}<p class="muted"><small>🔁 Płatne automatycznie – w dniu terminu zaksięguje się samo z kwotą z planu. Tu możesz je oznaczyć wcześniej albo z inną kwotą.</small></p>{% endif %}
 {% if upcoming %}<p class="muted">Kolejne: {% for d in upcoming %}{{ d|d }}{% if not loop.last %}, {% endif %}{% endfor %}{% if left is not none and left > upcoming|length + 1 %} …{% endif %}</p>
@@ -30,6 +53,10 @@
 
 <form hx-post="/tasks/{{ task.id }}/done" hx-target="#done-error" hx-encoding="multipart/form-data" class="done-form">
   <div id="done-error"></div>
+  {% if collapse_done %}
+  <details class="done-early">
+    <summary>✓ Odhacz {{ 'następny termin' if focus_comp else 'przed terminem' }}…</summary>
+  {% endif %}
   <div class="grid">
     <label>Zrobione dnia <input type="date" name="done_on" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}"></label>
     {% if task.direction != 'none' %}
@@ -46,8 +73,12 @@
     <label>Notatka <textarea name="notes" rows="2"></textarea></label>
     <label>Faktura / paragon <small class="muted">(zdjęcie lub PDF – trafi do dokumentów)</small><input type="file" name="files" multiple accept="image/*,.heic,application/pdf,.pdf"></label>
   </details>
-  <footer class="modal-actions">
+  {% if collapse_done %}
     <button type="submit">✓ Zrobione</button>
+  </details>
+  {% endif %}
+  <footer class="modal-actions">
+    {% if not collapse_done %}<button type="submit">✓ Zrobione</button>{% endif %}
     {% if postpone_to %}
     <details class="postpone">
       <summary role="button" class="outline secondary">Przełóż…</summary>

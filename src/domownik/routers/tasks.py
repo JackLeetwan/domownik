@@ -27,7 +27,7 @@ from domownik.models import (
 )
 from domownik.routers.contacts import vendor_suggestions
 from domownik.security import current_user, verify_csrf
-from domownik.web import error_target, is_htmx, is_quick, quick_saved, render
+from domownik.web import error_target, fmt_date, is_htmx, is_quick, quick_saved, render
 
 router = APIRouter()
 
@@ -412,6 +412,14 @@ def task_modal(request: Request, task_id: int, db: Session = Depends(get_db), us
         task.next_due_date or today(),
         (task.next_due_date or today()) + timedelta(days=366 * 3),
     )[1:4]
+    last = _last_completion(db, task)
+    raw = request.query_params.get("wykonanie", "")
+    focus = db.get(Completion, int(raw)) if raw.isdigit() else None
+    if focus is not None and focus.task_id != task.id:
+        focus = None
+    # a done point or an early tick: the form for the next occurrence waits behind a tap, so it is not
+    # mistaken for "confirm the one that was done"
+    collapse_done = focus is not None or (last is not None and _not_due_yet(task, today()))
     # a plain request (refresh, opened link, boosted navigation) gets a whole page, htmx the window content
     page = not is_htmx(request) or request.headers.get("hx-boosted") == "true"
     return render(
@@ -432,8 +440,25 @@ def task_modal(request: Request, task_id: int, db: Session = Depends(get_db), us
             "postpone_to": _postpone_choices(task.next_due_date, today()),
             "left": recurrence.remaining(task.recurrence),
             "vendors": vendor_suggestions(db, task.item_id),
+            "last_comp": last,
+            "focus_comp": focus,
+            "collapse_done": collapse_done,
         },
     )
+
+
+def _last_completion(db: Session, task: Task) -> Completion | None:
+    return db.scalar(
+        select(Completion)
+        .where(Completion.task_id == task.id)
+        .order_by(Completion.done_on.desc(), Completion.id.desc())
+        .limit(1)
+    )
+
+
+def _not_due_yet(task: Task, t: date) -> bool:
+    """The next occurrence is still before its reminder window – ticking it now is the unusual case."""
+    return task.next_due_date is not None and task.next_due_date > t + timedelta(days=task.lead_days or 0)
 
 
 def _on_task_page(request: Request, task_id: int) -> bool:
@@ -471,6 +496,16 @@ async def complete(request: Request, task_id: int, db: Session = Depends(get_db)
     except ValueError as exc:
         return HTMLResponse(
             f'<p class="error">{exc}</p>',
+            status_code=422,
+            headers={"HX-Retarget": "#done-error", "HX-Reswap": "innerHTML"},
+        )
+    twin = db.scalar(select(Completion).where(Completion.task_id == task.id, Completion.done_on == done_on).limit(1))
+    if twin is not None and task.recurrence.get("anchor") == "completion":
+        # counted from the day it was done, a second tick of the same day only duplicates the first one
+        # (paying two instalments or two overdue months at once stays possible – those count from the due date)
+        nxt = f" Następny termin: {fmt_date(task.next_due_date)}." if task.next_due_date else ""
+        return HTMLResponse(
+            f'<p class="error">Już odhaczone {fmt_date(done_on)} – to wykonanie jest w historii.{nxt}</p>',
             status_code=422,
             headers={"HX-Retarget": "#done-error", "HX-Reswap": "innerHTML"},
         )

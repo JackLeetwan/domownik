@@ -9,9 +9,11 @@
 
 {% macro drag(p) %}{% if p.kind == 'due' and p.movable %} draggable="true" data-drag-task="{{ p.task_id }}" data-drag-from="{{ p.date }}"{% endif %}{% endmacro %}
 
+{% macro task_url(p) %}/tasks/{{ p.task_id }}{% if p.completion_id %}?wykonanie={{ p.completion_id }}{% endif %}{% endmacro %}
+
 {% macro task_line(p, show_zone=True) %}
 <li class="cal-row st-{{ st(p) }}"{{ drag(p) }}>
-  <a href="/tasks/{{ p.task_id }}" hx-get="/tasks/{{ p.task_id }}" hx-target="#modal-body" hx-push-url="false"{{ del_attrs(p) }}>
+  <a href="{{ task_url(p) }}" hx-get="{{ task_url(p) }}" hx-target="#modal-body" hx-push-url="false"{{ del_attrs(p) }}>
     <span class="cal-row-ic" aria-hidden="true">{{ p.icon }}</span>
     <span class="cal-row-txt">
       <strong>{{ avatar(p.assignee) }}{% if p.time %}<span class="time-tag">{{ p.time }}</span> {% endif %}{{ p.title }}</strong>

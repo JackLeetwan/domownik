@@ -56,7 +56,7 @@
           {% else %}
           <li><button type="button"{{ cm.drag(e) }}{{ cm.del_attrs(e) }} class="cal-chip st-{{ cm.st(e) }}"
               title="{{ e.icon }} {{ e.title }}&#10;{{ e.zone }}{% if cm.amount(e)|trim %} · {{ cm.amount(e)|trim }}{% endif %}&#10;{{ cm.CAL_STATUS.get(cm.st(e)|trim, '') }}"
-              hx-get="/tasks/{{ e.task_id }}" hx-target="#modal-body" hx-swap="innerHTML" hx-replace-url="false" hx-trigger="click consume">
+              hx-get="{{ cm.task_url(e) }}" hx-target="#modal-body" hx-swap="innerHTML" hx-replace-url="false" hx-trigger="click consume">
               <span class="ic">{{ e.icon }}</span><span class="lbl">{% if e.time %}{{ e.time.split('–')[0] }} {% endif %}{{ e.title }}</span></button></li>
           {% endif %}
         {% endfor %}

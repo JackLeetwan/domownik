@@ -2,7 +2,7 @@
 <header>
   {% if not page %}<button class="close" aria-label="Zamknij" data-close>✕</button>{% endif %}
   <{{ 'h1' if page else 'h3' }} id="modal-title" class="doc-title">{{ a.icon }} {{ a.original_name }}</{{ 'h1' if page else 'h3' }}>
-  <p class="muted">{{ a.kind_label }} · {{ a.created_at.date()|d }}{% if a.created_by %} · {{ a.created_by.name }}{% endif %} · {{ human_size(a.size) }}{% if a.completion %} · <a href="/tasks/{{ a.completion.task_id }}">{{ a.completion.task.title }}</a> ({{ a.completion.done_on|d }}){% endif %}</p>
+  <p class="muted">{{ a.kind_label }} · {{ a.created_at.date()|d }}{% if a.created_by %} · {{ a.created_by.name }}{% endif %} · {{ human_size(a.size) }}{% if a.completion %} · <a href="/tasks/{{ a.completion.task_id }}?wykonanie={{ a.completion.id }}">{{ a.completion.task.title }}</a> ({{ a.completion.done_on|d }}){% endif %}</p>
 </header>
 {% if a.is_image and a.has_thumb %}
 <a href="/files/{{ a.id }}" target="_blank" rel="noopener" hx-boost="false" class="doc-preview">

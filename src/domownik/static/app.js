@@ -895,13 +895,18 @@
     };
   }
 
+  // a done point opens that completion, not the form for ticking off the next occurrence
+  function taskUrl(t) {
+    return `/tasks/${t.task_id}` + (t.completion_id ? `?wykonanie=${t.completion_id}` : "");
+  }
+
   function showBundle(p) {
     const modal = document.getElementById("modal");
     const body = document.getElementById("modal-body");
     if (!modal || !body) return;
     const d = new Date(p.date + "T12:00:00");
     const when = p.start === p.end ? fmtFull.format(d) : `${fmtDay.format(new Date(p.start + "T12:00:00"))} – ${fmtDay.format(new Date(p.end + "T12:00:00"))}`;
-    const rows = p.tasks.map((t) => `<li><a href="/tasks/${t.task_id}" hx-get="/tasks/${t.task_id}" hx-target="#modal-body" hx-push-url="false">`
+    const rows = p.tasks.map((t) => `<li><a href="${taskUrl(t)}" hx-get="${taskUrl(t)}" hx-target="#modal-body" hx-push-url="false">`
       + `<span>${esc(t.icon)} ${esc(t.title)}</span><small class="muted">${esc(t.zone)} · ${esc(fmtDay.format(new Date(t.date + "T12:00:00")))}</small></a>`
       + `<span class="amount">${esc(signed(t.amount, t.direction))}</span></li>`).join("");
     body.innerHTML = `<header><button class="close" aria-label="Zamknij" data-close>✕</button>`
@@ -919,6 +924,7 @@
     return {
       id: `${p.kind}-${p.task_id}-${p.date}-${i}`,
       task_id: p.task_id,
+      completion_id: p.completion_id,
       start: d,
       type: "point",
       // only the next occurrence gets a label – repeats stay as quiet icons
@@ -1016,7 +1022,7 @@
     if (!props.item) return;
     const it = items.get(props.item);
     if (it && it.task_id) {
-      htmx.ajax("GET", `/tasks/${it.task_id}`, { target: "#modal-body", swap: "innerHTML" });
+      htmx.ajax("GET", taskUrl(it), { target: "#modal-body", swap: "innerHTML" });
     } else if (it && it.bundle) {
       showBundle(it.bundle);
     }

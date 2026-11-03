@@ -1526,3 +1526,11 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .cap-dockind { margin-bottom: 0.8rem; }
 .cap-del { margin: 0.6rem 0 0; text-align: right; }
 .cap-empty { font-size: 1.1rem; }
+
+/* the task window opened on a done point: that completion first; the next tick waits behind a tap */
+.comp-focus { border-left: 4px solid var(--pico-muted-border-color); padding: 0.4rem 0 0.4rem 0.8rem; margin: 0 0 1rem; }
+.comp-focus p { margin: 0 0 0.3rem; }
+.comp-focus .doc-thumbs { margin: 0.4rem 0; }
+.done-early { margin: 0 0 0.75rem; }
+.done-early > summary { color: var(--pico-primary); }
+.done-early[open] > summary { margin-bottom: 0.6rem; }
