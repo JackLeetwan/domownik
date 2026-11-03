@@ -110,7 +110,7 @@ def _nav(name: str, ctx: dict):
     from domownik.db import session_factory
 
     with session_factory()() as db:
-        return services.nav_context(db, today())
+        return services.nav_context(db, today(), ctx["user"].id)
 
 
 def render(request: Request, name: str, ctx: dict | None = None, *, status_code: int = 200, headers=None):

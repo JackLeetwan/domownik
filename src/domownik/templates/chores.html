@@ -40,6 +40,7 @@
       <label>Pomieszczenie <input name="room" maxlength="60" list="rooms" placeholder="np. Łazienka"></label>
       <label>Szacowany czas [min] <input name="est_minutes" type="number" min="1" max="1440" placeholder="opcjonalnie"></label>
     </div>
+    {% with obj = none %}{% include "partials/points_fields.html" %}{% endwith %}
     {{ rotation_fields(none) }}
   </details>
   <datalist id="rooms">{% for r in rooms %}<option value="{{ r }}">{% endfor %}</datalist>
@@ -62,7 +63,7 @@
   {% for s in states %}{% set c = s.chore %}
   <li class="chore lvl-{{ s.level }}" id="ch{{ c.id }}">
     <div class="chore-top">
-      <span class="chore-name"><strong>{{ c.name }}</strong>
+      <span class="chore-name"><strong>{{ c.name }}</strong>{% if c.points %} <small class="badge pts">⭐{{ c.points }}</small>{% endif %}
         <small class="muted">{% if c.room %}{{ c.room }} · {% endif %}co {{ c.every_days }} {{ 'dzień' if c.every_days == 1 else 'dni' }}{% if c.est_minutes %} · ok. {{ c.est_minutes }} min{% endif %}</small>
       </span>
       <span class="chore-state">
@@ -114,6 +115,7 @@
             <label>Pomieszczenie <input name="room" value="{{ c.room or '' }}" maxlength="60" list="rooms"></label>
             <label>Szacowany czas [min] <input name="est_minutes" type="number" min="1" max="1440" value="{{ c.est_minutes or '' }}"></label>
           </div>
+          {% with obj = c %}{% include "partials/points_fields.html" %}{% endwith %}
           {{ rotation_fields(c) }}
           <button type="submit" class="small">Zapisz</button>
         </form>

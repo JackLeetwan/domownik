@@ -17,7 +17,7 @@ from datetime import date, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from domownik.models import Chore, ChoreDone, User
+from domownik.models import Chore, ChoreDone, PointEntry, User
 
 SOON_SHARE = 0.75  # past 3/4 of the interval → "wkrótce"
 
@@ -143,6 +143,10 @@ def undo_last(db: Session, chore: Chore) -> bool:
         return False
     last = chore.history[0]
     chore.turn_user_id = last.turn_user_id
+    if last.id is not None:
+        for e in db.scalars(select(PointEntry).where(PointEntry.chore_done_id == last.id)):
+            db.delete(e)  # the points of that ✓ go with it
+        db.flush()
     chore.history.remove(last)
     return True
 

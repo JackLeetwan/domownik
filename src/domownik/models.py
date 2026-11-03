@@ -247,6 +247,9 @@ class Task(Base):
     ends_at: Mapped[str | None] = mapped_column(String(5))
     # push N minutes before due_time (None = only the morning / evening digest)
     remind_minutes: Mapped[int | None] = mapped_column(Integer)
+    # points for whoever ticks it off; with needs_approval someone else has to confirm them
+    points: Mapped[int | None] = mapped_column(Integer)
+    needs_approval: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     # Money in grosze (1/100 PLN); amount is the planned value of one occurrence
     amount_gr: Mapped[int | None] = mapped_column(Integer)
     direction: Mapped[str] = mapped_column(String(10), default="expense")
@@ -699,6 +702,8 @@ class Chore(Base):
     room: Mapped[str | None] = mapped_column(String(60))  # free text: "Łazienka", "Kuchnia"…
     every_days: Mapped[int] = mapped_column(Integer, default=7)
     est_minutes: Mapped[int | None] = mapped_column(Integer)
+    points: Mapped[int | None] = mapped_column(Integer)
+    needs_approval: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     rotation: Mapped[list[int]] = mapped_column(JSON, default=list)  # user ids in turn order; [] = anyone
     turn_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
@@ -916,3 +921,44 @@ class PantryItem(Base):
     expires_on: Mapped[date | None] = mapped_column(Date, index=True)
     added_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+# ---------------------------------------------------------------- points & rewards
+
+
+class Reward(Base):
+    """Something to spend points on ("Wyjście na lody", "30 min bajek")."""
+
+    __tablename__ = "reward"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    icon: Mapped[str | None] = mapped_column(String(16))
+    cost: Mapped[int] = mapped_column(Integer)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class PointEntry(Base):
+    """+ points earned (task / chore / given by hand) or − points spent on a reward.
+
+    status: approved – counts; pending – waits for someone else to confirm; rejected – kept for the history.
+    """
+
+    __tablename__ = "point_entry"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    points: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(10), default="approved")
+    task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id", ondelete="SET NULL"))
+    completion_id: Mapped[int | None] = mapped_column(ForeignKey("completion.id", ondelete="CASCADE"), index=True)
+    chore_done_id: Mapped[int | None] = mapped_column(ForeignKey("chore_done.id", ondelete="CASCADE"), index=True)
+    reward_id: Mapped[int | None] = mapped_column(ForeignKey("reward.id", ondelete="SET NULL"))
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    decided_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    user: Mapped[User] = relationship(foreign_keys=[user_id])
+    decided_by: Mapped[User | None] = relationship(foreign_keys=[decided_by_id])

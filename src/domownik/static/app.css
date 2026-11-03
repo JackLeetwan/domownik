@@ -488,6 +488,22 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .pantry-row form.inline button.small { margin: 0; padding: 0.25rem 0.6rem; }
 .pantry-row.st-expired .pantry-name { color: var(--dm-overdue); }
 .pantry-edit { margin: 0.4rem 0 0.6rem; }
+/* ---------------------------------------------------------------- points */
+.pts-balances { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.6rem; margin-bottom: 1.25rem; }
+.pts-card { display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem; padding: 0.7rem 0.9rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-tile-bg); }
+.pts-card.me { border-color: var(--pico-primary); }
+.pts-num { font-size: 1.5rem; font-weight: 700; }
+.pts-list { list-style: none; padding: 0; margin: 0 0 0.75rem; }
+.pts-list li { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.4rem 0; border-bottom: 1px solid var(--dm-tile-border); margin: 0; }
+.pts-list li.st-rejected { opacity: 0.55; }
+.pts-list .neg { color: var(--dm-overdue); }
+.pts-actions { display: flex; gap: 0.4rem; align-items: center; }
+.pts-actions button { margin: 0; }
+.pts-add > summary[role=button], .pts-give > summary[role=button] { display: inline-block; width: auto; }
+.pts-give { margin: 1rem 0; }
+.points-approve { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+.points-approve small { display: inline; }
+.badge.pts { background: color-mix(in srgb, #e0a800 22%, transparent); color: inherit; font-weight: 600; }
 .goal-list { list-style: none; padding: 0; margin: 0 0 0.75rem; display: grid; gap: 0.75rem; }
 .goal { list-style: none; padding: 0.75rem 0.9rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-tile-bg); }
 .goal-head { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; align-items: baseline; }

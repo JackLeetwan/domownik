@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Punkty · Domownik{% endblock %}
+{% block content %}
+<header class="item-head"><h1>⭐ Punkty i nagrody</h1></header>
+{% set ST = {"approved": "", "pending": "czeka na zatwierdzenie", "rejected": "odrzucone"} %}
+
+<section class="pts-balances">
+  {% for b in balances %}
+  <div class="pts-card{% if b.user.id == user.id %} me{% endif %}">
+    {{ avatar(b.user) }} <strong>{{ b.user.name }}</strong>
+    <span class="pts-num">⭐ {{ b.approved }}</span>
+    {% if b.pending_plus or b.pending_minus %}<small class="muted">{% if b.pending_plus %}+{{ b.pending_plus }} czeka{% endif %}{% if b.pending_plus and b.pending_minus %} · {% endif %}{% if b.pending_minus %}−{{ b.pending_minus }} na nagrody{% endif %}</small>{% endif %}
+  </div>
+  {% endfor %}
+</section>
+
+{% if to_confirm %}
+<section class="pts-confirm">
+  <h2>Do zatwierdzenia <small class="muted">({{ to_confirm|length }})</small></h2>
+  <ul class="pts-list">
+    {% for e in to_confirm %}
+    <li>
+      <span>{{ avatar(e.user) }} <b>{{ e.user.name }}</b>: {{ e.reason }} <b class="{% if e.points < 0 %}neg{% endif %}">{{ '%+d'|format(e.points) }}</b></span>
+      <span class="pts-actions">
+        <form method="post" action="/punkty/{{ e.id }}/zatwierdz" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small">✓ Zatwierdź</button></form>
+        <form method="post" action="/punkty/{{ e.id }}/odrzuc" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline secondary">Odrzuć</button></form>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="pts-rewards">
+  <h2>🎁 Nagrody</h2>
+  <p class="muted">Masz do wydania: <b>⭐ {{ mine.available }}</b></p>
+  {% if rewards %}
+  <ul class="pts-list">
+    {% for r in rewards %}
+    <li>
+      <span>{{ r.icon or '🎁' }} {{ r.name }} <b>⭐ {{ r.cost }}</b></span>
+      <span class="pts-actions">
+        <form method="post" action="/punkty/nagrody/{{ r.id }}/odbierz" class="inline" hx-confirm="Odebrać „{{ r.name }}” za {{ r.cost }} pkt? Ktoś z domowników to zatwierdzi."><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small" {% if mine.available < r.cost %}disabled title="Brakuje {{ r.cost - mine.available }} pkt"{% endif %}>Odbierz</button></form>
+        <form method="post" action="/punkty/nagrody/{{ r.id }}/usun" class="inline" hx-confirm="Usunąć nagrodę „{{ r.name }}”?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="shop-del" aria-label="Usuń nagrodę {{ r.name }}" title="Usuń nagrodę">✕</button></form>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Brak nagród. Dodaj coś, na co warto zbierać – wyjście na lody, wybór filmu, późniejsze spanie.</p>
+  {% endif %}
+  <details class="pts-add">
+    <summary role="button" class="outline">＋ Nowa nagroda</summary>
+    <form method="post" action="/punkty/nagrody" class="pts-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="goal-fields">
+        <label>Ikona <input name="icon" maxlength="4" placeholder="🍦"></label>
+        <label>Nagroda <input name="name" required maxlength="120" placeholder="np. Wyjście na lody"></label>
+      </div>
+      <label>Koszt [pkt] <input name="cost" type="number" min="1" max="10000" required></label>
+      <button type="submit" class="small">Dodaj</button>
+    </form>
+  </details>
+</section>
+
+{% if users|length > 1 %}
+<details class="pts-give">
+  <summary role="button" class="outline secondary">⭐ Przyznaj punkty ręcznie</summary>
+  <form method="post" action="/punkty/przyznaj" class="pts-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="grid">
+      <label>Komu <select name="user_id" required>{% for u in users if u.id != user.id %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}</select></label>
+      <label>Punkty <input name="points" type="number" min="-10000" max="10000" required placeholder="np. 5 albo -5"></label>
+    </div>
+    <label>Za co <input name="reason" maxlength="200" placeholder="np. pomoc przy zakupach"></label>
+    <button type="submit" class="small">Przyznaj</button>
+  </form>
+</details>
+{% endif %}
+
+<p class="muted"><small>Punkty dają zadania i obowiązki z polem „⭐ Punkty” (w edycji, „Więcej szczegółów”). Z „Wymaga zatwierdzenia” liczą się dopiero po ✓ kogoś innego.</small></p>
+
+{% if history %}
+<details class="pts-history" {% if not rewards %}open{% endif %}>
+  <summary>Historia</summary>
+  <ul class="pts-list">
+    {% for e in history %}
+    <li class="st-{{ e.status }}"><span>{{ e.created_at|d }} · <b>{{ e.user.name }}</b>: {{ e.reason }}{% if ST[e.status] %} <small class="muted">({{ ST[e.status] }})</small>{% endif %}</span> <b class="{% if e.points < 0 %}neg{% endif %}">{{ '%+d'|format(e.points) }}</b></li>
+    {% endfor %}
+  </ul>
+</details>
+{% endif %}
+{% endblock %}

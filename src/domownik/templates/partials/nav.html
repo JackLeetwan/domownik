@@ -21,6 +21,7 @@
     <li><a href="/kuchnia" {% if p.startswith('/kuchnia') %}aria-current="page"{% endif %}><span class="ic">🍳</span> Kuchnia</a></li>
     <li><a href="/notatki" {% if p.startswith('/notatki') %}aria-current="page"{% endif %}><span class="ic">📝</span> Notatki{% if nav.notes %}<span class="count">{{ nav.notes }}</span>{% endif %}</a></li>
     <li><a href="/do-zrobienia" {% if p.startswith('/do-zrobienia') %}aria-current="page"{% endif %}><span class="ic">☐</span> Do zrobienia{% if nav.todos %}<span class="count">{{ nav.todos }}</span>{% endif %}</a></li>
+    <li><a href="/punkty" {% if p.startswith('/punkty') %}aria-current="page"{% endif %}><span class="ic">⭐</span> Punkty{% if nav.points %}<span class="count">{{ nav.points }}</span>{% endif %}</a></li>
     <li><a href="/kontakty" {% if p.startswith('/kontakty') %}aria-current="page"{% endif %}><span class="ic">📇</span> Kontakty</a></li>
     <li><a href="/budzet" {% if p.startswith('/budzet') %}aria-current="page"{% endif %}><span class="ic">💰</span> Budżet</a></li>
     <li><a href="/ustawienia" {% if p.startswith('/ustawienia') %}aria-current="page"{% endif %}><span class="ic">⚙️</span> Ustawienia</a></li>

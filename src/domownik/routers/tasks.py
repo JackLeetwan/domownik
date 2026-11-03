@@ -10,7 +10,7 @@ from markupsafe import escape
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import budget, documents, schedule, services
+from domownik import budget, documents, points, schedule, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain import recurrence
@@ -194,6 +194,9 @@ def _apply_form(task: Task, form, db: Session) -> None:
     if rule.get("until") and task.next_due_date and task.next_due_date > date.fromisoformat(rule["until"]):
         raise ValueError("Koniec serii wypada przed najbliższym terminem")
     _apply_time(task, form)
+    if "points" in form:  # the full form; quick forms leave points as they were
+        task.points = points.parse_points(form.get("points"))
+        task.needs_approval = bool(form.get("needs_approval")) and bool(task.points)
     task.lead_days = _int(form.get("lead_days"), 7)
     task.next_due_km = _int(form.get("next_due_km"))
     amount = parse_pln(form.get("amount"))
@@ -289,6 +292,7 @@ def _more_open(task: Task, default_category: str) -> bool:
         or task.assignee_id
         or task.notes
         or task.next_due_km
+        or task.points
     )
 
 

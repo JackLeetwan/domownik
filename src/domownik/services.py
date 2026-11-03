@@ -23,6 +23,7 @@ from domownik.models import (
     Issue,
     Item,
     Measurement,
+    PointEntry,
     ShoppingItem,
     Task,
     Todo,
@@ -266,9 +267,10 @@ class Nav:
     notes: int
     todos: int
     chores: int = 0  # overdue house chores (whole household)
+    points: int = 0  # points / rewards waiting for this user's ✓
 
 
-def nav_context(db: Session, today: date) -> Nav:
+def nav_context(db: Session, today: date, user_id: int | None = None) -> Nav:
     tree = Tree.load(db)
     members = sorted(
         (i for i in tree.items.values() if i.is_member),
@@ -284,6 +286,14 @@ def nav_context(db: Session, today: date) -> Nav:
         notes=len(active_notes(db, today)),
         todos=len(open_todos(db, tree)),
         chores=sum(1 for st in chores_mod.states(db, today) if st.overdue),
+        points=(
+            db.scalar(
+                select(func.count(PointEntry.id)).where(PointEntry.status == "pending", PointEntry.user_id != user_id)
+            )
+            or 0
+        )
+        if user_id
+        else 0,
     )
 
 
@@ -319,6 +329,9 @@ def complete_task(
     )
     db.add(comp)
     db.flush()
+    from domownik import points
+
+    points.for_task(db, task, comp, user)
 
     if km:
         db.add(Measurement(item_id=task.item_id, kind="odometer", measured_on=done_on, value=km))
@@ -535,6 +548,9 @@ def undo_completion(db: Session, comp: Completion) -> None:
         )
         if m:
             db.delete(m)
+    for e in db.scalars(select(PointEntry).where(PointEntry.completion_id == comp.id)):
+        db.delete(e)  # the points of that ✓ go with it
+    db.flush()  # before the completion – the DB cascade would remove them under the ORM's feet
     db.delete(comp)
     db.commit()
 

@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import chores, services
+from domownik import chores, points, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.models import Chore, User
@@ -94,6 +94,9 @@ def _apply(db: Session, chore: Chore, form, me: User) -> None:
     chore.every_days = _int(form.get("every_days"), 1, MAX_EVERY_DAYS, f"Co ile dni: liczba 1–{MAX_EVERY_DAYS}")
     chore.room = str(form.get("room") or "").strip()[:60] or None
     chore.est_minutes = _int(form.get("est_minutes"), 1, 1440, "Czas w minutach: 1–1440", required=False)
+    if "points" in form:
+        chore.points = points.parse_points(form.get("points"))
+        chore.needs_approval = bool(form.get("needs_approval")) and bool(chore.points)
     turn = str(form.get("turn") or "").strip()
     chores.set_rotation(chore, _rotation(db, form, me), int(turn) if turn.isdigit() else None)
 
@@ -164,7 +167,8 @@ async def done_chore(
         if other is None or not other.is_active:
             raise HTTPException(400, "Nie ma takiej osoby")
         by = other
-    chores.complete(db, chore, by=by, on=today())
+    rec = chores.complete(db, chore, by=by, on=today())
+    points.for_chore(db, chore, rec, by, user)
     db.commit()
     return _back(_list_url(form.get("who"), chore.id))
 
