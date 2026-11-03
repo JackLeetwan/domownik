@@ -5,11 +5,13 @@
 
 {% macro amount(p) %}{% if p.amount and p.direction != 'none' %}{{ (p.amount if p.direction == 'income' else -p.amount)|pln(sign=True) }}{% endif %}{% endmacro %}
 
+{% macro del_attrs(p) %}{% if p.kind in ('due', 'forecast') %} data-task-del="{{ p.task_id }}" data-task-title="{{ p.title }}"{% if not p.once %} data-task-rec="1"{% endif %}{% endif %}{% endmacro %}
+
 {% macro drag(p) %}{% if p.kind == 'due' and p.movable %} draggable="true" data-drag-task="{{ p.task_id }}" data-drag-from="{{ p.date }}"{% endif %}{% endmacro %}
 
 {% macro task_line(p, show_zone=True) %}
 <li class="cal-row st-{{ st(p) }}"{{ drag(p) }}>
-  <a href="/tasks/{{ p.task_id }}" hx-get="/tasks/{{ p.task_id }}" hx-target="#modal-body" hx-push-url="false">
+  <a href="/tasks/{{ p.task_id }}" hx-get="/tasks/{{ p.task_id }}" hx-target="#modal-body" hx-push-url="false"{{ del_attrs(p) }}>
     <span class="cal-row-ic" aria-hidden="true">{{ p.icon }}</span>
     <span class="cal-row-txt">
       <strong>{{ avatar(p.assignee) }}{% if p.time %}<span class="time-tag">{{ p.time }}</span> {% endif %}{{ p.title }}</strong>

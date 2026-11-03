@@ -54,7 +54,7 @@
               hx-get="/kalendarz/grupa?d={{ iso }}&of={{ e.of }}&cat={{ e.category }}{{ wq }}" hx-target="#modal-body" hx-swap="innerHTML" hx-replace-url="false" hx-trigger="click consume">
               <span class="ic">{{ e.icon }}</span><span class="lbl">{{ e.label }}</span><b class="n">{{ e.count }}</b></button></li>
           {% else %}
-          <li><button type="button"{{ cm.drag(e) }} class="cal-chip st-{{ cm.st(e) }}"
+          <li><button type="button"{{ cm.drag(e) }}{{ cm.del_attrs(e) }} class="cal-chip st-{{ cm.st(e) }}"
               title="{{ e.icon }} {{ e.title }}&#10;{{ e.zone }}{% if cm.amount(e)|trim %} · {{ cm.amount(e)|trim }}{% endif %}&#10;{{ cm.CAL_STATUS.get(cm.st(e)|trim, '') }}"
               hx-get="/tasks/{{ e.task_id }}" hx-target="#modal-body" hx-swap="innerHTML" hx-replace-url="false" hx-trigger="click consume">
               <span class="ic">{{ e.icon }}</span><span class="lbl">{% if e.time %}{{ e.time.split('–')[0] }} {% endif %}{{ e.title }}</span></button></li>

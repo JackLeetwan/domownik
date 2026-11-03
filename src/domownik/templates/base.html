@@ -16,12 +16,12 @@
   <link rel="stylesheet" href="/static/vendor/pico.min.css">
   <link rel="stylesheet" href="/static/vendor/vis-timeline-graph2d.min.css">
   {% block head %}{% endblock %}
-  <link rel="stylesheet" href="/static/app.css?v=49">
+  <link rel="stylesheet" href="/static/app.css?v=50">
   {# in <head>, deferred: run once per full page load – hx-boost swaps only <body>,
      scripts inside <body> would re-run (and stack listeners) on every navigation #}
   <script src="/static/vendor/htmx.min.js" defer></script>
   <script src="/static/vendor/vis-timeline-graph2d.min.js" defer></script>
-  <script src="/static/app.js?v=25" defer></script>
+  <script src="/static/app.js?v=26" defer></script>
 </head>
 <body hx-boost="true" hx-headers='{"X-CSRF-Token": "{{ csrf }}"}'>
 <div id="offline-bar" class="offline-bar" role="status" hidden></div>
@@ -56,6 +56,16 @@
   {% endif %}
   <dialog id="modal" aria-labelledby="modal-title">
     <article id="modal-body"></article>
+  </dialog>
+  {# the app's own "Are you sure?" – used for every hx-confirm and for Delete on a task (app.js askConfirm) #}
+  <dialog id="confirm-dlg" class="confirm-dlg" aria-labelledby="confirm-text">
+    <article>
+      <p id="confirm-text"></p>
+      <footer class="modal-actions">
+        <button type="button" class="outline secondary" data-confirm-no>Anuluj</button>
+        <button type="button" data-confirm-yes>OK</button>
+      </footer>
+    </article>
   </dialog>
 </body>
 </html>

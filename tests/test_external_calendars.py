@@ -215,3 +215,32 @@ def test_migration_0026(tmp_path):
         command.downgrade(cfg, "3d7a9c1e5b26")
         assert "external_calendar" not in set(sa.inspect(conn).get_table_names())
         command.upgrade(cfg, "head")
+
+
+def test_odd_events_are_skipped_not_fatal():
+    raw = _ics(
+        _ev("UID:mixed", "DTSTART;VALUE=DATE:20261110", "DTEND:20261111T100000Z", "SUMMARY:Mieszane"),
+        _ev(
+            "UID:two",
+            "DTSTART;VALUE=DATE:20261112",
+            "RRULE:FREQ=DAILY;COUNT=2",
+            "RRULE:FREQ=WEEKLY;COUNT=2",
+            "SUMMARY:Dwie reguły",
+        ),
+        _ev("UID:ok", "DTSTART;VALUE=DATE:20261113", "SUMMARY:Dobre"),
+    )
+    titles = [o.title for o in extcal.parse(raw, T)]
+    assert "Dobre" in titles and "Dwie reguły" in titles
+
+
+def test_unexpected_error_is_stored(db, monkeypatch):
+    c = ExternalCalendar(name="X", url="https://example.com/x.ics")
+    db.add(c)
+    db.commit()
+
+    def boom(raw, today):
+        raise RuntimeError("bug")
+
+    monkeypatch.setattr(extcal, "parse", boom)
+    assert extcal.refresh(db, c, _now(), raw=b"x") == -1
+    assert c.error and c.fetched_at is not None

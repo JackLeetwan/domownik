@@ -64,6 +64,8 @@ def test_amounts_and_merchant_key():
     assert bankimport.parse_amount("abc") is None
     assert bankimport.merchant_key("ZAKUP PRZY UŻYCIU KARTY BIEDRONKA 1234 WARSZAWA") == "biedronka warszawa"
     assert bankimport.merchant_key("Płatność BLIK · Allegro") == "allegro"
+    assert bankimport.merchant_key("ZAKUP PRZY UŻYCIU KARTY EURO-NET 12 KRAKÓW") == "euro net"  # not "o net"
+    assert bankimport.merchant_key("EUROCASH REPUBLIKA") == "eurocash republika"
 
 
 @pytest.fixture
@@ -210,3 +212,41 @@ def test_card_purchase_is_not_a_bill(db):
     pv = bankimport.propose(db, bankimport.parse_statement(text.encode()), date(2026, 11, 20))
     assert pv.proposals[0].choice == "skip"
     assert pv.proposals[1].choice == f"cat:{food.id}"  # mBank's "Żywność…" → our "Jedzenie"
+
+
+def test_stale_preview_does_not_pay_twice(db, setup, user):
+    """Ticked off by hand / income confirmed between preview and save: no second payment, no overwrite."""
+    from domownik import budget
+    from domownik.services import complete_task
+
+    lines = bankimport.parse_statement(raw())
+    pv = bankimport.propose(db, lines, date(2026, 11, 20))
+    lease, salary = setup["lease"], setup["salary"]
+    complete_task(db, lease, user=user, done_on=date(2026, 11, 9), amount_gr=125000, km=None, vendor=None, notes=None)
+    budget.confirm_income(db, salary, 2026, 11, amount_gr=790000, today=date(2026, 11, 20), user_id=user.id)
+    db.commit()
+    chosen = [(p.line, p.choice, False) for p in pv.proposals if p.choice.startswith(("task:", "inc:"))]
+    res = bankimport.book(db, chosen, user=user, today=date(2026, 11, 20))
+    db.expire_all()
+    assert db.get(Task, lease.id).next_due_date == date(2026, 12, 10)  # one cycle, not two
+    assert db.scalar(select(func.count(Completion.id)).where(Completion.task_id == lease.id)) == 1
+    inc_tx = db.scalars(select(Transaction).where(Transaction.income_id == salary.id)).all()
+    assert len(inc_tx) == 1 and inc_tx[0].amount_gr == 790000  # linked, the hand-typed amount kept
+    assert res.paid == 0 and res.linked == 1
+
+
+def test_big_statement_saves(auth_client, db, setup):
+    """~1400 form fields (200 lines) – more than Starlette's default 1000."""
+    form = {}
+    for i in range(200):
+        form |= {
+            f"ref_{i}": f"r{i:038d}",
+            f"d_{i}": "2026-11-05",
+            f"a_{i}": "-1000",
+            f"t_{i}": f"Zakup {i}",
+            f"p_{i}": "skip",
+            f"c_{i}": "skip",
+            f"r_{i}": "0",
+        }
+    r = auth_client.post("/budzet/import/zapisz", data=form)
+    assert r.status_code == 200 and db.scalar(select(func.count(BankLine.ref))) == 200

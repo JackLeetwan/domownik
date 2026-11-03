@@ -1396,3 +1396,10 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 
 .backup-warn { margin: 0 0 0.75rem; padding: 0.4rem 0.75rem; border-radius: 6px; color: var(--dm-text); background: color-mix(in srgb, var(--dm-soon) 18%, transparent); }
 .task-del { margin-left: auto; }
+
+/* the app's own confirm dialog (above the task window) */
+.confirm-dlg article { max-width: 26rem; margin: 0; }
+.confirm-dlg p { margin-bottom: 1rem; }
+.confirm-dlg .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; flex-wrap: wrap; }
+.confirm-dlg .modal-actions button { margin: 0; width: auto; }
+button.danger { background: var(--pico-del-color, #c62828); border-color: var(--pico-del-color, #c62828); color: #fff; }

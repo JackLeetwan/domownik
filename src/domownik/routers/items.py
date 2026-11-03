@@ -516,11 +516,13 @@ async def add_id_document(
     task.recurrence = id_docs.recurrence_for(doc, birthday, expires)
     task.next_due_date = expires
     task.lead_days = doc.lead_days
-    task.notes = (
-        f"Ważny do {expires.strftime('%d.%m.%Y')}. {doc.how}\n"
+    again = (
         "Po odebraniu nowego kliknij „Zrobione” – Domownik przypomni przed końcem ważności nowego "
         "(jeśli data na dokumencie jest inna, popraw ją w edycji zadania)."
+        if task.recurrence["mode"] != "once"
+        else "Po odebraniu nowego wpisz jego datę ważności w „🪪 Dokumenty” na tej stronie."
     )
+    task.notes = f"Ważny do {expires.strftime('%d.%m.%Y')}. {doc.how}\n{again}"
     db.commit()
     return _redirect(f"/items/{item.id}#dokumenty-osobiste")
 

@@ -13,7 +13,7 @@ from domownik import bankimport, budget
 from domownik.config import today
 from domownik.db import get_db
 from domownik.models import BankLine, BankRule, User
-from domownik.security import current_user, verify_csrf
+from domownik.security import FORM_MAX_FIELDS, current_user, verify_csrf
 from domownik.web import render
 
 router = APIRouter(prefix="/budzet/import")
@@ -55,7 +55,7 @@ async def preview(request: Request, db: Session = Depends(get_db), user: User = 
 
 @router.post("/zapisz", dependencies=[Depends(verify_csrf)])
 async def save(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    form = await request.form()
+    form = await request.form(max_fields=FORM_MAX_FIELDS)
     remember = form.get("remember") == "1"
     chosen: list[tuple[bankimport.Line, str, bool]] = []
     i = 0

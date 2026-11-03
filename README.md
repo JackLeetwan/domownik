@@ -82,6 +82,8 @@ osoby przypisanej). Punkty ⭐ i „Wymaga zatwierdzenia” – w „Więcej szc
 jako lista. Filtr „Moje”.
 Dwuklik na dzień (albo „＋” przy wybranym dniu) – „＋ Dodaj” wydarzenie, zadanie lub wydatek na ten dzień.
 W oknie zadania (kliknięcie w kalendarzu) „🗑 Usuń” – cykliczne z całą historią, dlatego obok „Pomiń termin”.
+Klawisz Delete (albo Backspace) na zaznaczonym terminie w kalendarzu lub w otwartym oknie zadania – to samo.
+Wszystkie pytania „Na pewno?” (hx-confirm) są oknem aplikacji, nie przeglądarki.
 Przeciągnięcie terminu myszą na inny dzień (miesiąc i tydzień) = „Przełóż” – tylko bieżący termin zadania,
 nie na dzień, który minął; na telefonie „Przełóż” w oknie zadania.
 

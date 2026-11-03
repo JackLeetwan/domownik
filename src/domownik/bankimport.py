@@ -177,6 +177,7 @@ NOISE = (
     "pln",
     "eur",
 )
+TASK_DAYS_EARLY, TASK_DAYS_LATE = 10, 20  # a payment this many days before / after the task's due date
 OWN_TRANSFER = ("przelew własny", "przelew wlasny", "przelew wewnętrzny", "przelew między rachunkami")
 
 
@@ -187,8 +188,8 @@ def normalize(text: str) -> str:
 def merchant_key(description: str) -> str:
     """'ZAKUP PRZY UŻYCIU KARTY · BIEDRONKA 1234 WARSZAWA' → 'biedronka' – the word a rule remembers."""
     text = description.lower()
-    for phrase in NOISE:
-        text = text.replace(phrase, " ")
+    for phrase in NOISE:  # whole words only – "eur" must not cut "EURO-NET" into "o net"
+        text = re.sub(rf"(?<!\w){re.escape(phrase)}(?!\w)", " ", text)
     words = [w for w in normalize(text).split() if len(w) >= 3 and not any(ch.isdigit() for ch in w)]
     return " ".join(words[:2])[:80]
 
@@ -338,7 +339,7 @@ def propose(db: Session, lines: list[Line], today: date) -> Preview:
                 if t.id not in used_task
                 and t.direction == "expense"
                 and _close(t.amount_gr or 0, ln.amount_gr)
-                and -10 <= (ln.booked_on - t.next_due_date).days <= 20
+                and -TASK_DAYS_EARLY <= (ln.booked_on - t.next_due_date).days <= TASK_DAYS_LATE
             ]
             match: Task | None = None
             if cands:
@@ -436,7 +437,9 @@ def book(db: Session, lines: list[tuple[Line, str, bool]], *, user, today: date)
             res.linked += tx is not None
         elif kind == "task" and obj_id:
             task = db.get(Task, obj_id)
-            if task is not None and task.active:
+            # the preview may be stale: ticked off by hand meanwhile → the task moved on, do not pay it twice
+            due = task.next_due_date if task is not None and task.active else None
+            if due is not None and -TASK_DAYS_EARLY <= (ln.booked_on - due).days <= TASK_DAYS_LATE:
                 comp = complete_task(
                     db,
                     task,
@@ -451,7 +454,20 @@ def book(db: Session, lines: list[tuple[Line, str, bool]], *, user, today: date)
                 res.paid += 1
         elif kind == "inc" and obj_id:
             inc = db.get(RecurringIncome, obj_id)
-            if inc is not None:
+            first, last = budget.month_bounds(ln.booked_on.year, ln.booked_on.month)
+            confirmed = (
+                db.scalar(
+                    select(Transaction).where(
+                        Transaction.income_id == obj_id, Transaction.booked_on.between(first, last)
+                    )
+                )
+                if inc is not None
+                else None
+            )
+            if confirmed is not None:  # already confirmed (by hand or another import) – link, never overwrite
+                tx = confirmed
+                res.linked += 1
+            elif inc is not None:
                 tx = budget.confirm_income(
                     db,
                     inc,

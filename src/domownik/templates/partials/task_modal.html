@@ -69,9 +69,8 @@
     {% endif %}
     <a href="/tasks/{{ task.id }}/edit" role="button" class="outline secondary" hx-boost="false">Edytuj</a>
     {% if not page %}<a href="/items/{{ task.item_id }}" role="button" class="outline secondary" hx-boost="false">Strefa</a>{% endif %}
-    <button type="button" class="outline secondary task-del" hx-post="/tasks/{{ task.id }}/delete"
-            hx-confirm="{% if task.recurrence.mode == 'once' %}Usunąć „{{ task.title }}”?{% else %}Usunąć „{{ task.title }}” razem ze wszystkimi przyszłymi terminami i historią? Żeby odpuścić tylko ten jeden termin, użyj „Pomiń termin”.{% endif %}"
-            title="Usuń" aria-label="Usuń {{ task.title }}">🗑 Usuń</button>
+    <button type="button" class="outline secondary task-del" data-task-del="{{ task.id }}" data-task-title="{{ task.title }}"{% if task.recurrence.mode != 'once' %} data-task-rec="1"{% endif %}
+            title="Usuń (klawisz Delete)" aria-label="Usuń {{ task.title }}">🗑 Usuń</button>
   </footer>
 </form>
 {% if postpone_to %}<form id="postpone-{{ task.id }}" hx-post="/tasks/{{ task.id }}/postpone" hx-target="#postpone-error" hidden></form>{% endif %}

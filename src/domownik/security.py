@@ -85,12 +85,16 @@ def csrf_token(request: Request) -> str:
     return token
 
 
+FORM_MAX_FIELDS = 10000
+
+
 async def verify_csrf(request: Request) -> None:
     """Checks X-CSRF-Token header (htmx) or the csrf form field."""
     expected = request.session.get("csrf")
     sent = request.headers.get("x-csrf-token")
     if not sent:
-        form = await request.form()
+        # parsed once and cached for the route – allow big forms (a bank statement sends ~7 fields per line)
+        form = await request.form(max_fields=FORM_MAX_FIELDS)
         sent = form.get("csrf")
     if not expected or not sent or not secrets.compare_digest(str(sent), expected):
         raise HTTPException(status_code=403, detail="Nieprawidłowy token CSRF – odśwież stronę.")

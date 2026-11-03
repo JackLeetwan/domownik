@@ -66,3 +66,10 @@ def test_backup_warning(backups):
     old = time.time() - 5 * 86400
     os.utime(f, (old, old))
     assert "5 dni temu" in services.backup_warning(today())
+
+
+def test_child_document_is_one_off():
+    kid = date(2021, 6, 9)
+    rule = id_docs.recurrence_for(id_docs.BY_KEY["passport"], kid, date(2027, 1, 1))
+    assert rule["mode"] == "once"  # the next one (after 13) is valid 10 years – asked again after renewal
+    assert id_docs.recurrence_for(id_docs.BY_KEY["passport"], kid, date(2036, 1, 1))["every"] == 10

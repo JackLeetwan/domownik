@@ -5,6 +5,7 @@ from __future__ import annotations
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -89,7 +90,7 @@ async def add(request: Request, db: Session = Depends(get_db), user: User = Depe
     )
     db.add(cal)
     db.commit()
-    n = extcal.refresh(db, cal, now())
+    n = await run_in_threadpool(extcal.refresh, db, cal, now())  # the fetch must not block other requests
     if n < 0:
         return _page(request, db, user, error=f"Dodano, ale: {cal.error}", added=cal.id)
     return RedirectResponse(f"/kalendarz/zewnetrzne?ok={cal.id}", status_code=303)

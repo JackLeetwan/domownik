@@ -83,6 +83,7 @@ def fetch(url: str) -> bytes:
                 follow_redirects=True,
                 max_redirects=5,
                 headers={"User-Agent": "Domownik (calendar subscription)"},
+                trust_env=False,  # no proxy from the environment – it would bypass the host check
                 event_hooks={"request": [on_request]},
             ) as client,
             client.stream("GET", url) as resp,
@@ -125,9 +126,9 @@ def _dates(prop) -> list[date | datetime]:
     return out
 
 
-def _rule_starts(ev, start: date | datetime, lo: datetime, hi: datetime) -> list[date | datetime]:
+def _rule_starts(rrule, start: date | datetime, lo: datetime, hi: datetime) -> list[date | datetime]:
     """Occurrence starts of a recurring event inside [lo, hi] (local naive bounds)."""
-    text = ev.get("RRULE").to_ical().decode()
+    text = rrule.to_ical().decode()
     all_day = not isinstance(start, datetime)
     dt = datetime.combine(start, time()) if all_day else start
     if dt.tzinfo is None:
@@ -164,41 +165,60 @@ def parse(raw: bytes, today: date) -> list[Occ]:
     # moved / changed single occurrences of a recurring event: uid → {original start}
     overridden: dict[str, set] = defaultdict(set)
     for ev in events:
-        if ev.get("RECURRENCE-ID") is not None:
-            overridden[str(ev.get("UID", ""))].add(_key(ev.get("RECURRENCE-ID").dt))
+        rid = ev.get("RECURRENCE-ID")
+        if rid is not None and hasattr(rid, "dt"):
+            overridden[str(ev.get("UID", ""))].add(_key(rid.dt))
 
     out: list[Occ] = []
     for ev in events:
-        if str(ev.get("STATUS", "")).upper() == "CANCELLED" or ev.get("DTSTART") is None:
-            continue
-        start = ev.get("DTSTART").dt
-        all_day = not isinstance(start, datetime)
-        if ev.get("DTEND") is not None:
-            length = ev.get("DTEND").dt - start
-        elif ev.get("DURATION") is not None:
-            length = ev.get("DURATION").dt
-        else:
-            length = timedelta(days=1) if all_day else timedelta(0)
-        if isinstance(length, timedelta) and length < timedelta(0):
-            length = timedelta(0)
-        title = str(ev.get("SUMMARY", "") or "").strip()[:200] or "(bez tytułu)"
-        loc = str(ev.get("LOCATION", "") or "").strip()[:200] or None
-
-        if ev.get("RRULE") is not None and ev.get("RECURRENCE-ID") is None:
-            skip = {_key(x) for x in _dates(ev.get("EXDATE"))} | overridden.get(str(ev.get("UID", "")), set())
-            starts = [s for s in _rule_starts(ev, start, lo, hi) if _key(s) not in skip]
-        else:
-            starts = [start]
-        for s in starts:
-            ls, le = _local(s), _local(s + length)
-            end_day = le if all_day else le.date()
-            start_day = ls if all_day else ls.date()
-            if end_day < first or start_day > last:
-                continue
-            out.append(Occ(ls, le, all_day, title, loc))
-            if len(out) >= MAX_EVENTS:
-                break
+        try:
+            out.extend(_occurrences(ev, overridden, first, last, lo, hi))
+        except Exception:  # one odd event (date vs datetime, several RRULEs…) never breaks the calendar
+            log.warning("external calendar: skipped an event %r", str(ev.get("UID", ""))[:60])
+        if len(out) >= MAX_EVENTS:
+            del out[MAX_EVENTS:]
+            break
     out.sort(key=lambda o: (o.start if isinstance(o.start, datetime) else datetime.combine(o.start, time()), o.title))
+    return out
+
+
+def _occurrences(ev, overridden: dict[str, set], first: date, last: date, lo: datetime, hi: datetime) -> list[Occ]:
+    if str(ev.get("STATUS", "")).upper() == "CANCELLED" or ev.get("DTSTART") is None:
+        return []
+    start = ev.get("DTSTART").dt
+    all_day = not isinstance(start, datetime)
+    if ev.get("DTEND") is not None:
+        end = ev.get("DTEND").dt
+        if isinstance(end, datetime) != isinstance(start, datetime):  # mixed date / datetime: use the date
+            end = end.date() if isinstance(end, datetime) else datetime.combine(end, time())
+        length = end - start
+    elif ev.get("DURATION") is not None:
+        length = ev.get("DURATION").dt
+    else:
+        length = timedelta(days=1) if all_day else timedelta(0)
+    if isinstance(length, timedelta) and length < timedelta(0):
+        length = timedelta(0)
+    title = str(ev.get("SUMMARY", "") or "").strip()[:200] or "(bez tytułu)"
+    loc = str(ev.get("LOCATION", "") or "").strip()[:200] or None
+
+    rrule = ev.get("RRULE")
+    if isinstance(rrule, list):
+        rrule = rrule[0] if rrule else None
+    if rrule is not None and ev.get("RECURRENCE-ID") is None:
+        skip = {_key(x) for x in _dates(ev.get("EXDATE"))} | overridden.get(str(ev.get("UID", "")), set())
+        starts = [s for s in _rule_starts(rrule, start, lo, hi) if _key(s) not in skip]
+    else:
+        starts = [start]
+    out = []
+    for s in starts:
+        ls, le = _local(s), _local(s + length)
+        end_day = le if all_day else le.date()
+        start_day = ls if all_day else ls.date()
+        if end_day < first or start_day > last:
+            continue
+        out.append(Occ(ls, le, all_day, title, loc))
+        if len(out) >= MAX_EVENTS:
+            break
     return out
 
 
@@ -236,7 +256,10 @@ def refresh(db: Session, cal: ExternalCalendar, now: datetime, *, raw: bytes | N
     """Fetch and replace the calendar's events; returns their number. Errors are stored on the calendar."""
     try:
         occs = parse(raw if raw is not None else fetch(cal.url), now.date())
-    except CalendarError as exc:
+    except Exception as exc:  # stored on the calendar (and fetched_at, so the scheduler waits an hour)
+        if not isinstance(exc, CalendarError):
+            log.exception("external calendar %s", cal.id)
+            exc = CalendarError("Nie udało się odczytać kalendarza – sprawdź link albo spróbuj później")
         cal.error, cal.fetched_at = str(exc)[:300], now.replace(tzinfo=None)
         db.commit()
         return -1
@@ -301,6 +324,10 @@ def events_by_day(
 
 def for_push(db: Session, day: date, user_id: int) -> list[ExternalEvent]:
     """Events of the day for one person's push: shared calendars and their own (with reminders on)."""
+    return for_push_range(db, day, day, user_id).get(day, [])
+
+
+def for_push_range(db: Session, start: date, end: date, user_id: int) -> dict[date, list[ExternalEvent]]:
     cals = db.scalars(
         select(ExternalCalendar)
         .where(
@@ -310,4 +337,4 @@ def for_push(db: Session, day: date, user_id: int) -> list[ExternalEvent]:
         )
         .execution_options(all_private=True)
     ).all()
-    return events_by_day(db, day, day, calendars=list(cals)).get(day, [])
+    return events_by_day(db, start, end, calendars=list(cals))

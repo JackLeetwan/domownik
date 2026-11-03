@@ -80,8 +80,12 @@ BY_KEY = {d.key: d for d in TYPES}
 
 
 def recurrence_for(doc: DocType, birthday: date | None, expires: date) -> dict:
-    """After "Zrobione" (renewed) the next expiry comes N years later; EHIC asks for the new date."""
+    """After "Zrobione" (renewed) the next expiry comes N years later.
+
+    A child's document (shorter validity) and EHIC are one-off: the next validity depends on the age at the
+    renewal, so the new date is typed in again – a fixed "every 5 years" would stay wrong after the child grows up.
+    """
     years = doc.validity_years(birthday, expires)
-    if years is None:
+    if years is None or years != doc.years:
         return {"mode": "once", "date": expires.isoformat()}
     return {"mode": "interval", "every": years, "unit": "year", "anchor": "completion"}

@@ -617,6 +617,7 @@ def timeline(
             "amount": task.amount_gr,
             "direction": task.direction,
             "group": gid,
+            "once": (task.recurrence or {}).get("mode") == "once",
         }
         if due.by_km and due.date and start <= due.date <= end:
             points.append(base | {"date": due.date.isoformat(), "kind": "forecast", "status": due.status})

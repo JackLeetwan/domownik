@@ -271,10 +271,20 @@ def test_delete_from_the_task_window(auth_client, db):
     t = _task(db, item, "Spotkanie", today() + timedelta(days=5), category="event")
     tid = t.id
     window = auth_client.get(f"/tasks/{t.id}", headers={"HX-Request": "true"}).text
-    assert "🗑 Usuń" in window and f'hx-post="/tasks/{t.id}/delete"' in window
+    assert "🗑 Usuń" in window and f'data-task-del="{tid}"' in window
     r = auth_client.post(
         f"/tasks/{t.id}/delete", headers={"HX-Request": "true", "HX-Current-URL": "http://testserver/kalendarz"}
     )
     assert r.headers.get("HX-Refresh") == "true"
     db.expire_all()
     assert db.get(Task, tid) is None
+
+
+def test_calendar_entries_carry_delete_handle(auth_client, db):
+    item = _zone(db)
+    due = today() + timedelta(days=2)
+    _task(db, item, "Jednorazowe", due)
+    _task(db, item, "Co miesiąc", due, recurrence={"mode": "monthly", "day": due.day})
+    page = auth_client.get(f"/kalendarz/tydzien?d={due.isoformat()}").text
+    assert 'data-task-title="Jednorazowe"' in page and page.count('data-task-rec="1"') == 1
+    assert 'id="confirm-dlg"' in page

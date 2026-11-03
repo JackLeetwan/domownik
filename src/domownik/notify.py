@@ -255,7 +255,7 @@ def week_text(db: Session, user: User, rows: list[services.TaskRow], today: date
         and r.task.private_to_id in (None, user.id)
     ]
     mine.sort(key=lambda r: (r.due.date, r.task.due_time or "", r.task.full_title))
-    events = {e.id: e for d in range(7) for e in extcal.for_push(db, first + timedelta(days=d), user.id)}
+    events = {e.id: e for evs in extcal.for_push_range(db, first, last, user.id).values() for e in evs}
     late = sum(
         1
         for r in rows

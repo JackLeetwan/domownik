@@ -525,6 +525,87 @@
     const btn = e.target.closest && e.target.closest("[data-cal-add]");
     if (btn) addOnDay(btn.dataset.calAdd);
   });
+  // ------------------------------------------------------------------ confirm
+  // the app's own dialog instead of the browser's confirm() (hx-confirm everywhere + deleting a task)
+  function askConfirm(text, okLabel) {
+    const dlg = document.getElementById("confirm-dlg");
+    if (!dlg || typeof dlg.showModal !== "function") return Promise.resolve(window.confirm(text));
+    const yes = dlg.querySelector("[data-confirm-yes]");
+    const no = dlg.querySelector("[data-confirm-no]");
+    dlg.querySelector("#confirm-text").textContent = text;
+    const destructive = /^(usunąć|usuń|skasować)/i.test(text.trim());
+    yes.textContent = okLabel || (destructive ? "🗑 Usuń" : "Tak");
+    yes.classList.toggle("danger", destructive);
+    return new Promise((resolve) => {
+      const done = (value) => {
+        yes.onclick = no.onclick = dlg.oncancel = null;
+        if (dlg.open) dlg.close();
+        resolve(value);
+      };
+      yes.onclick = () => done(true);
+      no.onclick = () => done(false);
+      dlg.oncancel = (e) => { e.preventDefault(); done(false); }; // Esc closes only this, not the task window
+      dlg.showModal();
+      yes.focus();
+    });
+  }
+  document.addEventListener("htmx:confirm", (e) => {
+    if (!e.detail.question) return;
+    e.preventDefault();
+    askConfirm(e.detail.question).then((ok) => { if (ok) e.detail.issueRequest(true); });
+  });
+
+  // deleting a task: "🗑 Usuń" in its window, or the Delete key on a focused calendar entry / open window
+  const refreshShell = () => {
+    if (typeof htmx !== "undefined" && document.querySelector(".shell")) {
+      htmx.ajax("GET", location.pathname + location.search, {
+        target: ".shell", select: ".shell", swap: "outerHTML", headers: { "HX-Boosted": "true" },
+      });
+    } else location.reload();
+  };
+  async function deleteTask(el) {
+    const title = el.dataset.taskTitle || "to zadanie";
+    const question = el.dataset.taskRec
+      ? `Usunąć „${title}” razem ze wszystkimi przyszłymi terminami i historią? Żeby odpuścić tylko ten jeden termin, użyj „Pomiń termin”.`
+      : `Usunąć „${title}”?`;
+    if (!(await askConfirm(question))) return;
+    const headers = JSON.parse(document.body.getAttribute("hx-headers") || "{}");
+    try {
+      const r = await fetch(`/tasks/${el.dataset.taskDel}/delete`, {
+        method: "POST", headers: { ...headers, "HX-Request": "true", "HX-Current-URL": location.href },
+      });
+      if (!r.ok) { toast("Nie udało się usunąć", false); return; }
+    } catch (err) {
+      toast("Brak połączenia – nie usunięto", false);
+      return;
+    }
+    const modal = document.getElementById("modal");
+    if (modal && modal.open) modal.close();
+    toast(`Usunięto „${title}”`, true);
+    if (location.pathname.startsWith("/tasks/")) location.href = "/kalendarz";
+    else refreshShell();
+  }
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest && e.target.closest(".task-del[data-task-del]");
+    if (!btn) return;
+    e.preventDefault();
+    deleteTask(btn);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Delete" && e.key !== "Backspace") return;
+    const t = e.target;
+    if (t.closest && t.closest("input, textarea, select, [contenteditable]")) return;
+    const confirmDlg = document.getElementById("confirm-dlg");
+    if (confirmDlg && confirmDlg.open) return;
+    const modal = document.getElementById("modal");
+    let el = null;
+    if (modal && modal.open) el = modal.querySelector(".task-del[data-task-del]");
+    else if (t.closest) el = t.closest("[data-task-del]");
+    if (!el) return;
+    e.preventDefault();
+    deleteTask(el);
+  });
+
   // calendar: drag a task's current date onto another day = "Przełóż" (mouse; on a phone use "Przełóż")
   let dragged = null;
   const dropDay = (el) => el && el.closest && el.closest("[data-cal-day], .cal-week-day[data-sel]");
