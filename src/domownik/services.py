@@ -17,6 +17,7 @@ from domownik.domain.status import Due, compute_due
 from domownik.domain.tree import Tree
 from domownik.models import (
     MEMBER_KINDS,
+    Attachment,
     BoardNote,
     BudgetCategory,
     Completion,
@@ -268,6 +269,7 @@ class Nav:
     todos: int
     chores: int = 0  # overdue house chores (whole household)
     points: int = 0  # points / rewards waiting for this user's ✓
+    inbox: int = 0  # quick photos not described yet (📥 Do rozpoznania)
 
 
 def nav_context(db: Session, today: date, user_id: int | None = None) -> Nav:
@@ -286,6 +288,7 @@ def nav_context(db: Session, today: date, user_id: int | None = None) -> Nav:
         notes=len(active_notes(db, today)),
         todos=len(open_todos(db, tree)),
         chores=sum(1 for st in chores_mod.states(db, today) if st.overdue),
+        inbox=db.scalar(select(func.count(Attachment.id)).where(Attachment.inbox.is_(True))) or 0,
         points=(
             db.scalar(
                 select(func.count(PointEntry.id)).where(PointEntry.status == "pending", PointEntry.user_id != user_id)

@@ -1,0 +1,38 @@
+{# The two quick questions after a photo – big buttons, every tap is saved at once.
+   Needs: att, mode ("modal" right after the photo | "card" in 📥 Do rozpoznania), top_items, rest_items, KINDS #}
+{% set post = "/zdjecia/" ~ att.id ~ "/oznacz" %}
+{% set hx = 'hx-target="#modal-body" hx-swap="innerHTML"' if mode == 'modal' else 'hx-target="#cap-' ~ att.id ~ '" hx-swap="outerHTML"' %}
+{% macro item_btn(i) %}<button type="button" class="cap-chip" aria-pressed="{{ 'true' if att.item_id == i.id else 'false' }}" hx-post="{{ post }}" hx-vals='{"item_id": "{{ i.id }}", "mode": "{{ mode }}"}' {{ hx|safe }}>{{ i.display_icon }} {{ i.name }}</button>{% endmacro %}
+{% if mode == 'modal' %}
+<header>
+  <button class="close" aria-label="Zamknij" data-close>✕</button>
+  <h3 id="modal-title">📷 Zapisane{% if added and added > 1 %} ({{ added }}){% endif %}</h3>
+</header>
+{% endif %}
+<div class="cap-tag">
+  <div class="cap-photo">{% if att.has_thumb %}<img src="/files/{{ att.id }}/thumb" alt="Zdjęcie do rozpoznania" loading="lazy">{% else %}<span>{{ att.icon }} {{ att.original_name }}</span>{% endif %}</div>
+  <div class="cap-qs">
+    <p class="cap-q">Czego dotyczy?</p>
+    <div class="cap-chips">{% for i in top_items %}{{ item_btn(i) }}{% endfor %}</div>
+    {% if rest_items %}
+    <details class="cap-more"{% if att.item_id and att.item_id in rest_items|map(attribute='id')|list %} open{% endif %}>
+      <summary>Inne…</summary>
+      <div class="cap-chips">{% for i in rest_items %}{{ item_btn(i) }}{% endfor %}</div>
+    </details>
+    {% endif %}
+    <p class="cap-q">Co to?</p>
+    <div class="cap-chips">
+      {% for k, (ic, lbl) in KINDS.items() %}<button type="button" class="cap-chip" aria-pressed="{{ 'true' if att.capture_kind == k else 'false' }}" hx-post="{{ post }}" hx-vals='{"kind": "{{ k }}", "mode": "{{ mode }}"}' {{ hx|safe }}>{{ ic }} {{ lbl }}</button>{% endfor %}
+    </div>
+  </div>
+</div>
+{% if mode == 'modal' %}
+<footer class="modal-actions cap-foot">
+  <form class="cap-again" hx-post="/zdjecia" hx-encoding="multipart/form-data" hx-trigger="change" hx-target="#modal-body">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label role="button" class="outline secondary">📷 Jeszcze jedno<input type="file" name="files" accept="image/*,.heic" capture="environment" hidden></label>
+  </form>
+  <button type="button" data-close>Gotowe</button>
+</footer>
+<p class="muted cap-later"><small>Możesz od razu schować telefon – zdjęcie czeka w <a href="/zdjecia">📥 Do rozpoznania</a>, tam dopiszesz kwotę i następny termin.</small></p>
+{% endif %}

@@ -1,0 +1,51 @@
+{# The rest of a quick photo, by what it is. Needs: att, tasks, best_task, NEXT, default_next, taken_on, categories #}
+<form class="cap-finish" hx-post="/zdjecia/{{ att.id }}/zapisz">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="item_id" value="{{ att.item_id }}">
+  {% if att.capture_kind in ('service', 'tyres') %}
+  <label>Co zostało zrobione
+    <select name="task_id">
+      {% for t in tasks %}<option value="{{ t.id }}" {% if t.id == best_task %}selected{% endif %}>{{ t.full_title }}{% if t.next_due_date %} (termin {{ t.next_due_date|d }}){% endif %}</option>{% endfor %}
+      <option value="" {% if not best_task %}selected{% endif %}>＋ nowe zadanie…</option>
+    </select>
+  </label>
+  <label>Nazwa nowego <small class="muted">(gdy wybrane „nowe”)</small>
+    <input name="title" maxlength="200" value="{{ 'Wymiana opon' if att.capture_kind == 'tyres' else 'Serwis' }}">
+  </label>
+  <div class="grid">
+    <label>Kiedy <input type="date" name="done_on" value="{{ taken_on.isoformat() }}" required></label>
+    <label>Koszt [zł] <input name="amount" inputmode="decimal" autocomplete="off" placeholder="np. 850"></label>
+  </div>
+  <fieldset class="cap-next">
+    <legend>Następny raz</legend>
+    <div class="seg">
+      {% set chosen = 'keep' if best_task else default_next %}
+      {% if tasks %}<label class="seg-btn"><input type="radio" name="next" value="keep" {% if chosen == 'keep' %}checked{% endif %}> jak w zadaniu</label>{% endif %}
+      {% for k, (lbl, _) in NEXT.items() %}<label class="seg-btn"><input type="radio" name="next" value="{{ k }}" {% if chosen == k %}checked{% endif %}> {{ lbl }}</label>{% endfor %}
+    </div>
+  </fieldset>
+  <label><input type="checkbox" name="plan_next" value="1" checked> Zaplanuj następny koszt trochę wyżej (+5%)</label>
+  {% elif att.capture_kind == 'receipt' %}
+  <div class="grid">
+    <label>Kwota [zł] <input name="amount" inputmode="decimal" autocomplete="off" required placeholder="np. 54,90"></label>
+    <label>Kiedy <input type="date" name="booked_on" value="{{ taken_on.isoformat() }}" required></label>
+  </div>
+  <label>Kategoria budżetu
+    <select name="category_id">
+      <option value="">— bez kategorii —</option>
+      {% for c in categories %}<option value="{{ c.id }}" {% if c.id == suggested_category %}selected{% endif %}>{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Za co <small class="muted">(opcjonalnie)</small><input name="note" maxlength="200" placeholder="np. klocki hamulcowe"></label>
+  {% elif att.capture_kind == 'policy' %}
+  <div class="seg cap-dockind">
+    <label class="seg-btn"><input type="radio" name="doc_kind" value="policy" checked> Polisa</label>
+    <label class="seg-btn"><input type="radio" name="doc_kind" value="contract"> Umowa</label>
+  </div>
+  <label>Nazwa <input name="name" maxlength="200" required placeholder="np. OC 2027, umowa najmu"></label>
+  <label>Ważna do <small class="muted">(przypomnę przed końcem)</small><input type="date" name="ends_on"></label>
+  {% else %}
+  <label>Opis <small class="muted">(opcjonalnie)</small><input name="note" maxlength="300" placeholder="np. tabliczka znamionowa pieca"></label>
+  {% endif %}
+  <button type="submit">Zapisz</button>
+</form>

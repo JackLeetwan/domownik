@@ -569,6 +569,16 @@ DOC_KINDS: dict[str, tuple[str, str]] = {
 }
 
 
+CAPTURE_KINDS: dict[str, tuple[str, str]] = {
+    # what a quick photo is: (icon, label)
+    "service": ("🔧", "Serwis / naprawa"),
+    "tyres": ("🛞", "Opony"),
+    "receipt": ("🧾", "Paragon / faktura"),
+    "policy": ("📄", "Polisa / umowa"),
+    "other": ("📎", "Inne"),
+}
+
+
 class Attachment(Base):
     """A file kept with an item: photo, policy PDF, invoice, manual… The bytes live in data/uploads/files."""
 
@@ -590,6 +600,9 @@ class Attachment(Base):
     doc_kind: Mapped[str] = mapped_column(String(20), default="other")
     description: Mapped[str | None] = mapped_column(String(300))
     has_thumb: Mapped[bool] = mapped_column(Boolean, default=False)
+    # a photo snapped on the go ("📥 Do rozpoznania"): waits until it is described at home
+    inbox: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0", index=True)
+    capture_kind: Mapped[str | None] = mapped_column(String(20))  # CAPTURE_KINDS – tapped right after the photo
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

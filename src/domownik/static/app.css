@@ -1477,3 +1477,44 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .em-steps h3 { margin-top: 1rem; }
 .em-steps li { margin-bottom: 0.4rem; }
 .em-note { font-size: 0.85rem; color: var(--pico-muted-color); }
+
+/* ---------------------------------------------------------------- 📥 quick photos */
+/* the photo tile in "＋ Dodaj": a whole row, first – the most likely thing on the go */
+.qa-menu li:has(.qa-photo) { grid-column: 1 / -1; }
+.qa-photo { flex: 1; margin: 0; display: flex; }
+.qa-photo .qa-photo-tile { flex: 1; }
+.qa-photo-tile { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 0.8rem; margin: 0; border-radius: 10px; border: 1px solid var(--pico-primary); background: color-mix(in srgb, var(--pico-primary) 10%, var(--dm-tile-bg)); color: var(--pico-color); min-height: 3.6rem; cursor: pointer; }
+.qa-photo-tile > span:nth-child(2) { display: flex; flex-direction: column; min-width: 0; }
+.qa-photo.htmx-request .qa-photo-tile, .cap-again.htmx-request label, .cap-snap.htmx-request label { opacity: 0.6; pointer-events: none; }
+.qa-photo.htmx-request strong::after, .cap-snap.htmx-request label:first-child::after { content: " – wysyłam…"; font-weight: 400; }
+.cap-tag { display: flex; gap: 0.9rem; align-items: flex-start; }
+.cap-photo { flex: none; width: 6.5rem; }
+.cap-photo img { width: 100%; border-radius: 8px; display: block; }
+.cap-qs { flex: 1 1 auto; min-width: 0; }
+.cap-q { margin: 0 0 0.35rem; font-weight: 600; font-size: 0.95rem; }
+.cap-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem; }
+/* big enough to hit while walking */
+.cap-chip { width: auto; margin: 0; min-height: 2.75rem; padding: 0.4rem 0.85rem; border-radius: 999px; border: 1px solid var(--dm-tile-border); background: var(--dm-tile-bg); color: inherit; font-size: 0.95rem; box-shadow: none; }
+.cap-chip[aria-pressed="true"] { background: var(--pico-primary-background); border-color: var(--pico-primary-background); color: #fff; font-weight: 600; }
+.cap-more { margin: -0.4rem 0 0.8rem; }
+.cap-more > summary { font-size: 0.9rem; color: var(--pico-primary); }
+.cap-foot { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.cap-foot form { margin: 0; }
+.cap-foot label[role=button], .cap-foot button { margin: 0; width: auto; }
+.cap-later { margin: 0.5rem 0 0; }
+@media (max-width: 480px) { .cap-tag { flex-direction: column; } .cap-photo { width: 8rem; } }
+.cap-snap { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; }
+.cap-snap label[role=button] { margin: 0; width: auto; }
+.cap-card { padding: 0.9rem 1rem; }
+.cap-meta { margin: -0.3rem 0 0.6rem; }
+.cap-finish { border-top: 1px solid var(--dm-tile-border); padding-top: 0.8rem; }
+.cap-finish button[type=submit] { width: auto; }
+.cap-next { margin-bottom: 0.6rem; }
+.cap-next legend { font-size: 0.95rem; margin-bottom: 0.35rem; }
+.cap-finish .seg label.seg-btn { cursor: pointer; margin: 0; }
+.cap-finish .seg label.seg-btn input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.cap-finish .seg label.seg-btn:has(input:checked) { background: var(--pico-primary-background); border-color: var(--pico-primary-background); color: #fff; font-weight: 600; }
+.cap-finish .seg label.seg-btn:has(input:focus-visible) { outline: 2px solid var(--pico-primary); outline-offset: 2px; }
+.cap-dockind { margin-bottom: 0.8rem; }
+.cap-del { margin: 0.6rem 0 0; text-align: right; }
+.cap-empty { font-size: 1.1rem; }

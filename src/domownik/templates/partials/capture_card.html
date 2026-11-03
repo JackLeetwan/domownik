@@ -1,0 +1,13 @@
+{# One photo in 📥 Do rozpoznania: the quick questions, then the form for the rest. #}
+<article class="cap-card" id="cap-{{ att.id }}">
+  {% include "partials/capture_tag.html" %}
+  <p class="cap-meta muted"><small>{{ taken_on|d(weekday=true) }}{% if att.created_by %} · {{ att.created_by.name }}{% endif %} · <a href="/files/{{ att.id }}" target="_blank" rel="noopener">pełny rozmiar</a></small></p>
+  {% if att.item_id and att.capture_kind %}
+  {% include "partials/capture_finish.html" %}
+  {% else %}
+  <p class="muted"><small>Wybierz, czego dotyczy i co to jest – wtedy pojawi się reszta.</small></p>
+  {% endif %}
+  <form hx-post="/zdjecia/{{ att.id }}/usun" hx-confirm="Usunąć to zdjęcie?" class="cap-del">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link danger">usuń zdjęcie</button>
+  </form>
+</article>

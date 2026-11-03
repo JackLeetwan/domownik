@@ -30,6 +30,7 @@ from domownik.routers import (
     documents,
     emergency,
     goals,
+    inbox,
     items,
     kitchen,
     meters,
@@ -148,6 +149,7 @@ def create_app() -> FastAPI:
     app.include_router(quick.router)
     app.include_router(contacts.router)
     app.include_router(emergency.router)
+    app.include_router(inbox.router)
     app.include_router(meters.router)
 
     @app.exception_handler(LoginRequired)

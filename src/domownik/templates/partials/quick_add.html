@@ -10,6 +10,13 @@
 </header>
 {% if not kind %}
 <ul class="qa-menu">
+  {% if not day %}
+  {# one tap → the camera; the photo is described in two taps right after, the rest later in 📥 #}
+  <li><form class="qa-photo" hx-post="/zdjecia" hx-encoding="multipart/form-data" hx-trigger="change" hx-target="#modal-body">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="qa-photo-tile"><span class="qa-ic" aria-hidden="true">📷</span><span><strong>Zdjęcie / dokument</strong><small class="muted">serwis, paragon, polisa – opiszesz później</small></span><input type="file" name="files" accept="image/*,.heic,application/pdf,.pdf" capture="environment" hidden></label>
+  </form></li>
+  {% endif %}
   {% for k, (icon, lbl, hint) in kinds.items() %}
   <li><a href="/dodaj/{{ k }}{{ day_q }}" hx-get="/dodaj/{{ k }}{{ day_q }}" hx-target="#modal-body" hx-push-url="false">
     <span class="qa-ic" aria-hidden="true">{{ icon }}</span><span><strong>{{ lbl }}</strong><small class="muted">{{ hint }}</small></span>
