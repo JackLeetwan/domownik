@@ -212,6 +212,31 @@ def _apply_form(task: Task, form, db: Session) -> None:
     task.active = left is None or left > 0
 
 
+def _attach_files(request: Request, db: Session, task: Task, form, user: User) -> HTMLResponse | None:
+    """Photos / files picked in the task form: kept with the item (Dokumenty) and shown in the task's window.
+
+    On a bad file nothing of the form is saved (rollback) and the message goes to the form.
+    """
+    files = documents.uploads_in(form)
+    if not files:
+        return None
+    try:
+        tree = Tree.load(db)
+        item = tree.items.get(task.item_id)
+        if item is None:
+            raise documents.UploadError("Wybierz, czego dotyczy zadanie")
+        for att in documents.store_files(db, item, [(f.filename or "", f.file) for f in files], user=user):
+            att.task_id = task.id
+    except documents.UploadError as exc:
+        db.rollback()
+        return HTMLResponse(
+            f'<p class="error">{escape(str(exc))}</p>',
+            status_code=422,
+            headers={"HX-Retarget": error_target(request, "#form-error"), "HX-Reswap": "innerHTML"},
+        )
+    return None
+
+
 # push before the hour of a task: minutes → label ("" = no separate push, only the digest)
 REMIND_CHOICES: dict[str, str] = {
     "": "tylko w porannym skrócie",
@@ -325,6 +350,10 @@ async def create_task(request: Request, db: Session = Depends(get_db), user: Use
             headers={"HX-Retarget": error_target(request, "#form-error"), "HX-Reswap": "innerHTML"},
         )
     db.add(task)
+    db.flush()
+    error = _attach_files(request, db, task, form, user)
+    if error is not None:
+        return error
     db.commit()
     if is_quick(request):
         return quick_saved("Dodano zadanie")
@@ -572,6 +601,9 @@ async def update_task(
             status_code=422,
             headers={"HX-Retarget": "#form-error", "HX-Reswap": "innerHTML"},
         )
+    error = _attach_files(request, db, task, form, user)
+    if error is not None:
+        return error
     db.commit()
     return _redirect(f"/items/{task.item_id}")
 

@@ -5,7 +5,7 @@
 {% set freq = preset_of(r, task.next_due_date) %}
 {% set end = end_of(r) %}
 <h1>{% if is_new %}Nowe zadanie{% else %}Edytuj zadanie{% endif %}</h1>
-<form method="post" action="{% if is_new %}/tasks/new{% else %}/tasks/{{ task.id }}/edit{% endif %}" id="task-form" class="task-form" data-task-form hx-push-url="false">
+<form method="post" action="{% if is_new %}/tasks/new{% else %}/tasks/{{ task.id }}/edit{% endif %}" id="task-form" class="task-form" data-task-form hx-push-url="false" enctype="multipart/form-data">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <div id="form-error"></div>
   <label>Tytuł <input name="title" value="{{ task.title or '' }}" required placeholder="np. Odkamienianie ekspresu"></label>
@@ -125,6 +125,10 @@
     {% endif %}
     <label>Notatki <textarea name="notes" rows="2">{{ task.notes or '' }}</textarea></label>
   </details>
+  <label class="task-files">📷 Zdjęcie / plik <small class="muted">(np. co jest do zrobienia, pismo, ulotka – trafi też do dokumentów)</small>
+    <input type="file" name="files" multiple accept="image/*,.heic,application/pdf,.pdf">
+  </label>
+  {% if not is_new and task.attachments %}<p class="muted"><small>Już dołączone: {{ task.attachments|length }} – widać je w oknie zadania.</small></p>{% endif %}
 
   <div class="form-actions">
     <button type="submit">Zapisz</button>

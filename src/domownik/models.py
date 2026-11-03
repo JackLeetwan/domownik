@@ -263,6 +263,10 @@ class Task(Base):
     completions: Mapped[list[Completion]] = relationship(
         back_populates="task", cascade="all, delete-orphan", order_by="Completion.done_on.desc()"
     )
+    # files stay with the item (Dokumenty) when the task goes – hence no delete cascade
+    attachments: Mapped[list[Attachment]] = relationship(
+        back_populates="task", passive_deletes=True, order_by="Attachment.id"
+    )
     steps: Mapped[list[TaskStep]] = relationship(
         back_populates="task", cascade="all, delete-orphan", order_by="TaskStep.sort_order, TaskStep.id"
     )
@@ -531,6 +535,8 @@ class Attachment(Base):
     item_id: Mapped[int] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
     # set when added while ticking a task off ("faktura za serwis")
     completion_id: Mapped[int | None] = mapped_column(ForeignKey("completion.id", ondelete="SET NULL"), index=True)
+    # added in the task's form (a photo of what is to be done, the letter, the leaflet)
+    task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id", ondelete="SET NULL"), index=True)
     # relative to the uploads dir, e.g. "files/12/<32 hex>.jpg" – random, never derived from the upload's name
     storage_path: Mapped[str] = mapped_column(String(120), unique=True)
     original_name: Mapped[str] = mapped_column(String(200))
@@ -544,6 +550,7 @@ class Attachment(Base):
 
     item: Mapped[Item] = relationship(back_populates="attachments")
     completion: Mapped[Completion | None] = relationship(back_populates="attachments")
+    task: Mapped[Task | None] = relationship(back_populates="attachments")
     created_by: Mapped[User | None] = relationship()
 
     @property

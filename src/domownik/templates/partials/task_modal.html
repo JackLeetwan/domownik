@@ -16,6 +16,15 @@
 {% if upcoming %}<p class="muted">Kolejne: {% for d in upcoming %}{{ d|d }}{% if not loop.last %}, {% endif %}{% endfor %}{% if left is not none and left > upcoming|length + 1 %} …{% endif %}</p>
 {% elif left == 1 %}<p class="muted">To ostatni termin tej serii.</p>{% endif %}
 {% if task.notes %}<p class="notes">{{ task.notes }}</p>{% endif %}
+{% if task.attachments %}
+<div class="doc-thumbs task-files-view">
+  {% for a in task.attachments %}
+  <a href="/files/{{ a.id }}/view" hx-get="/files/{{ a.id }}/view" hx-target="#modal-body" hx-push-url="false" class="doc-thumb" title="{{ a.description or a.original_name }}">
+    {% if a.has_thumb %}<img src="/files/{{ a.id }}/thumb" alt="{{ a.description or a.original_name }}" loading="lazy" decoding="async">{% else %}<span class="doc-thumb-kind">{{ a.icon }} {{ a.original_name|truncate(18) }}</span>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
 {% include "partials/task_steps.html" %}
 
 <form hx-post="/tasks/{{ task.id }}/done" hx-target="#done-error" hx-encoding="multipart/form-data" class="done-form">
