@@ -430,6 +430,14 @@ button.danger { color: var(--pico-del-color, #c62828); }
 .section-title { font-size: 1.1rem; margin: 0 0 0.5rem; }
 
 /* ---------------------------------------------------------------- notes board */
+.mic { flex: none; width: auto; padding-inline: 0.8rem; font-size: 1.1rem; line-height: 1; }
+.mic.listening { color: #fff; background: var(--pico-del-color, #c62828); border-color: var(--pico-del-color, #c62828); animation: mic-pulse 1.2s ease-in-out infinite; }
+@keyframes mic-pulse { 50% { opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .mic.listening { animation: none; } }
+textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; padding: 0.3rem 0.8rem; }
+.dictate-group { display: flex; margin: 0; }
+.dictate-group input { margin: 0; }
+.dictate-group .mic { margin: 0; }
 .note-add-box { margin: 0.5rem 0 0; }
 .note-add-box > summary[role=button] { display: inline-block; width: auto; margin-bottom: 0.75rem; }
 .note-add-box[open] > summary[role=button] { margin-bottom: 0.75rem; }

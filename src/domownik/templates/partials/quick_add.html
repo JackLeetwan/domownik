@@ -71,7 +71,9 @@
 {% elif kind == 'shopping' %}
 <form hx-post="/zakupy" {{ qa|safe }} class="qa-form">
   <input type="hidden" name="csrf" value="{{ csrf }}">
-  <label>Co dopisać <input name="text" list="qa-shop-suggestions" autocomplete="off" required autofocus placeholder="np. 2 mleko, chleb, masło ×2"></label>
+  <label>Co dopisać
+    <span role="group" class="dictate-group"><input name="text" list="qa-shop-suggestions" autocomplete="off" required autofocus placeholder="np. 2 mleko, chleb, masło ×2"><button type="button" class="mic secondary outline" data-dictate="input[name=text]" data-dictate-list="1" hidden title="Dyktuj – produkty oddzielaj słowem „i” albo mów „przecinek”" aria-label="Dyktuj głosem">🎤</button></span>
+  </label>
   <datalist id="qa-shop-suggestions">{% for s in suggestions %}<option value="{{ s }}">{% endfor %}</datalist>
   <small class="muted">Kilka naraz po przecinku. Dział dobiera się sam.</small>
   <footer class="modal-actions"><button type="submit">Dopisz</button></footer>
@@ -81,6 +83,7 @@
 <form hx-post="/notatki" {{ qa|safe }} class="qa-form">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <textarea name="body" rows="3" required autofocus aria-label="Treść notatki" placeholder="Karteczka dla wszystkich, np. „W piątek odbiór paczki”"></textarea>
+  <button type="button" class="mic secondary outline" data-dictate="textarea[name=body]" data-dictate-list="" hidden title="Dyktuj" aria-label="Dyktuj głosem">🎤</button>
   <div class="note-opts">
     <label><input type="checkbox" name="as_list" role="switch"> ☑ Lista (punkt w linii)</label>
     <label><input type="checkbox" name="pinned" role="switch"> 📌 Przypnij na górze</label>

@@ -122,3 +122,10 @@ def test_quick_add_in_bottom_bar_and_sidebar(auth_client, db):
         assert 'class="bb-add"' in page
         assert 'class="side-add"' in page
     assert 'class="fab"' not in auth_client.get("/").text
+
+
+def test_dictation_buttons_are_rendered_hidden(auth_client):
+    """🎤 only appears (app.js) where the browser has speech recognition."""
+    assert 'data-dictate="input[name=text]" data-dictate-list="1" hidden' in auth_client.get("/zakupy").text
+    note = auth_client.get("/dodaj/note", headers=HX).text
+    assert 'data-dictate="textarea[name=body]"' in note

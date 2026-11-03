@@ -288,6 +288,51 @@
     if (none) none.hidden = shown > 0;
   });
 
+  // ------------------------------------------------------------------ dictation (🎤, Web Speech API)
+  // Only where the browser can do it (Chrome on Android, Safari); the buttons stay hidden elsewhere.
+  // For a list ("mleko chleb i masło") "i" / "oraz" become commas – the server splits on those.
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const showMics = () => {
+    if (!Recognition) return;
+    document.querySelectorAll("[data-dictate][hidden]").forEach((b) => { b.hidden = false; });
+  };
+  showMics();
+  document.addEventListener("htmx:afterSettle", showMics);
+  document.addEventListener("htmx:load", showMics);
+  let listening = null;
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest && e.target.closest("[data-dictate]");
+    if (!btn || !Recognition) return;
+    e.preventDefault();
+    if (listening) { listening.stop(); return; }
+    const form = btn.closest("form");
+    const field = form && form.querySelector(btn.dataset.dictate);
+    if (!field) return;
+    const rec = new Recognition();
+    rec.lang = "pl-PL";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    const asList = btn.dataset.dictateList === "1";
+    rec.onresult = (ev) => {
+      let text = Array.from(ev.results).map((r) => r[0].transcript).join(" ").trim();
+      if (asList) text = text.replace(/\s+(i|oraz|a także)\s+/gi, ", ");
+      if (!text) return;
+      const sep = field.value.trim() ? (field.tagName === "TEXTAREA" ? "\n" : ", ") : "";
+      field.value = field.value.trim() + sep + text;
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.focus();
+    };
+    rec.onerror = (ev) => {
+      if (ev.error === "not-allowed" || ev.error === "service-not-allowed") toast("Brak zgody na mikrofon – włącz ją w ustawieniach przeglądarki.");
+      else if (ev.error !== "no-speech" && ev.error !== "aborted") toast("Dyktowanie nie zadziałało – spróbuj jeszcze raz.");
+    };
+    rec.onend = () => { btn.classList.remove("listening"); btn.setAttribute("aria-pressed", "false"); listening = null; };
+    btn.classList.add("listening");
+    btn.setAttribute("aria-pressed", "true");
+    listening = rec;
+    rec.start();
+  });
+
   // ------------------------------------------------------------------ modal
   // look the dialog up at event time – hx-boost replaces the <body> content on every navigation
   const modalEl = () => document.getElementById("modal");

@@ -12,6 +12,7 @@
   <div role="group">
     <input name="text" list="shop-suggestions" autocomplete="off" required autofocus
            placeholder="np. 2 mleko, chleb, masło ×2" aria-label="Co dopisać">
+    <button type="button" class="mic secondary outline" data-dictate="input[name=text]" data-dictate-list="1" hidden title="Dyktuj – produkty oddzielaj słowem „i” albo mów „przecinek”" aria-label="Dyktuj głosem">🎤</button>
     <button type="submit">Dopisz</button>
   </div>
   <datalist id="shop-suggestions">{% for s in suggestions %}<option value="{{ s }}">{% endfor %}</datalist>
