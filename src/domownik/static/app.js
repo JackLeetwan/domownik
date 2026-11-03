@@ -301,6 +301,15 @@
     if (more && sel.value) more.href = `/tasks/new?item=${encodeURIComponent(sel.value)}`;
   });
 
+  // ------------------------------------------------------------------ meters: the kind suggests the unit
+  document.addEventListener("change", (e) => {
+    const sel = e.target;
+    if (!sel.matches || !sel.matches("select[data-meter-kind]")) return;
+    const unit = sel.form && sel.form.querySelector("[data-meter-unit]");
+    const opt = sel.selectedOptions[0];
+    if (unit && opt && opt.dataset.unit) unit.value = opt.dataset.unit;
+  });
+
   // ------------------------------------------------------------------ documents
   // file inputs hidden behind "Zrób zdjęcie" / "Wybierz pliki": show what was picked
   document.addEventListener("change", (e) => {

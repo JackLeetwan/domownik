@@ -10,13 +10,14 @@ import re
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from domownik import budget, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
-from domownik.models import BUDGET_KINDS, User
+from domownik.models import BUDGET_KINDS, Meter, User
 from domownik.routers import shopping
 from domownik.routers.budget import _default_expense_category
 from domownik.security import current_user
@@ -31,9 +32,11 @@ KINDS: dict[str, tuple[str, str, str]] = {
     "note": ("📝", "Notatka", "karteczka dla wszystkich"),
     "todo": ("☐", "Do zrobienia", "bez terminu"),
     "expense": ("💸", "Wydatek", "do budżetu"),
+    "reading": ("🔢", "Odczyt licznika", "prąd, woda, gaz"),
 }
 
 ITEM_PAGE = re.compile(r"^/items/(\d+)(?:/|$)")
+METER_PAGE = re.compile(r"^/liczniki/(\d+)(?:/|$)")
 
 
 def page_item_id(request: Request, tree: Tree) -> int | None:
@@ -45,9 +48,23 @@ def page_item_id(request: Request, tree: Tree) -> int | None:
     return None
 
 
+def page_meter_id(request: Request) -> int | None:
+    m = METER_PAGE.match(urlsplit(request.headers.get("hx-current-url") or "").path)
+    return int(m.group(1)) if m else None
+
+
+def meter_choices(db: Session, tree: Tree) -> list[Meter]:
+    """Meters of items that are not archived, in tree order."""
+    rows = [m for m in db.scalars(select(Meter)) if m.item_id in tree.items]
+    return sorted(rows, key=lambda m: (tree.label(m.item_id), m.sort_order, m.id))
+
+
 @router.get("")
 def menu(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    return render(request, "partials/quick_add.html", {"user": user, "kind": None, "kinds": KINDS})
+    kinds = dict(KINDS)
+    if db.scalar(select(func.count(Meter.id))) == 0:
+        kinds.pop("reading")  # nothing to read yet – meters are added on the item page
+    return render(request, "partials/quick_add.html", {"user": user, "kind": None, "kinds": kinds})
 
 
 @router.get("/{kind}")
@@ -72,4 +89,11 @@ def form(request: Request, kind: str, db: Session = Depends(get_db), user: User 
         ctx["categories"] = cats
         ctx["budget_kinds"] = BUDGET_KINDS
         ctx["default_cat"] = budget.last_used_category(db, user.id) or _default_expense_category(cats)
+    elif kind == "reading":
+        choices = meter_choices(db, tree)
+        current = page_meter_id(request)
+        if current is None:
+            current = next((m.id for m in choices if m.item_id == ctx["current_item"]), None)
+        ctx["meters"] = choices
+        ctx["current_meter"] = current
     return render(request, "partials/quick_add.html", ctx)

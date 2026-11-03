@@ -1,0 +1,14 @@
+{# Fields of a meter. Needs: mf (meter or none), meter_kinds, meter_units #}
+<div class="grid">
+  <label>Rodzaj
+    <select name="kind" data-meter-kind>
+      {% for k, (lbl, icon, unit) in meter_kinds.items() %}<option value="{{ k }}" data-unit="{{ unit }}" {% if mf and mf.kind == k %}selected{% endif %}>{{ icon }} {{ lbl }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Nazwa <input name="name" maxlength="80" value="{{ mf.name if mf else '' }}" placeholder="np. Prąd – dzienna, Woda – łazienka"></label>
+</div>
+<div class="grid">
+  <label>Jednostka <input name="unit" list="meter-units" maxlength="10" value="{{ mf.unit if mf else 'kWh' }}" data-meter-unit autocomplete="off"></label>
+  <label>Cena za jednostkę [zł] <input name="unit_price" inputmode="decimal" value="{{ fmt(mf.unit_price, 4) if mf and mf.unit_price else '' }}" placeholder="opcjonalnie, np. 1,05"></label>
+</div>
+<datalist id="meter-units">{% for u in meter_units %}<option value="{{ u }}">{% endfor %}</datalist>

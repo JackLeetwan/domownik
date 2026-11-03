@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ m.name }} · Liczniki · Domownik{% endblock %}
+{% block content %}
+{% set crumbs_link_last = True %}{% include "partials/breadcrumbs.html" %}
+<header class="item-head">
+  <h1><span aria-hidden="true">{{ m.icon }}</span> {{ m.name }}</h1>
+</header>
+
+<article class="meter-card meter-big">
+  {% include "partials/meter_card_stats.html" %}
+  {% if st.has_chart %}
+  <h3 class="section-sub">Zużycie w miesiącach <small class="muted">({{ st.unit }}{% if st.unit_price %}, koszt w podpowiedzi słupka{% endif %})</small></h3>
+  {{ chart(st, height=160) }}
+  {% endif %}
+</article>
+
+<section>
+  <h2>Nowy odczyt</h2>
+  {% set inline = False %}{% set next = none %}{% include "partials/meter_reading_form.html" %}
+</section>
+
+{% if rows %}
+<section>
+  <h2>Odczyty <small class="muted">({{ rows|length }})</small></h2>
+  <ul class="reading-list">
+    {% for r in rows %}
+    <li>
+      <span class="r-date">{{ r.read_on|d }}</span>
+      <span class="r-val"><strong>{{ fmt(r.value) }} {{ m.unit }}</strong>{% if r.is_reset %} <span class="badge">nowy licznik</span>{% endif %}{% if r.note %} <small class="muted">{{ r.note }}</small>{% endif %}</span>
+      {% if r.attachment %}<a href="/files/{{ r.attachment.id }}" target="_blank" rel="noopener" hx-boost="false" title="Zdjęcie licznika" aria-label="Zdjęcie licznika">📷</a>{% endif %}
+      <form method="post" action="/liczniki/odczyty/{{ r.id }}/delete" class="inline" hx-confirm="Usunąć odczyt {{ fmt(r.value) }} {{ m.unit }} z {{ r.read_on|d }}?">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" class="link" title="Usuń" aria-label="Usuń odczyt">✕</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section>
+  <h2>Przypomnienie</h2>
+  {% if reminder %}
+  <p class="muted">✅ Co miesiąc: <a href="/tasks/{{ reminder.id }}" hx-get="/tasks/{{ reminder.id }}" hx-target="#modal-body" hx-push-url="false">{{ reminder.title }}</a> – najbliżej {{ reminder.next_due_date|d }}.</p>
+  {% else %}
+  <form method="post" action="/liczniki/{{ m.id }}/przypomnienie" class="inline">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit" class="outline small">🔔 Przypominaj co miesiąc o spisaniu</button>
+  </form>
+  <p class="muted"><small>Utworzy zwykłe zadanie cykliczne na ostatni dzień miesiąca – z powiadomieniem jak inne terminy.</small></p>
+  {% endif %}
+</section>
+
+<details>
+  <summary>Ustawienia licznika</summary>
+  <form method="post" action="/liczniki/{{ m.id }}/edit" class="meter-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div id="meter-error-edit"></div>
+    {% set mf = m %}{% set meter_kinds = kinds %}{% set meter_units = units %}{% include "partials/meter_fields.html" %}
+    <button type="submit" class="small">Zapisz</button>
+  </form>
+  <form method="post" action="/liczniki/{{ m.id }}/delete" class="inline" hx-confirm="Usunąć licznik „{{ m.name }}” razem z odczytami? Zdjęcia zostają w dokumentach.">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit" class="link danger"><small>Usuń licznik</small></button>
+  </form>
+</details>
+{% endblock %}

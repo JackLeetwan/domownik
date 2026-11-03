@@ -161,6 +161,9 @@ class Item(Base):
     contacts: Mapped[list[Contact]] = relationship(
         secondary="contact_item", back_populates="items", order_by="Contact.name"
     )
+    meters: Mapped[list[Meter]] = relationship(
+        back_populates="item", cascade="all, delete-orphan", order_by="Meter.sort_order, Meter.id"
+    )
 
     @property
     def display_icon(self) -> str:
@@ -685,3 +688,70 @@ class Contact(Base):
         if self.company and self.company.lower() != self.name.lower():
             return f"{self.name} ({self.company})"
         return self.name
+
+
+# ---------------------------------------------------------------- utility meters (electricity, water, gas, heat)
+
+METER_KINDS: dict[str, tuple[str, str, str]] = {
+    # kind: (label, icon, default unit)
+    "electricity": ("Prąd", "⚡", "kWh"),
+    "water_cold": ("Woda zimna", "🚰", "m³"),
+    "water_hot": ("Woda ciepła", "♨️", "m³"),
+    "gas": ("Gaz", "🔥", "m³"),
+    "heat": ("Ciepło", "🌡️", "GJ"),
+    "other": ("Inny", "🔢", ""),
+}
+METER_UNITS = ("kWh", "m³", "GJ", "km", "l")
+
+
+class Meter(Base):
+    """A meter of a house / flat ("Prąd – taryfa dzienna", "Woda zimna – łazienka") with its readings.
+
+    Not Measurement: a place can have two meters of one kind, a meter has its own unit, price and a
+    reset when it is replaced – and the car odometer (Measurement kind="odometer") drives the mileage
+    forecasts of tasks, which must stay untouched.
+    """
+
+    __tablename__ = "meter"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    kind: Mapped[str] = mapped_column(String(20), default="other")
+    unit: Mapped[str] = mapped_column(String(10), default="")
+    unit_price: Mapped[float | None]  # zł per unit, for the cost estimate
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    item: Mapped[Item] = relationship(back_populates="meters")
+    readings: Mapped[list[MeterReading]] = relationship(
+        back_populates="meter", cascade="all, delete-orphan", order_by="MeterReading.read_on, MeterReading.id"
+    )
+
+    @property
+    def icon(self) -> str:
+        return METER_KINDS.get(self.kind, METER_KINDS["other"])[1]
+
+    @property
+    def kind_label(self) -> str:
+        return METER_KINDS.get(self.kind, METER_KINDS["other"])[0]
+
+
+class MeterReading(Base):
+    """One reading. is_reset = a new / zeroed meter: the reading starts over, nothing is counted since the last."""
+
+    __tablename__ = "meter_reading"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    meter_id: Mapped[int] = mapped_column(ForeignKey("meter.id", ondelete="CASCADE"), index=True)
+    read_on: Mapped[date] = mapped_column(Date)
+    value: Mapped[float]
+    is_reset: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    note: Mapped[str | None] = mapped_column(String(200))
+    # photo of the meter, kept with the item's documents
+    attachment_id: Mapped[int | None] = mapped_column(ForeignKey("attachment.id", ondelete="SET NULL"))
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    meter: Mapped[Meter] = relationship(back_populates="readings")
+    attachment: Mapped[Attachment | None] = relationship()

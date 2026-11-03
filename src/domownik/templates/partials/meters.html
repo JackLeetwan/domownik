@@ -1,0 +1,39 @@
+{# Item page: meters (electricity, water, gas, heat) and – for a car – the mileage, read-only #}
+{% if meter_rows or odometer or item.kind in ('house', 'apartment', 'rental') %}
+<section class="notes-section meters" id="liczniki">
+  <h2>Liczniki</h2>
+  <div class="meter-cards">
+    {% if odometer %}
+    <article class="meter-card">
+      <header class="meter-head"><span>🚗 Przebieg</span></header>
+      {% set st = odometer %}{% include "partials/meter_card_stats.html" %}
+      {% if st.has_chart %}{{ chart(st) }}{% endif %}
+      <p class="muted"><small>Nowy stan: „Wpisz aktualny przebieg” na górze strony albo przy „✓ Zrobione”.</small></p>
+    </article>
+    {% endif %}
+    {% for m, st in meter_rows %}
+    <article class="meter-card">
+      <header class="meter-head"><a href="/liczniki/{{ m.id }}">{{ m.icon }} {{ m.name }}</a>{% if m.unit_price %} <small class="muted">{{ fmt(m.unit_price, 4) }} zł/{{ m.unit }}</small>{% endif %}</header>
+      {% include "partials/meter_card_stats.html" %}
+      {% if st.has_chart %}{{ chart(st) }}{% endif %}
+      <details class="todo-add-more">
+        <summary>Dodaj odczyt</summary>
+        {% set inline = True %}{% set next = '/items/' ~ item.id ~ '#liczniki' %}{% include "partials/meter_reading_form.html" %}
+      </details>
+      <a href="/liczniki/{{ m.id }}" class="small-link">Odczyty i szczegóły →</a>
+    </article>
+    {% endfor %}
+  </div>
+  {% if item.kind != 'car' or meter_rows %}
+  <details class="todo-add-more">
+    <summary>＋ Licznik</summary>
+    <form method="post" action="/items/{{ item.id }}/liczniki" class="meter-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div id="meter-error-new"></div>
+      {% set mf = none %}{% include "partials/meter_fields.html" %}
+      <button type="submit" class="small">Dodaj licznik</button>
+    </form>
+  </details>
+  {% endif %}
+</section>
+{% endif %}

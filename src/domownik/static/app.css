@@ -1066,3 +1066,27 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 .contact-link-form { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
 .contact-link-form select { flex: 1 1 auto; min-width: 0; margin: 0; }
 .contact-link-form button { width: auto; margin: 0; flex: none; }
+
+/* ---------------------------------------------------------------- meters */
+.meter-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.75rem; margin-bottom: 0.5rem; }
+.meter-card { margin: 0; padding: 0.8rem 0.9rem; border-radius: 12px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); box-shadow: none; display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.meter-head { font-weight: 700; margin: 0; padding: 0; background: none; border: 0; }
+.meter-head a { text-decoration: none; color: var(--pico-color); }
+.meter-last { margin: 0; font-size: 1.1rem; }
+.meter-nums { margin: 0; }
+.meter-nums small { display: flex; flex-direction: column; gap: 0.1rem; }
+.meter-chart { display: block; width: 100%; max-width: 420px; height: auto; margin: 0.35rem 0; }
+.meter-big .meter-chart { max-width: 560px; }
+.meter-chart .mc-bar { fill: var(--pico-primary-background); }
+.meter-chart .mc-empty { fill: var(--dm-tile-border); }
+.meter-chart .mc-lbl, .meter-chart .mc-val { fill: var(--pico-muted-color); font-size: 9px; font-family: var(--pico-font-family); }
+.meter-chart .mc-val { fill: var(--pico-color); }
+.meter-card details { margin: 0.25rem 0; }
+.reading-form .grid { margin-bottom: 0; }
+.reading-form .reading-reset { margin-bottom: 0; }
+.reading-hint { display: block; margin: 0.1rem 0 0.75rem; }
+.reading-list { list-style: none; margin: 0; padding: 0; }
+.reading-list li { list-style: none; display: flex; align-items: baseline; gap: 0.75rem; padding: 0.4rem 0; border-bottom: 1px solid var(--dm-tile-border); }
+.reading-list .r-date { flex: none; width: 6.5rem; color: var(--pico-muted-color); font-size: 0.9rem; }
+.reading-list .r-val { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .meter-cards { grid-template-columns: 1fr; } }

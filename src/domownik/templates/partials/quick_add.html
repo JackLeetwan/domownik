@@ -101,5 +101,28 @@
   </div>
   <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
 </form>
+
+{% elif kind == 'reading' %}
+{% if meters %}
+<form hx-post="/liczniki/odczyty" hx-encoding="multipart/form-data" {{ qa|safe }} class="qa-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Licznik
+    <select name="meter_id" required>
+      {% if not current_meter %}<option value="">— wybierz —</option>{% endif %}
+      {% for m in meters %}<option value="{{ m.id }}" {% if m.id == current_meter %}selected{% endif %}>{{ m.icon }} {{ label(m.item_id) }} · {{ m.name }}{% if m.unit %} [{{ m.unit }}]{% endif %}</option>{% endfor %}
+    </select>
+  </label>
+  <div class="grid">
+    <label>Stan <input name="value" inputmode="decimal" required autofocus autocomplete="off" placeholder="np. 12345,6"></label>
+    <label>Data <input type="date" name="read_on" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}"></label>
+  </div>
+  <label><input type="checkbox" name="is_reset" value="1"> Nowy licznik / reset</label>
+  <small class="muted reading-hint">Zaznacz po wymianie albo wyzerowaniu licznika – stan liczy się od nowa.</small>
+  <label>Zdjęcie licznika <small class="muted">(opcjonalnie)</small><input type="file" name="files" accept="image/*,.heic" capture="environment"></label>
+  <footer class="modal-actions"><button type="submit">Zapisz odczyt</button></footer>
+</form>
+{% else %}
+<p class="muted">Nie ma jeszcze liczników. Dodaj je na stronie domu lub mieszkania – sekcja „Liczniki” → „＋ Licznik”.</p>
+{% endif %}
 {% endif %}
 {% endif %}

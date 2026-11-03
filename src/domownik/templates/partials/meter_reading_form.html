@@ -1,0 +1,18 @@
+{# Add a reading. Needs: m (meter), today (date or the global function); optional: inline (item page), next #}
+{% set d0 = today() if today is callable else today %}
+<form method="post" action="/liczniki/odczyty" hx-post="/liczniki/odczyty" hx-encoding="multipart/form-data" class="reading-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="meter_id" value="{{ m.id }}">
+  {% if inline %}<input type="hidden" name="inline" value="1">{% endif %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <div id="reading-error{% if inline %}-{{ m.id }}{% endif %}"></div>
+  <div class="grid">
+    <label>Stan [{{ m.unit or 'jedn.' }}] <input name="value" inputmode="decimal" required autocomplete="off" placeholder="np. 12345,6"></label>
+    <label>Data <input type="date" name="read_on" value="{{ d0.isoformat() }}" max="{{ d0.isoformat() }}"></label>
+  </div>
+  <label class="reading-reset"><input type="checkbox" name="is_reset" value="1"> Nowy licznik / reset</label>
+  <small class="muted reading-hint">Zaznacz po wymianie albo wyzerowaniu licznika – stan liczy się od nowa.</small>
+  <label>Zdjęcie licznika <small class="muted">(opcjonalnie – trafi do dokumentów)</small>
+    <input type="file" name="files" accept="image/*,.heic" capture="environment"></label>
+  <button type="submit" class="small">Zapisz odczyt</button>
+</form>

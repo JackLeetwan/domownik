@@ -1,0 +1,10 @@
+{# Numbers of one meter. Needs: st, fmt #}
+{% if st.last %}
+<p class="meter-last"><strong>{{ fmt(st.last.value) }} {{ st.unit }}</strong> <small class="muted">· {{ st.last.on|d }}{% if st.last.reset %} · nowy licznik{% endif %}</small></p>
+<p class="meter-nums muted"><small>
+  {% if st.since_prev is not none %}<span>od poprzedniego: <strong>{{ fmt(st.since_prev, 1) }} {{ st.unit }}</strong>{% if st.since_days %} w {{ st.since_days }} {{ 'dzień' if st.since_days == 1 else 'dni' }}{% endif %}{% if st.cost(st.since_prev) %} ≈ {{ st.cost(st.since_prev)|pln }}{% endif %}</span>{% endif %}
+  {% if st.daily is not none %}<span>średnio {{ fmt(st.daily, 2) }}/dzień · {{ fmt(st.monthly, 0 if st.monthly >= 100 else 1) }}/mies.{% if st.cost(st.monthly) %} ≈ {{ st.cost(st.monthly)|pln }}/mies.{% endif %}</span>{% endif %}
+</small></p>
+{% else %}
+<p class="muted"><small>Brak odczytów – wpisz pierwszy stan.</small></p>
+{% endif %}
