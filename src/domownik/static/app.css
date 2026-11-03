@@ -488,6 +488,16 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .pantry-row form.inline button.small { margin: 0; padding: 0.25rem 0.6rem; }
 .pantry-row.st-expired .pantry-name { color: var(--dm-overdue); }
 .pantry-edit { margin: 0.4rem 0 0.6rem; }
+/* ---------------------------------------------------------------- comments */
+.comments { margin: 0.5rem 0 0.75rem; }
+.comment-list { list-style: none; padding: 0; margin: 0 0 0.4rem; }
+.comment-list li { list-style: none; display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.3rem 0; margin: 0; }
+.comment-body { flex: 1; overflow-wrap: anywhere; font-size: 0.92rem; white-space: pre-line; }
+.comment-add { display: flex; gap: 0.4rem; margin: 0; }
+.comment-add input { margin: 0; padding: 0.35rem 0.6rem; height: auto; min-height: 2.4rem; font-size: 0.9rem; }
+.comment-add button { margin: 0; white-space: nowrap; flex: none; padding: 0.3rem 0.8rem; }
+.note-card .note-comments > summary { color: var(--nacc); font-size: 0.8rem; }
+.note-card .comment-body { font-size: 0.85rem; }
 /* ---------------------------------------------------------------- points */
 .pts-balances { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.6rem; margin-bottom: 1.25rem; }
 .pts-card { display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem; padding: 0.7rem 0.9rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-tile-bg); }

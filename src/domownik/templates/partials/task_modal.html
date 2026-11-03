@@ -26,6 +26,7 @@
 </div>
 {% endif %}
 {% include "partials/task_steps.html" %}
+{% with owner = task, kind = 'zadanie' %}{% include "partials/comments.html" %}{% endwith %}
 
 <form hx-post="/tasks/{{ task.id }}/done" hx-target="#done-error" hx-encoding="multipart/form-data" class="done-form">
   <div id="done-error"></div>

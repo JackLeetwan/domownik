@@ -270,6 +270,9 @@ class Task(Base):
     attachments: Mapped[list[Attachment]] = relationship(
         back_populates="task", passive_deletes=True, order_by="Attachment.id"
     )
+    comments: Mapped[list[Comment]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True, order_by="Comment.id"
+    )
     steps: Mapped[list[TaskStep]] = relationship(
         back_populates="task", cascade="all, delete-orphan", order_by="TaskStep.sort_order, TaskStep.id"
     )
@@ -499,6 +502,9 @@ class BoardNote(Base):
     updated_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     created_by: Mapped[User | None] = relationship()
+    comments: Mapped[list[Comment]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True, order_by="Comment.id"
+    )
 
     def is_active(self, today: date) -> bool:
         return not self.archived and (self.valid_until is None or self.valid_until >= today)
@@ -962,3 +968,18 @@ class PointEntry(Base):
 
     user: Mapped[User] = relationship(foreign_keys=[user_id])
     decided_by: Mapped[User | None] = relationship(foreign_keys=[decided_by_id])
+
+
+class Comment(Base):
+    """A short word under a task or a note ("kupiłam filtr, leży w szafce")."""
+
+    __tablename__ = "comment"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id", ondelete="CASCADE"), index=True)
+    note_id: Mapped[int | None] = mapped_column(ForeignKey("board_note.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    user: Mapped[User | None] = relationship()

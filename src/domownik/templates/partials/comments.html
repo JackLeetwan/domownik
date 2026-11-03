@@ -1,0 +1,18 @@
+{# Comments of a task (kind "zadanie") or a note ("notatka"). Needs: owner, kind, user #}
+<section class="comments" id="comments-{{ kind }}-{{ owner.id }}">
+  {% if owner.comments %}
+  <ul class="comment-list">
+    {% for c in owner.comments %}
+    <li>
+      {% if c.user %}{{ avatar(c.user) }}{% endif %}
+      <span class="comment-body"><b>{{ c.user.name if c.user else '—' }}</b> <small class="muted">{{ c.created_at|d }}</small><br>{{ c.body }}</span>
+      {% if user and c.user_id == user.id %}<button type="button" class="shop-del" hx-post="/komentarze/{{ c.id }}/usun" hx-target="{% if kind == 'zadanie' %}#comments-{{ kind }}-{{ owner.id }}{% else %}#note-{{ owner.id }}{% endif %}" hx-swap="outerHTML" title="Usuń komentarz" aria-label="Usuń komentarz">✕</button>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <form class="comment-add" hx-post="/komentarze/{{ kind }}/{{ owner.id }}" hx-target="{% if kind == 'zadanie' %}#comments-{{ kind }}-{{ owner.id }}{% else %}#note-{{ owner.id }}{% endif %}" hx-swap="outerHTML">
+    <input name="body" required maxlength="1000" autocomplete="off" enterkeyhint="send" placeholder="💬 Napisz komentarz…" aria-label="Komentarz">
+    <button type="submit" class="small outline">Wyślij</button>
+  </form>
+</section>

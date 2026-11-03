@@ -38,6 +38,10 @@
     <form method="post" action="/notatki/{{ n.id }}/delete" class="inline" hx-confirm="Usunąć notatkę na zawsze?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">Usuń</button></form>
     {% endif %}
   </div>
+  <details class="note-comments" {% if comments_open is defined and comments_open %}open{% endif %}>
+    <summary>💬 {% if n.comments %}{{ n.comments|length }} {{ 'komentarz' if n.comments|length == 1 else 'komentarze' if n.comments|length % 10 in (2, 3, 4) and n.comments|length % 100 not in (12, 13, 14) else 'komentarzy' }}{% else %}Skomentuj{% endif %}</summary>
+    {% with owner = n, kind = 'notatka' %}{% include "partials/comments.html" %}{% endwith %}
+  </details>
   {% if active %}
   <details>
     <summary>Edytuj</summary>
