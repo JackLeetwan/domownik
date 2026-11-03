@@ -1205,13 +1205,20 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 @media (min-width: 1024px) {
   .side-add { display: block; width: 100%; margin: 0 0 0.5rem; padding: 0.45rem 0.6rem; font-size: 0.95rem; font-weight: 700; text-align: left; }
 }
-.qa-menu { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
-.qa-menu li { list-style: none; margin: 0; }
+.qa-menu { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; grid-auto-rows: 1fr; }
+.qa-menu li { list-style: none; margin: 0; display: flex; }
+.qa-menu li > a { flex: 1; }
 .qa-menu a { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 0.8rem; border-radius: 10px; border: 1px solid var(--dm-tile-border); background: var(--dm-tile-bg); color: var(--pico-color); text-decoration: none; min-height: 3.6rem; }
 .qa-menu a:hover, .qa-menu a:focus-visible { border-color: var(--pico-primary); }
 .qa-menu a > span:last-child { display: flex; flex-direction: column; min-width: 0; }
 .qa-menu small { font-size: 0.75rem; }
 .qa-ic { font-size: 1.5rem; width: 1.8rem; text-align: center; flex: none; }
+.qa-day { font-size: 0.95rem; font-weight: 400; }
+.qa-all { margin: 0.75rem 0 0; text-align: right; }
+.cal-day-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
+.cal-day-head h2 { margin: 0; }
+.cal-add { width: auto; margin: 0; padding: 0.15rem 0.7rem; font-size: 1.15rem; line-height: 1.4; flex: none; }
+.cal-cell, .cal-week-day { -webkit-user-select: none; user-select: none; }
 .qa-back { text-decoration: none; margin-right: 0.25rem; padding: 0 0.3rem; }
 .qa-form .note-opts { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; align-items: center; margin-bottom: 0.5rem; }
 .qa-form .note-opts label { margin: 0; display: flex; align-items: center; gap: 0.4rem; }

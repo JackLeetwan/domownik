@@ -129,3 +129,21 @@ def test_dictation_buttons_are_rendered_hidden(auth_client):
     assert 'data-dictate="input[name=text]" data-dictate-list="1" hidden' in auth_client.get("/zakupy").text
     note = auth_client.get("/dodaj/note", headers=HX).text
     assert 'data-dictate="textarea[name=body]"' in note
+
+
+def test_menu_for_a_calendar_day(auth_client, db):
+    """Double click on a calendar day: only dated kinds, and their forms start on that day."""
+    r = auth_client.get("/dodaj?d=2030-05-14", headers=HX)
+    assert r.status_code == 200
+    assert "Wydarzenie" in r.text and "Wydatek" in r.text and "Zakup" not in r.text
+    assert "/dodaj/event?d=2030-05-14" in r.text and "14 maja" in r.text
+    for kind, field in (("event", "next_due_date"), ("task", "next_due_date"), ("expense", "booked_on")):
+        page = auth_client.get(f"/dodaj/{kind}?d=2030-05-14", headers=HX).text
+        assert f'name="{field}"' in page and 'value="2030-05-14"' in page, kind
+    # a broken date is ignored: the ordinary menu
+    assert "Zakup" in auth_client.get("/dodaj?d=jutro", headers=HX).text
+
+
+def test_calendar_day_has_add_button(auth_client):
+    page = auth_client.get("/kalendarz?d=2030-05-14&m=2030-05").text
+    assert 'data-cal-add="2030-05-14"' in page and 'data-cal-day="2030-05-14"' in page

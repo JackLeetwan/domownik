@@ -362,6 +362,22 @@
       target: ".shell", select: ".shell", swap: "outerHTML", headers: { "HX-Boosted": "true" },
     });
   });
+  // calendar: double click on a day (or its "＋") opens "＋ Dodaj" for that day – event, task, expense
+  const addOnDay = (iso) => {
+    if (typeof htmx === "undefined" || !/^\d{4}-\d{2}-\d{2}$/.test(iso || "")) return;
+    htmx.ajax("GET", `/dodaj?d=${iso}`, { target: "#modal-body", swap: "innerHTML" });
+  };
+  document.addEventListener("dblclick", (e) => {
+    if (!e.target.closest || e.target.closest(".cal-chip, a, button, input, select, textarea, summary")) return;
+    const cell = e.target.closest("[data-cal-day], .cal-week-day[data-sel]");
+    if (!cell) return;
+    e.preventDefault();
+    addOnDay(cell.dataset.calDay || cell.dataset.sel);
+  });
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest && e.target.closest("[data-cal-add]");
+    if (btn) addOnDay(btn.dataset.calAdd);
+  });
   // "Więcej opcji…" of the quick task form opens the full form for the item picked
   document.addEventListener("change", (e) => {
     const sel = e.target;

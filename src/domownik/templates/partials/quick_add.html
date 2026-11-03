@@ -3,19 +3,20 @@
 <header>
   <button class="close" aria-label="Zamknij" data-close>✕</button>
   {% if kind %}
-  <h3 id="modal-title"><a href="/dodaj" hx-get="/dodaj" hx-target="#modal-body" hx-push-url="false" class="qa-back" aria-label="Wróć do wyboru">‹</a> {{ kinds[kind][0] }} {{ kinds[kind][1] }}</h3>
+  <h3 id="modal-title"><a href="/dodaj{{ day_q }}" hx-get="/dodaj{{ day_q }}" hx-target="#modal-body" hx-push-url="false" class="qa-back" aria-label="Wróć do wyboru">‹</a> {{ kinds[kind][0] }} {{ kinds[kind][1] }}</h3>
   {% else %}
-  <h3 id="modal-title">＋ Dodaj</h3>
+  <h3 id="modal-title">＋ Dodaj{% if day %} <small class="muted qa-day">na {{ day_title }}</small>{% endif %}</h3>
   {% endif %}
 </header>
 {% if not kind %}
 <ul class="qa-menu">
   {% for k, (icon, lbl, hint) in kinds.items() %}
-  <li><a href="/dodaj/{{ k }}" hx-get="/dodaj/{{ k }}" hx-target="#modal-body" hx-push-url="false">
+  <li><a href="/dodaj/{{ k }}{{ day_q }}" hx-get="/dodaj/{{ k }}{{ day_q }}" hx-target="#modal-body" hx-push-url="false">
     <span class="qa-ic" aria-hidden="true">{{ icon }}</span><span><strong>{{ lbl }}</strong><small class="muted">{{ hint }}</small></span>
   </a></li>
   {% endfor %}
 </ul>
+{% if day %}<p class="qa-all"><a href="/dodaj" hx-get="/dodaj" hx-target="#modal-body" hx-push-url="false"><small>Inne: zakup, notatka, do zrobienia →</small></a></p>{% endif %}
 {% else %}
 {% set qa = 'hx-headers=\'{"X-Quick-Add": "1"}\' hx-target="#qa-error" hx-swap="innerHTML"' %}
 <div id="qa-error"></div>
@@ -32,7 +33,7 @@
     </select>
   </label>
   <div class="grid">
-    <label>Termin <input type="date" name="next_due_date" required value="{{ today.isoformat() }}"></label>
+    <label>Termin <input type="date" name="next_due_date" required value="{{ start.isoformat() }}"></label>
     <label>Kwota [zł] <input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" placeholder="opcjonalnie" autocomplete="off"></label>
   </div>
   <footer class="modal-actions">
@@ -50,7 +51,7 @@
   <input type="hidden" name="lead_days" value="1">
   <input type="hidden" name="direction" value="none">
   <label>Co <input name="title" required autofocus placeholder="np. Dentysta, zebranie w przedszkolu" maxlength="200"></label>
-  <label>Dzień <input type="date" name="next_due_date" required value="{{ today.isoformat() }}"></label>
+  <label>Dzień <input type="date" name="next_due_date" required value="{{ start.isoformat() }}"></label>
   <div class="qa-time">
     <label>Od <input type="time" name="due_time" required></label>
     <label>Do <input type="time" name="ends_at"></label>
@@ -116,7 +117,7 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <div class="grid">
     <label>Kwota [zł] <input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" required autofocus placeholder="np. 54,90" autocomplete="off"></label>
-    <label>Data <input type="date" name="booked_on" value="{{ today.isoformat() }}"></label>
+    <label>Data <input type="date" name="booked_on" value="{{ start.isoformat() }}"></label>
   </div>
   <label>Kategoria
     <select name="budget_category_id" required>

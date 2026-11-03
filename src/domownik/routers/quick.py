@@ -7,6 +7,7 @@ Nothing is saved here – each form reuses the route of its own page (/zakupy, /
 from __future__ import annotations
 
 import re
+from datetime import date
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -36,6 +37,9 @@ KINDS: dict[str, tuple[str, str, str]] = {
     "reading": ("🔢", "Odczyt licznika", "prąd, woda, gaz"),
 }
 
+# opened for one calendar day (double click on a day): only what has a date of its own
+DAY_KINDS = ("event", "task", "expense")
+
 ITEM_PAGE = re.compile(r"^/items/(\d+)(?:/|$)")
 METER_PAGE = re.compile(r"^/liczniki/(\d+)(?:/|$)")
 
@@ -60,18 +64,43 @@ def meter_choices(db: Session, tree: Tree) -> list[Meter]:
     return sorted(rows, key=lambda m: (tree.label(m.item_id), m.sort_order, m.id))
 
 
+def _day(d: str | None) -> date | None:
+    """?d=YYYY-MM-DD – the calendar day the window was opened for; anything else is ignored."""
+    try:
+        return date.fromisoformat(d) if d else None
+    except ValueError:
+        return None
+
+
+def _day_ctx(day: date | None) -> dict:
+    from domownik.routers.calendar import day_title
+
+    return {"day": day, "day_q": f"?d={day.isoformat()}" if day else "", "day_title": day_title(day) if day else ""}
+
+
 @router.get("")
-def menu(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    kinds = dict(KINDS)
-    if db.scalar(select(func.count(Meter.id))) == 0:
-        kinds.pop("reading")  # nothing to read yet – meters are added on the item page
-    return render(request, "partials/quick_add.html", {"user": user, "kind": None, "kinds": kinds})
+def menu(request: Request, d: str | None = None, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    day = _day(d)
+    if day:
+        kinds = {k: KINDS[k] for k in DAY_KINDS}
+    else:
+        kinds = dict(KINDS)
+        if db.scalar(select(func.count(Meter.id))) == 0:
+            kinds.pop("reading")  # nothing to read yet – meters are added on the item page
+    return render(request, "partials/quick_add.html", {"user": user, "kind": None, "kinds": kinds} | _day_ctx(day))
 
 
 @router.get("/{kind}")
-def form(request: Request, kind: str, db: Session = Depends(get_db), user: User = Depends(current_user)):
+def form(
+    request: Request,
+    kind: str,
+    d: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     if kind not in KINDS:
         raise HTTPException(404, "Nie ma takiego formularza")
+    day = _day(d)
     tree = Tree.load(db)
     ctx: dict = {
         "user": user,
@@ -82,7 +111,8 @@ def form(request: Request, kind: str, db: Session = Depends(get_db), user: User 
         "current_item": page_item_id(request, tree),
         "users": services.active_users(db),
         "today": today(),
-    }
+        "start": day or today(),
+    } | _day_ctx(day)
     if kind == "event":
         from domownik.routers.tasks import DEFAULT_REMIND, REMIND_CHOICES
 
