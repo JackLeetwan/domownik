@@ -16,6 +16,10 @@
     <a href="/kalendarz?m={{ mkey }}&who=me" role="button" class="{% if who != 'me' %}outline {% endif %}secondary">Moje</a>
   </div>
 </header>
+<nav class="cal-views" aria-label="Widok">
+  <a href="/kalendarz?m={{ mkey }}{{ wq }}" aria-current="page">Miesiąc</a>
+  <a href="/kalendarz/tydzien?d={{ sel.isoformat() }}{{ wq }}">Tydzień</a>
+</nav>
 {% if who == 'me' and not any_assigned %}
 <p class="who-hint"><small>Żadne zadanie nie jest jeszcze przypisane, więc „Moje” pokazuje wszystko. <a href="/przypisania">Ustal, kto czym się zajmuje →</a></small></p>
 {% endif %}

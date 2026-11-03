@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -82,6 +82,45 @@ def calendar_page(
             "sel_title": day_title(sel),
             "entries": entries,
             "slots": _slots(db, sel, who, user),
+            "who": who if who == "me" else None,
+            "any_assigned": services.any_assigned(db),
+        },
+    )
+
+
+@router.get("/kalendarz/tydzien")
+def calendar_week(
+    request: Request,
+    d: date | None = None,
+    who: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """Seven days as one list – easier on a phone than the month grid's dots."""
+    t = today()
+    services.settle_autopay(db, t)
+    monday = (d or t) - timedelta(days=(d or t).weekday())
+    tree = Tree.load(db)
+    days = []
+    for i in range(7):
+        day = monday + timedelta(days=i)
+        days.append(
+            {
+                "sel": day,
+                "sel_title": day_title(day),
+                "entries": services.calendar_day(db, tree, t, day, user_id=_who(who, user)),
+                "slots": _slots(db, day, who, user),
+            }
+        )
+    return render(
+        request,
+        "calendar_week.html",
+        {
+            "user": user,
+            "days": days,
+            "monday": monday,
+            "prev": monday - timedelta(days=7),
+            "next": monday + timedelta(days=7),
             "who": who if who == "me" else None,
             "any_assigned": services.any_assigned(db),
         },

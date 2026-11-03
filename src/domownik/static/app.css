@@ -491,6 +491,14 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .private-switch { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin: 0.25rem 0 0.75rem; }
 .private-switch input { margin: 0; }
 .private-switch small { display: inline; }
+.cal-views { display: inline-flex; gap: 0; margin: 0 0 0.75rem; border: 1px solid var(--dm-tile-border); border-radius: 999px; overflow: hidden; }
+.cal-views a { padding: 0.3rem 1rem; text-decoration: none; color: var(--pico-muted-color); font-size: 0.9rem; }
+.cal-views a[aria-current=page] { background: var(--pico-primary); color: var(--pico-primary-inverse); }
+.cal-week-list { display: grid; gap: 0.6rem; }
+.cal-week-day { padding: 0.6rem 0.9rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-tile-bg); margin: 0; }
+.cal-week-day.is-today { border-color: var(--pico-primary); }
+.cal-week-day h2 { font-size: 1rem; margin: 0 0 0.3rem; }
+.cal-week-day .muted:only-of-type { margin: 0; }
 /* ---------------------------------------------------------------- comments */
 .comments { margin: 0.5rem 0 0.75rem; }
 .comment-list { list-style: none; padding: 0; margin: 0 0 0.4rem; }

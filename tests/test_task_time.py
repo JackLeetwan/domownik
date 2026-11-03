@@ -201,3 +201,15 @@ def test_migration_0015_up_and_down(tmp_path):
             cols = {r[1] for r in conn.execute(sa.text("PRAGMA table_info(task)"))}
             assert not cols & {"due_time", "ends_at", "remind_minutes"}
             command.upgrade(cfg, "head")
+
+
+def test_week_view_lists_days_in_order(auth_client, db):
+    item = _item(db)
+    monday = today() - timedelta(days=today().weekday())
+    _timed(db, item, "Basen", monday + timedelta(days=2), "17:00")
+    r = auth_client.get(f"/kalendarz/tydzien?d={(monday + timedelta(days=4)).isoformat()}")
+    assert r.status_code == 200
+    assert r.text.count('class="cal-day cal-week-day') == 7
+    assert "17:00" in r.text and "Basen" in r.text
+    assert 'id="cal-day"' not in r.text  # the day list id belongs to the month view only
+    assert 'href="/kalendarz/tydzien' in auth_client.get("/kalendarz").text
