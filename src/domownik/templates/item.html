@@ -83,6 +83,8 @@
 </section>
 {% endif %}
 
+{% include "partials/documents.html" %}
+
 {% include "partials/journal.html" %}
 
 {% if history %}
@@ -95,7 +97,7 @@
     {% for c in history %}
       <tr>
         <td class="h-date">{{ c.done_on|d }}</td>
-        <td class="h-task">{{ c.task.category_icon }} {{ c.task.title }}{% if c.km %} <small class="muted">· {{ c.km }} km</small>{% endif %}{% if c.vendor %} <small class="muted">· {{ c.vendor }}</small>{% endif %}{% if c.notes %}<small class="muted h-note">{{ c.notes }}</small>{% endif %}</td>
+        <td class="h-task">{{ c.task.category_icon }} {{ c.task.title }}{% if c.km %} <small class="muted">· {{ c.km }} km</small>{% endif %}{% if c.vendor %} <small class="muted">· {{ c.vendor }}</small>{% endif %}{% for a in c.attachments %} <a href="/files/{{ a.id }}" target="_blank" rel="noopener" hx-boost="false" class="h-file" title="{{ a.kind_label }}: {{ a.original_name }}" aria-label="{{ a.kind_label }}: {{ a.original_name }}">📎</a>{% endfor %}{% if c.notes %}<small class="muted h-note">{{ c.notes }}</small>{% endif %}</td>
         <td class="h-amt">{% if c.task.direction == 'income' %}{{ c.actual_amount_gr|pln(sign=True) }}{% elif c.task.direction == 'expense' and c.actual_amount_gr %}{{ (-c.actual_amount_gr)|pln(sign=True) }}{% else %}{{ c.actual_amount_gr|pln }}{% endif %}</td>
         <td class="h-who">{{ c.performed_by.name if c.performed_by else ('automatycznie' if c.notes == 'Zapłacone automatycznie' else '') }}</td>
         <td class="h-undo">

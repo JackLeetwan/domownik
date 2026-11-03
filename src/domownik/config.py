@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     evening_hour: int = 19
     # background jobs (digests, autopay); off in tests and throwaway dev copies
     scheduler: bool = True
+    # documents and photos kept with items (data/uploads/files)
+    max_upload_mb: int = 20
+    max_upload_files: int = 20
 
     @property
     def db_path(self) -> Path:
@@ -34,6 +37,10 @@ class Settings(BaseSettings):
     @property
     def uploads_dir(self) -> Path:
         return self.data_dir / "uploads"
+
+    @property
+    def files_dir(self) -> Path:
+        return self.uploads_dir / "files"
 
     @property
     def secrets_dir(self) -> Path:

@@ -15,12 +15,13 @@ from sqlalchemy.orm import Session, selectinload
 from domownik import catalog
 from domownik.domain.text import fold, snippet, terms
 from domownik.domain.tree import Tree
-from domownik.models import BoardNote, Completion, Issue, JournalEntry, Task, Todo
+from domownik.models import Attachment, BoardNote, Completion, Issue, JournalEntry, Task, Todo, Warranty
 
 # group key → (heading, icon), in display order
 KINDS: dict[str, tuple[str, str]] = {
     "item": ("Strefy i elementy", "📦"),
     "task": ("Zadania", "📋"),
+    "doc": ("Dokumenty i gwarancje", "📎"),
     "todo": ("Do zrobienia", "☐"),
     "issue": ("Usterki i sprawy", "⚠️"),
     "journal": ("Dziennik", "📓"),
@@ -129,6 +130,35 @@ def search(db: Session, query: str) -> Results:
         )
         if h:
             groups["task"].append(h)
+
+    for a in db.scalars(select(Attachment).where(Attachment.item_id.in_(visible))):
+        h = _hit(
+            "doc",
+            words,
+            a.original_name,
+            [a.description or "", a.kind_label],
+            icon=a.icon,
+            path=f"{path_of(a.item_id)} · {a.kind_label} · {_d(a.created_at.date())}",
+            url=f"/files/{a.id}/view",
+            sort=(0, -a.created_at.timestamp()),
+        )
+        if h:
+            groups["doc"].append(h)
+
+    for w in db.scalars(select(Warranty).where(Warranty.item_id.in_(visible))):
+        until = f" · do {_d(w.ends_on)}" if w.ends_on else ""
+        h = _hit(
+            "doc",
+            words,
+            w.name,
+            [w.notes or "", "Gwarancja / umowa"],
+            icon="📄",
+            path=path_of(w.item_id) + until,
+            url=f"/items/{w.item_id}#dokumenty",
+            sort=(0, -w.created_at.timestamp()),
+        )
+        if h:
+            groups["doc"].append(h)
 
     for td in db.scalars(select(Todo)):
         if td.item_id is not None and td.item_id not in visible:

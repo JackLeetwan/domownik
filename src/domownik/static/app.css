@@ -847,3 +847,44 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 .bud-tile:hover { border-color: var(--pico-primary); }
 .bud-tile-txt { font-variant-numeric: tabular-nums; }
 .tools-compact + .bud-tile { margin-top: -0.5rem; }
+
+/* documents & warranties on the item page */
+.docs .warranty-list, .docs .doc-list { list-style: none; padding: 0; margin: 0 0 0.75rem; }
+.docs .warranty { list-style: none; border-bottom: 1px solid var(--dm-tile-border); padding: 0.4rem 0.1rem; }
+.docs .warranty > details { margin: 0; }
+.docs .warranty > details > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; cursor: pointer; list-style: none; }
+.docs .warranty > details > summary::-webkit-details-marker { display: none; }
+.docs .warranty > details > summary::after { display: none; }
+.docs .w-name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.docs .w-doc { text-decoration: none; }
+.docs .w-body { padding: 0.4rem 0 0.2rem; }
+.docs .w-body .notes { white-space: pre-line; }
+.badge.w-expired { background: color-mix(in srgb, var(--pico-muted-color) 22%, transparent); color: var(--pico-muted-color); }
+.w-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.doc-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 0.4rem; margin: 0 0 0.6rem; }
+.doc-thumb { position: relative; display: block; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--dm-tile-border); background: var(--dm-tile-bg); }
+.doc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.doc-thumb-kind { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.1rem 0.3rem; font-size: 0.65rem; line-height: 1.3; color: #fff; background: rgba(0, 0, 0, 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-more { display: none !important; }
+.doc-thumbs.show-all > .doc-more { display: block !important; }
+.doc-list.show-all > .doc-more { display: flex !important; }
+.doc-show-all { margin: -0.3rem 0 0.6rem; }
+.doc-list .doc { list-style: none; display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.4rem 0.1rem; border-bottom: 1px solid var(--dm-tile-border); }
+.doc-ic { flex: none; font-size: 1.15rem; line-height: 1.3; }
+.doc-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.doc-txt > a { overflow-wrap: anywhere; }
+.doc-desc { white-space: pre-line; }
+.doc-edit { flex: none; text-decoration: none; padding: 0 0.3rem; color: var(--pico-muted-color); }
+.doc-adds { display: flex; flex-wrap: wrap; gap: 0 1.25rem; }
+.doc-adds > details { flex: 1 1 18rem; min-width: 0; margin-bottom: 0.25rem; }
+.doc-pick { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.25rem; }
+.doc-pick .pick-btn { position: relative; margin: 0; width: auto; cursor: pointer; }
+.doc-pick .pick-btn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; margin: 0; }
+.doc-upload [data-file-names] { display: block; margin-bottom: 0.6rem; overflow-wrap: anywhere; }
+.doc-hint { margin: 0 0 0.4rem; }
+.doc-preview { display: block; margin: 0 0 0.6rem; text-align: center; }
+.doc-preview img { max-width: 100%; max-height: 65vh; border-radius: 8px; object-fit: contain; }
+.doc-title { overflow-wrap: anywhere; }
+.doc-open { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.doc-open [role=button] { margin: 0; }
+.h-file { text-decoration: none; }

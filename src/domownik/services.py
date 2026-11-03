@@ -628,6 +628,7 @@ CATEGORY_PLURALS = {
     "event": "Wydarzenia",
     "occasion": "Okazje",
     "shopping": "Zakupy",
+    "warranty": "Gwarancje i umowy",
     "other": "Inne",
 }
 

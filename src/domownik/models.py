@@ -52,6 +52,7 @@ CATEGORIES: dict[str, tuple[str, str]] = {
     "event": ("Wydarzenie", "📅"),
     "occasion": ("Okazja / prezent", "🎁"),
     "shopping": ("Zakupy", "🛒"),
+    "warranty": ("Gwarancja / umowa", "📄"),
     "other": ("Inne", "📌"),
 }
 
@@ -145,6 +146,14 @@ class Item(Base):
         back_populates="item",
         cascade="all, delete-orphan",
         order_by="JournalEntry.noted_on.desc(), JournalEntry.id.desc()",
+    )
+    attachments: Mapped[list[Attachment]] = relationship(
+        back_populates="item",
+        cascade="all, delete-orphan",
+        order_by="Attachment.created_at.desc(), Attachment.id.desc()",
+    )
+    warranties: Mapped[list[Warranty]] = relationship(
+        back_populates="item", cascade="all, delete-orphan", order_by="Warranty.ends_on, Warranty.id"
     )
 
     @property
@@ -284,6 +293,8 @@ class Completion(Base):
 
     task: Mapped[Task] = relationship(back_populates="completions")
     performed_by: Mapped[User | None] = relationship()
+    # invoice / receipt photographed when ticking the task off (the files stay on the item if this goes)
+    attachments: Mapped[list[Attachment]] = relationship(back_populates="completion", passive_deletes=True)
 
 
 class Measurement(Base):
@@ -416,3 +427,86 @@ class BoardNote(Base):
 
     def is_active(self, today: date) -> bool:
         return not self.archived and (self.valid_until is None or self.valid_until >= today)
+
+
+DOC_KINDS: dict[str, tuple[str, str]] = {
+    # doc_kind: (label, icon)
+    "policy": ("Polisa", "🛡️"),
+    "invoice": ("Faktura / paragon", "🧾"),
+    "warranty": ("Gwarancja", "📄"),
+    "contract": ("Umowa", "📝"),
+    "manual": ("Instrukcja", "📘"),
+    "registration": ("Dowód / rejestracja", "🪪"),
+    "photo": ("Zdjęcie", "📷"),
+    "other": ("Inne", "📎"),
+}
+
+
+class Attachment(Base):
+    """A file kept with an item: photo, policy PDF, invoice, manual… The bytes live in data/uploads/files."""
+
+    __tablename__ = "attachment"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
+    # set when added while ticking a task off ("faktura za serwis")
+    completion_id: Mapped[int | None] = mapped_column(ForeignKey("completion.id", ondelete="SET NULL"), index=True)
+    # relative to the uploads dir, e.g. "files/12/<32 hex>.jpg" – random, never derived from the upload's name
+    storage_path: Mapped[str] = mapped_column(String(120), unique=True)
+    original_name: Mapped[str] = mapped_column(String(200))
+    content_type: Mapped[str] = mapped_column(String(100))
+    size: Mapped[int] = mapped_column(Integer)
+    doc_kind: Mapped[str] = mapped_column(String(20), default="other")
+    description: Mapped[str | None] = mapped_column(String(300))
+    has_thumb: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    item: Mapped[Item] = relationship(back_populates="attachments")
+    completion: Mapped[Completion | None] = relationship(back_populates="attachments")
+    created_by: Mapped[User | None] = relationship()
+
+    @property
+    def is_image(self) -> bool:
+        return self.content_type.startswith("image/")
+
+    @property
+    def is_pdf(self) -> bool:
+        return self.content_type == "application/pdf"
+
+    @property
+    def kind_label(self) -> str:
+        return DOC_KINDS.get(self.doc_kind, DOC_KINDS["other"])[0]
+
+    @property
+    def icon(self) -> str:
+        if self.is_pdf:
+            return "📕"
+        if self.is_image:
+            return "🖼️"
+        return DOC_KINDS.get(self.doc_kind, DOC_KINDS["other"])[1]
+
+
+class Warranty(Base):
+    """Warranty or contract with an end date ("gwarancja producenta 5 lat", "umowa najmu").
+
+    The end date is reminded through an ordinary one-off Task (task_id) – the timeline, calendar,
+    "Najbliższe terminy" and push notifications pick it up without any extra code.
+    """
+
+    __tablename__ = "warranty"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    starts_on: Mapped[date | None] = mapped_column(Date)
+    ends_on: Mapped[date | None] = mapped_column(Date)  # None = open-ended (no reminder)
+    notes: Mapped[str | None] = mapped_column(Text)
+    attachment_id: Mapped[int | None] = mapped_column(ForeignKey("attachment.id", ondelete="SET NULL"))
+    task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id", ondelete="SET NULL"))
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    item: Mapped[Item] = relationship(back_populates="warranties")
+    attachment: Mapped[Attachment | None] = relationship()
+    task: Mapped[Task | None] = relationship()

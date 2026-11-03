@@ -281,7 +281,30 @@
     }
   });
 
-  // ------------------------------------------------------------------ forms
+  // ------------------------------------------------------------------ documents
+  // file inputs hidden behind "Zrób zdjęcie" / "Wybierz pliki": show what was picked
+  document.addEventListener("change", (e) => {
+    const input = e.target;
+    if (!input.matches || !input.matches("input[type=file][data-file-pick]")) return;
+    const form = input.closest("form");
+    const out = form && form.querySelector("[data-file-names]");
+    if (!out) return;
+    const names = [];
+    form.querySelectorAll("input[type=file][data-file-pick]").forEach((i) => {
+      Array.from(i.files || []).forEach((f) => names.push(f.name));
+    });
+    if (!out.dataset.hint) out.dataset.hint = out.textContent;
+    out.textContent = names.length ? `Wybrano (${names.length}): ${names.join(", ")}` : out.dataset.hint;
+    out.classList.toggle("muted", !names.length);
+  });
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest && e.target.closest("[data-doc-more]");
+    if (!btn) return;
+    const box = btn.previousElementSibling;
+    if (box) box.classList.add("show-all");
+    btn.remove();
+  });
+
   function syncRuleForm(root) {
     root.querySelectorAll("select[data-mode]").forEach((sel) => {
       if (sel.dataset.dmInit) return;

@@ -1,0 +1,18 @@
+{# Fields of a warranty / contract form; wf = the warranty being edited or None for a new one #}
+<div class="grid">
+  <label>Nazwa<input name="name" required maxlength="200" value="{{ wf.name if wf else ('Gwarancja' if warranty_hint else '') }}" placeholder="{{ warranty_ph.get(item.kind, 'np. gwarancja, umowa serwisowa, umowa najmu') }}"></label>
+</div>
+<div class="grid w-dates">
+  <label>Od<input type="date" name="starts_on" value="{{ wf.starts_on.isoformat() if wf and wf.starts_on else '' }}"></label>
+  <label>Do<input type="date" name="ends_on" value="{{ wf.ends_on.isoformat() if wf and wf.ends_on else (warranty_hint.ends_on.isoformat() if not wf and warranty_hint and warranty_hint.ends_on else '') }}"></label>
+</div>
+{% set docs = photos + files %}
+{% if docs %}
+<label>Dokument
+  <select name="attachment_id">
+    <option value="">— bez dokumentu —</option>
+    {% for a in docs %}<option value="{{ a.id }}"{% if wf and wf.attachment_id == a.id %} selected{% endif %}>{{ a.kind_label }}: {{ a.original_name }}</option>{% endfor %}
+  </select>
+</label>
+{% endif %}
+<label>Notatka<textarea name="notes" rows="2" placeholder="np. warunek: coroczny przegląd w ASO">{{ wf.notes if wf and wf.notes else '' }}</textarea></label>

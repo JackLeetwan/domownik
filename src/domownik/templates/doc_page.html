@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ a.original_name }} · Domownik{% endblock %}
+{% block content %}
+{# The document window as a page of its own: an opened link to /files/{id}/view #}
+{% set crumbs_link_last = True %}
+{% include "partials/breadcrumbs.html" %}
+<article class="task-page doc-page">
+  {% include "partials/doc_modal.html" %}
+</article>
+{% endblock %}

@@ -17,7 +17,7 @@
 {% elif left == 1 %}<p class="muted">To ostatni termin tej serii.</p>{% endif %}
 {% if task.notes %}<p class="notes">{{ task.notes }}</p>{% endif %}
 
-<form hx-post="/tasks/{{ task.id }}/done" hx-target="#done-error" class="done-form">
+<form hx-post="/tasks/{{ task.id }}/done" hx-target="#done-error" hx-encoding="multipart/form-data" class="done-form">
   <div id="done-error"></div>
   <div class="grid">
     <label>Zrobione dnia <input type="date" name="done_on" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}"></label>
@@ -29,9 +29,10 @@
     {% endif %}
   </div>
   <details>
-    <summary>Więcej (wykonawca, notatka)</summary>
+    <summary>Więcej (wykonawca, notatka, faktura)</summary>
     <label>Wykonawca / sklep <input name="vendor"></label>
     <label>Notatka <textarea name="notes" rows="2"></textarea></label>
+    <label>Faktura / paragon <small class="muted">(zdjęcie lub PDF – trafi do dokumentów)</small><input type="file" name="files" multiple accept="image/*,.heic,application/pdf,.pdf"></label>
   </details>
   <footer class="modal-actions">
     <button type="submit">✓ Zrobione</button>

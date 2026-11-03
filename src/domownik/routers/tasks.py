@@ -6,10 +6,11 @@ from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from markupsafe import escape
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import budget, services
+from domownik import budget, documents, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain import recurrence
@@ -271,6 +272,10 @@ async def create_task(request: Request, db: Session = Depends(get_db), user: Use
     task = Task()
     try:
         _apply_form(task, form, db)
+        # the reminder of a warranty / contract: a new date here is the new end date
+        linked = documents.warranty_for_task(db, task.id)
+        if linked is not None and task.next_due_date and task.recurrence.get("mode") == "once":
+            linked.ends_on = task.next_due_date
     except (recurrence.RuleError, ValueError) as exc:
         return HTMLResponse(
             f'<p class="error">{exc}</p>',
@@ -390,7 +395,22 @@ async def complete(request: Request, task_id: int, db: Session = Depends(get_db)
             status_code=422,
             headers={"HX-Retarget": "#done-error", "HX-Reswap": "innerHTML"},
         )
-    services.complete_task(
+    # invoice / receipt photographed with the completion: stored first, so a bad file changes nothing
+    files = documents.uploads_in(form)
+    attached = []
+    if files:
+        try:
+            attached = documents.store_files(
+                db, task.item, [(f.filename or "", f.file) for f in files], user=user, doc_kind="invoice"
+            )
+        except documents.UploadError as exc:
+            db.rollback()
+            return HTMLResponse(
+                f'<p class="error">{escape(str(exc))}</p>',
+                status_code=422,
+                headers={"HX-Retarget": "#done-error", "HX-Reswap": "innerHTML"},
+            )
+    comp = services.complete_task(
         db,
         task,
         user=user,
@@ -400,6 +420,10 @@ async def complete(request: Request, task_id: int, db: Session = Depends(get_db)
         vendor=(form.get("vendor") or "").strip(),
         notes=(form.get("notes") or "").strip(),
     )
+    if attached:
+        for att in attached:
+            att.completion_id = comp.id
+        db.commit()
     return _after_action(request, task, leave=True)
 
 
@@ -492,6 +516,10 @@ async def update_task(
     form = await request.form()
     try:
         _apply_form(task, form, db)
+        # the reminder of a warranty / contract: a new date here is the new end date
+        linked = documents.warranty_for_task(db, task.id)
+        if linked is not None and task.next_due_date and task.recurrence.get("mode") == "once":
+            linked.ends_on = task.next_due_date
     except (recurrence.RuleError, ValueError) as exc:
         db.rollback()
         return HTMLResponse(

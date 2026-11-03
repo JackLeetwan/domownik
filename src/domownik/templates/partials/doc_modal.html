@@ -1,0 +1,36 @@
+{# One document: preview + edit. Window over the item page (htmx) or, with `page`, the body of /files/{id}/view #}
+<header>
+  {% if not page %}<button class="close" aria-label="Zamknij" data-close>✕</button>{% endif %}
+  <{{ 'h1' if page else 'h3' }} id="modal-title" class="doc-title">{{ a.icon }} {{ a.original_name }}</{{ 'h1' if page else 'h3' }}>
+  <p class="muted">{{ a.kind_label }} · {{ a.created_at.date()|d }}{% if a.created_by %} · {{ a.created_by.name }}{% endif %} · {{ human_size(a.size) }}{% if a.completion %} · <a href="/tasks/{{ a.completion.task_id }}">{{ a.completion.task.title }}</a> ({{ a.completion.done_on|d }}){% endif %}</p>
+</header>
+{% if a.is_image and a.has_thumb %}
+<a href="/files/{{ a.id }}" target="_blank" rel="noopener" hx-boost="false" class="doc-preview">
+  <img src="/files/{{ a.id }}" alt="{{ a.description or a.original_name }}">
+</a>
+{% endif %}
+{% if a.description %}<p class="notes">{{ a.description }}</p>{% endif %}
+<p class="doc-open">
+  {% if a.is_image or a.is_pdf %}<a href="/files/{{ a.id }}" target="_blank" rel="noopener" hx-boost="false" role="button" class="outline">Otwórz{% if a.is_pdf %} PDF{% endif %} w nowej karcie</a>{% endif %}
+  <a href="/files/{{ a.id }}?dl=1" download hx-boost="false" role="button" class="outline secondary">Pobierz</a>
+</p>
+<details>
+  <summary>Edytuj</summary>
+  <form method="post" action="/files/{{ a.id }}/edit">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="grid">
+      <label>Rodzaj
+        <select name="doc_kind">{% for k, (lbl, ic) in doc_kinds.items() %}<option value="{{ k }}"{% if a.doc_kind == k %} selected{% endif %}>{{ ic }} {{ lbl }}</option>{% endfor %}</select>
+      </label>
+      <label>Nazwa<input name="original_name" maxlength="200" value="{{ a.original_name }}" required></label>
+    </div>
+    <label>Opis<input name="description" maxlength="300" value="{{ a.description or '' }}"></label>
+    <footer class="modal-actions">
+      <button type="submit">Zapisz</button>
+    </footer>
+  </form>
+</details>
+<form method="post" action="/files/{{ a.id }}/delete" class="inline" hx-confirm="Usunąć „{{ a.original_name }}”? Plik zniknie z Domownika (zostanie tylko w starszych kopiach zapasowych).">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit" class="link danger"><small>Usuń plik</small></button>
+</form>

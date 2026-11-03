@@ -5,14 +5,14 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from domownik import catalog, services
-from domownik.config import today
+from domownik import catalog, documents, services
+from domownik.config import get_settings, today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
 from domownik.domain.tree import Tree
-from domownik.models import ITEM_KINDS, Completion, Issue, Item, JournalEntry, Measurement, Task, Todo, User
+from domownik.models import DOC_KINDS, ITEM_KINDS, Completion, Issue, Item, JournalEntry, Measurement, Task, Todo, User
 from domownik.security import current_user, verify_csrf
 from domownik.web import render
 
@@ -164,6 +164,7 @@ def item_page(request: Request, item_id: int, db: Session = Depends(get_db), use
             select(Completion)
             .join(Task)
             .where(Task.item_id.in_(vis.subtree_ids(item_id) or {item_id}))
+            .options(selectinload(Completion.attachments))
             .order_by(Completion.done_on.desc(), Completion.id.desc())
             .limit(30)
         )
@@ -185,6 +186,9 @@ def item_page(request: Request, item_id: int, db: Session = Depends(get_db), use
     tpl = _template_for_kind(item.kind)
     # a household member linked to an account: everything that person takes care of, house-wide
     care_rows = services.rows_assigned_to(db, vis, t, item.user_id) if item.kind == "member" and item.user_id else []
+    attachments = list(item.attachments)
+    # "Gwarancja do" typed into the item's details (appliance templates) – offer it as a real warranty
+    warranty_attr = (item.attributes or {}).get("warranty_until")
     return render(
         request,
         "item.html",
@@ -215,6 +219,17 @@ def item_page(request: Request, item_id: int, db: Session = Depends(get_db), use
             "users": list(db.scalars(select(User).where(User.is_active.is_(True)))),
             "label": vis.label,
             "timeline_item": item_id,
+            "photos": [a for a in attachments if a.has_thumb],
+            "files": [a for a in attachments if not a.has_thumb],
+            "doc_kinds": DOC_KINDS,
+            "human_size": documents.human_size,
+            "warranties": [(w, *documents.warranty_status(w, t)) for w in item.warranties],
+            "warranty_hint": (
+                {"text": str(warranty_attr), "ends_on": documents.parse_loose_date(str(warranty_attr))}
+                if warranty_attr and not item.warranties
+                else None
+            ),
+            "max_upload_mb": get_settings().max_upload_mb,
         },
     )
 

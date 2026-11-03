@@ -1,0 +1,113 @@
+{# Item page: warranties / contracts with an end date, photos and files kept with the item #}
+{% set warranty_ph = {
+  'car': 'np. gwarancja, leasing, assistance',
+  'house': 'np. gwarancja na dach, umowa serwisowa kotła',
+  'apartment': 'np. umowa najmu, gwarancja dewelopera',
+  'rental': 'np. umowa najmu',
+  'appliance': 'np. gwarancja producenta 5 lat',
+} %}
+<section class="notes-section docs" id="dokumenty">
+  <h2>Dokumenty{% if photos or files %} <small class="muted">({{ photos|length + files|length }})</small>{% endif %}</h2>
+
+  {% if warranties %}
+  <ul class="warranty-list" aria-label="Gwarancje i umowy">
+    {% for w, status, days in warranties %}
+    <li class="warranty">
+      <details>
+        <summary>
+          <span class="w-name">📄 {{ w.name }}</span>
+          {% if status == 'open' %}<span class="badge later">bezterminowo</span>
+          {% elif status == 'expired' %}<span class="badge w-expired">wygasła {{ w.ends_on|d }}</span>
+          {% elif status == 'today' %}<span class="badge today">kończy się dziś</span>
+          {% elif status == 'soon' %}<span class="badge soon">kończy się za {{ days }} {{ 'dzień' if days == 1 else 'dni' }}</span>
+          {% else %}<span class="badge ok">ważna do {{ w.ends_on|d }}</span>{% endif %}
+          {% if w.attachment %}<a href="/files/{{ w.attachment.id }}" target="_blank" rel="noopener" hx-boost="false" class="w-doc" title="{{ w.attachment.original_name }}" aria-label="Dokument: {{ w.attachment.original_name }}">📎</a>{% endif %}
+        </summary>
+        <div class="w-body">
+          <p class="muted"><small>{% if w.starts_on %}od {{ w.starts_on|d }} {% endif %}{% if w.ends_on %}do {{ w.ends_on|d }}{% endif %}{% if w.task_id and status != 'expired' %} · przypomnienie {{ w.task.lead_days if w.task else 30 }} dni przed końcem{% endif %}</small></p>
+          {% if w.notes %}<p class="notes">{{ w.notes }}</p>{% endif %}
+          <form method="post" action="/warranties/{{ w.id }}/edit">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <div id="warranty-error-{{ w.id }}"></div>
+            {% set wf = w %}{% include "partials/warranty_fields.html" %}
+            <div class="issue-actions"><button type="submit" class="small">Zapisz</button></div>
+          </form>
+          <form method="post" action="/warranties/{{ w.id }}/delete" class="inline" hx-confirm="Usunąć „{{ w.name }}” razem z przypomnieniem? Dokument zostaje.">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button type="submit" class="link danger"><small>Usuń</small></button>
+          </form>
+        </div>
+      </details>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if photos %}
+  <div class="doc-thumbs">
+    {% for a in photos %}
+    <a href="/files/{{ a.id }}/view" hx-get="/files/{{ a.id }}/view" hx-target="#modal-body" hx-push-url="false" class="doc-thumb{% if loop.index > 8 %} doc-more{% endif %}" title="{{ a.description or a.original_name }}">
+      <img src="/files/{{ a.id }}/thumb" alt="{{ a.description or a.original_name }}" loading="lazy" decoding="async">
+      {% if a.doc_kind != 'photo' %}<span class="doc-thumb-kind">{{ a.kind_label }}</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% if photos|length > 8 %}<button type="button" class="link doc-show-all" data-doc-more><small>Pokaż wszystkie zdjęcia ({{ photos|length }})</small></button>{% endif %}
+  {% endif %}
+
+  {% if files %}
+  <ul class="doc-list">
+    {% for a in files %}
+    <li class="doc{% if loop.index > 6 %} doc-more{% endif %}">
+      <span class="doc-ic" aria-hidden="true">{{ a.icon }}</span>
+      <span class="doc-txt">
+        <a href="/files/{{ a.id }}" {% if a.is_image or a.is_pdf %}target="_blank" rel="noopener"{% else %}download{% endif %} hx-boost="false">{{ a.original_name }}</a>
+        <small class="muted">{{ a.kind_label }} · {{ a.created_at.date()|d }} · {{ human_size(a.size) }}{% if a.completion %} · {{ a.completion.task.title }}{% endif %}</small>
+        {% if a.description %}<small class="doc-desc">{{ a.description }}</small>{% endif %}
+      </span>
+      <a href="/files/{{ a.id }}/view" hx-get="/files/{{ a.id }}/view" hx-target="#modal-body" hx-push-url="false" class="doc-edit" title="Szczegóły / edytuj" aria-label="Edytuj: {{ a.original_name }}">✎</a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if files|length > 6 %}<button type="button" class="link doc-show-all" data-doc-more><small>Pokaż wszystkie pliki ({{ files|length }})</small></button>{% endif %}
+  {% endif %}
+
+  {% if warranty_hint %}
+  <p class="muted doc-hint"><small>W szczegółach jest „Gwarancja do: {{ warranty_hint.text }}” – dodaj ją niżej jako gwarancję, a Domownik przypomni miesiąc przed końcem.</small></p>
+  {% endif %}
+
+  <div class="doc-adds">
+    <details class="quick-add">
+      <summary>＋ Zdjęcie lub plik</summary>
+      <form method="post" action="/items/{{ item.id }}/files" enctype="multipart/form-data" hx-encoding="multipart/form-data" class="doc-upload">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div id="files-error"></div>
+        <div class="doc-pick">
+          <label class="pick-btn" role="button">📷 Zrób zdjęcie<input type="file" name="files" accept="image/*" capture="environment" data-file-pick></label>
+          <label class="pick-btn outline" role="button">📁 Wybierz pliki<input type="file" name="files" multiple accept="image/*,.heic,.heif,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.odt,.ods,.txt,.csv,.zip" data-file-pick></label>
+        </div>
+        <small class="muted" data-file-names>Zdjęcia, PDF, dokumenty – do {{ max_upload_mb }} MB każdy, kilka naraz.</small>
+        <div class="grid">
+          <label>Rodzaj
+            <select name="doc_kind">
+              <option value="">automatycznie (zdjęcie / inne)</option>
+              {% for k, (lbl, ic) in doc_kinds.items() %}<option value="{{ k }}">{{ ic }} {{ lbl }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>Opis<input name="description" maxlength="300" placeholder="np. polisa 2026, tabliczka znamionowa"></label>
+        </div>
+        <button type="submit">Dodaj</button>
+      </form>
+    </details>
+    <details class="quick-add"{% if warranty_hint %} open{% endif %}>
+      <summary>＋ Gwarancja / umowa</summary>
+      <form method="post" action="/items/{{ item.id }}/warranties">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div id="warranty-error"></div>
+        {% set wf = None %}{% include "partials/warranty_fields.html" %}
+        <small class="muted">Z datą końca Domownik sam przypomni 30 dni wcześniej (oś czasu, kalendarz, powiadomienia).</small>
+        <button type="submit">Zapisz</button>
+      </form>
+    </details>
+  </div>
+</section>
