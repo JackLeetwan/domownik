@@ -348,6 +348,10 @@
     const root = e.detail.elt;
     syncRuleForm(root);
     syncTaskForm(root);
+    // details folded to one line on phones (item facts) start open where there is room
+    if (root.querySelectorAll && window.matchMedia("(min-width: 1024px)").matches) {
+      root.querySelectorAll("details[data-open-wide]").forEach((d) => { d.open = true; });
+    }
     const card = root.matches && root.matches(".timeline-card") ? root : root.querySelector && root.querySelector(".timeline-card");
     if (card) initTimeline(card);
     updateBulk();
@@ -452,7 +456,7 @@
     if (!modal || !body) return;
     const d = new Date(p.date + "T12:00:00");
     const when = p.start === p.end ? fmtFull.format(d) : `${fmtDay.format(new Date(p.start + "T12:00:00"))} – ${fmtDay.format(new Date(p.end + "T12:00:00"))}`;
-    const rows = p.tasks.map((t) => `<li><a href="#" hx-get="/tasks/${t.task_id}" hx-target="#modal-body" hx-push-url="false">`
+    const rows = p.tasks.map((t) => `<li><a href="/tasks/${t.task_id}" hx-get="/tasks/${t.task_id}" hx-target="#modal-body" hx-push-url="false">`
       + `<span>${esc(t.icon)} ${esc(t.title)}</span><small class="muted">${esc(t.zone)} · ${esc(fmtDay.format(new Date(t.date + "T12:00:00")))}</small></a>`
       + `<span class="amount">${esc(signed(t.amount, t.direction))}</span></li>`).join("");
     body.innerHTML = `<header><button class="close" aria-label="Zamknij" data-close>✕</button>`

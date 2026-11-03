@@ -9,11 +9,24 @@
   'child': 'rozmiar butów, grupa krwi, PESEL do formularzy…',
   'person': 'rozmiar ubrań, ulubione rzeczy, adres…',
 } %}
-<article class="facts">
+{% set fact_values = [] %}{% for k, v in item.attributes.items() if not k.startswith('_') and v|string %}{% set _ = fact_values.append(v|string) %}{% endfor %}
+{% set km_text = "{:,}".format(last_km).replace(",", " ") ~ " km" if last_km else "" %}
+{% set facts_dl %}
   <dl>
     {% for k, v in item.attributes.items() if not k.startswith('_') %}<div><dt>{{ attr_labels.get(k, k) }}</dt><dd>{{ v }}</dd></div>{% endfor %}
-    {% if last_km %}<div><dt>Przebieg</dt><dd>{{ "{:,}".format(last_km).replace(",", " ") }} km</dd></div>{% endif %}
+    {% if last_km %}<div><dt>Przebieg</dt><dd>{{ km_text }}</dd></div>{% endif %}
   </dl>
+{% endset %}
+<article class="facts">
+  {% if fact_values|length + (1 if last_km else 0) > 3 %}
+  {# many details (a car: plate, model, VIN, tyres…) – one summary line on phones, open on wide screens (app.js) #}
+  <details class="facts-more" data-open-wide>
+    <summary><span class="facts-sum">{{ (fact_values[:2] + [km_text] if last_km else fact_values[:3])|join(" · ") }}</span> <small class="muted facts-label">Szczegóły</small></summary>
+    {{ facts_dl }}
+  </details>
+  {% else %}
+  {{ facts_dl }}
+  {% endif %}
   <details class="pinned">
     <summary>{% if item.notes %}<span class="notes">📌 {{ item.notes }}</span> <small class="muted">✎</small>{% else %}<span class="muted">📌 Przypnij informacje ({{ pin_hints.get(item.kind, 'nr polisy, nr umowy, numer konta…') }})</span>{% endif %}</summary>
     <form method="post" action="/items/{{ item.id }}/notes">

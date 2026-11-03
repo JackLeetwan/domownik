@@ -105,13 +105,22 @@ button.link { background: none; border: 0; padding: 0; color: var(--pico-primary
 .task-main { display: flex; gap: 0.6rem; align-items: center; text-decoration: none; color: inherit; min-width: 0; }
 .task-icon { font-size: 1.2rem; }
 .task-text { display: flex; flex-direction: column; min-width: 0; }
-.task-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+/* long titles wrap to two lines (then "…") instead of being cut to a few characters on phones */
+.task-text strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-weight: 600; line-height: 1.3; }
 .task-due { display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
 .task-amount { font-variant-numeric: tabular-nums; font-size: 0.9rem; min-width: 5ch; text-align: right; }
 .done-btn { width: 2.3rem; height: 2.3rem; padding: 0; margin: 0; border-radius: 50%; }
 @media (max-width: 560px) {
   .task-row { grid-template-columns: 1fr auto auto; grid-template-areas: "main due btn" "main amount btn"; row-gap: 0.1rem; }
   .task-main { grid-area: main; } .task-due { grid-area: due; } .task-amount { grid-area: amount; font-size: 0.8rem; } .done-btn { grid-area: btn; }
+  /* the title gets the room: tighter gaps, a smaller date/amount column and check button */
+  .task-row { column-gap: 0.5rem; padding-left: 0.6rem; padding-right: 0.25rem; }
+  .task-main { gap: 0.45rem; }
+  .task-icon { font-size: 1.05rem; }
+  .task-text strong { font-size: 0.95rem; }
+  .task-due small { font-size: 0.72rem; white-space: nowrap; }
+  .task-amount { min-width: 0; }
+  .done-btn { width: 2rem; height: 2rem; }
 }
 
 /* timeline */
@@ -193,11 +202,33 @@ body div.vis-tooltip { font-family: var(--pico-font-family); font-size: 0.82rem;
 .item-actions [role=button] { padding: 0.4rem 0.9rem; font-size: 0.9rem; }
 .facts dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.5rem 1rem; margin: 0; }
 .facts dt { font-size: 0.78rem; color: var(--pico-muted-color); }
-.facts dd { margin: 0; font-weight: 600; }
+.facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.facts-more { margin: 0 0 0.25rem; }
+.facts-more > summary { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin: 0; }
+.facts-more > summary::after { flex: none; margin-left: 0; }
+.facts-sum { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.facts-label { flex: none; }
+.facts-more[open] > summary { margin-bottom: 0.6rem; }
+.facts-more[open] .facts-sum { visibility: hidden; }
 .notes { white-space: pre-wrap; }
 .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.5rem; }
 .chip { padding: 0.25rem 0.75rem; border: 1px solid var(--dm-tile-border); border-radius: 999px; text-decoration: none; font-size: 0.88rem; background: var(--dm-tile-bg); }
 .history td, .history th { font-size: 0.88rem; }
+.history .h-note { display: block; white-space: pre-line; }
+.history .h-date { white-space: nowrap; }
+/* phones: every entry is a card – date · who … amount ↶, the task (and its note) below at full width */
+@media (max-width: 639.98px) {
+  .history, .history tbody { display: block; }
+  .history thead { display: none; }
+  .history tr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "date who amt undo" "task task task task"; align-items: baseline; column-gap: 0.6rem; padding: 0.5rem 0.25rem; border-bottom: 1px solid var(--dm-tile-border); }
+  .history td { display: block; padding: 0; border: 0; background: none; }
+  .history .h-date { grid-area: date; font-weight: 600; white-space: nowrap; }
+  .history .h-who { grid-area: who; color: var(--pico-muted-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .history .h-who:not(:empty)::before { content: "· "; }
+  .history .h-amt { grid-area: amt; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+  .history .h-undo { grid-area: undo; }
+  .history .h-task { grid-area: task; padding-top: 0.15rem; }
+}
 .danger-zone { margin-top: 2rem; }
 .km-form form { align-items: end; }
 
@@ -344,7 +375,8 @@ button.danger { color: var(--pico-del-color, #c62828); }
 :root { --dm-side-w: 232px; }
 .has-nav .page { min-width: 0; }
 .has-nav main.container { max-width: 1280px; width: 100%; margin-inline: auto; padding-top: 1rem; }
-.sidebar { background: var(--dm-tile-bg); border-right: 1px solid var(--dm-tile-border); padding: 1rem 0.75rem 0; display: flex; flex-direction: column; gap: 0.15rem; overflow-y: auto; overflow-x: hidden; }
+.sidebar { background: var(--dm-tile-bg); border-right: 1px solid var(--dm-tile-border); padding: 1rem 0.75rem 0; display: flex; flex-direction: column; gap: 0.15rem; overflow: hidden; }
+.side-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; margin-inline: -0.75rem; padding: 0 0.75rem 0.5rem; }
 .sidebar-brand { display: block; padding: 0.25rem 0.6rem 0.75rem; }
 .side-links { list-style: none; margin: 0; padding: 0; }
 .side-links li { list-style: none; margin: 0; }
@@ -356,7 +388,8 @@ button.danger { color: var(--pico-del-color, #c62828); }
 .side-soon small { margin-left: auto; font-size: 0.7rem; }
 .side-links .count, .bottombar .count { margin-left: auto; min-width: 1.4rem; padding: 0 0.4rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-align: center; background: var(--pico-primary-background); color: #fff; }
 .side-head { margin: 0.9rem 0 0.2rem; padding: 0 0.6rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pico-muted-color); }
-.side-foot { margin-top: auto; position: sticky; bottom: 0; background: inherit; padding: 0.75rem 0.6rem 1rem; display: flex; align-items: center; gap: 0.8rem; font-size: 0.9rem; border-top: 1px solid var(--dm-tile-border); flex-wrap: wrap; row-gap: 0.3rem; }
+.side-foot { flex: 0 0 auto; padding: 0.75rem 0.6rem 1rem; display: flex; align-items: center; gap: 0.8rem; font-size: 0.9rem; border-top: 1px solid var(--dm-tile-border); }
+.side-foot .muted { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-foot .theme-toggle { font-size: 1.15rem; }
 .side-foot form { margin-left: auto; }
 .bottombar, .nav-backdrop { display: none; }
@@ -416,6 +449,14 @@ button.danger { color: var(--pico-del-color, #c62828); }
 :root[data-theme="dark"] .note-card button.link, :root[data-theme="dark"] .note-card details > summary { color: #f3d36b; }
 :root[data-theme="dark"] .note-card textarea, :root[data-theme="dark"] .note-card input { background: #2a2610; color: #f3e9b8; }
 .notes-archive .note-card { opacity: 0.7; }
+/* quick add of a todo: one field + "Dodaj", the rest folded under "Więcej opcji" */
+.todo-add { margin: 0.5rem 0 1rem; }
+.todo-add-row { display: flex; gap: 0.5rem; margin-bottom: 0.25rem; }
+.todo-add-row input { flex: 1 1 auto; min-width: 0; margin: 0; }
+.todo-add-row button { flex: none; width: auto; margin: 0; }
+.todo-add-more { margin: 0; }
+.todo-add-more > summary { font-size: 0.88rem; color: var(--pico-muted-color); margin: 0.25rem 0 0; }
+.todo-add-more[open] > summary { margin-bottom: 0.6rem; }
 .todo-group { font-size: 1rem; margin: 1.1rem 0 0.25rem; color: var(--pico-muted-color); }
 /* Pico styles `aside li / aside a` – neutralise inside our sidebar */
 .sidebar .side-links li { padding: 0; margin: 0; }
@@ -502,7 +543,7 @@ code.topic { user-select: all; word-break: break-all; }
 .assign-zone-head input[type=checkbox], .arow input[type=checkbox] { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; }
 .arow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.4rem 0.75rem; padding: 0.55rem 0.25rem; border-bottom: 1px solid var(--dm-tile-border); list-style: none; }
 .arow-text { display: flex; flex-direction: column; min-width: 0; text-decoration: none; color: inherit; }
-.arow-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.arow-text strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-weight: 600; line-height: 1.3; }
 @media (max-width: 760px) {
   .arow { grid-template-columns: auto minmax(0, 1fr); }
   .arow .seg { grid-column: 1 / -1; gap: 0.3rem; }
@@ -635,6 +676,7 @@ code.topic { user-select: all; word-break: break-all; }
 .side-search-key { position: absolute; right: 0.6rem; top: 0.45rem; padding: 0 0.35rem; font-size: 0.7rem; line-height: 1.3rem; border: 1px solid var(--dm-tile-border); border-radius: 4px; background: var(--dm-surface); color: var(--pico-muted-color); pointer-events: none; }
 .side-search:focus-within .side-search-key { display: none; }
 .search-live:empty { display: none; }
+@media (max-width: 1023.98px) { .search-live { max-height: 50vh; overflow-y: auto; } }
 .search-live { margin-top: 0.4rem; padding: 0.5rem 0.6rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-surface); font-size: 0.88rem; white-space: normal; }
 @media (min-width: 1024px) {
   /* beside the sidebar, over the page – the sidebar is too narrow for results;
@@ -668,3 +710,7 @@ code.topic { user-select: all; word-break: break-all; }
 .search-page .search-group h3 { font-size: 1rem; margin-top: 1.1rem; }
 .search-page .search-hits a { padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--dm-tile-border); border-radius: 0; }
 .cal-head + .who-hint { margin: -0.4rem 0 0.6rem; }
+
+/* the task window as a page of its own (/tasks/{id} opened directly) */
+.task-page { margin-top: 0.5rem; }
+.task-page h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }

@@ -3,7 +3,7 @@
 {% set sub = label(task.item_id).split(' › ')[1:]|join(' › ') %}
 <li class="arow" id="arow-{{ task.id }}">
   <input type="checkbox" name="task_id" value="{{ task.id }}" form="bulk" aria-label="Zaznacz: {{ task.title }}">
-  <a class="arow-text" href="#" hx-get="/tasks/{{ task.id }}" hx-target="#modal-body" hx-push-url="false">
+  <a class="arow-text" href="/tasks/{{ task.id }}" hx-get="/tasks/{{ task.id }}" hx-target="#modal-body" hx-push-url="false">
     <strong>{{ task.category_icon }} {{ task.full_title }}</strong>
     <small class="muted">{% if sub %}{{ sub }} · {% endif %}{{ row.due.date|d if row.due.date else 'bez terminu' }}</small>
   </a>

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import calendar
 from datetime import date, timedelta
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -23,7 +24,7 @@ from domownik.models import (
     User,
 )
 from domownik.security import current_user, verify_csrf
-from domownik.web import render
+from domownik.web import is_htmx, render
 
 router = APIRouter()
 
@@ -322,10 +323,14 @@ def task_modal(request: Request, task_id: int, db: Session = Depends(get_db), us
         task.next_due_date or today(),
         (task.next_due_date or today()) + timedelta(days=366 * 3),
     )[1:4]
+    # a plain request (refresh, opened link, boosted navigation) gets a whole page, htmx the window content
+    page = not is_htmx(request) or request.headers.get("hx-boosted") == "true"
     return render(
         request,
-        "partials/task_modal.html",
+        "task_page.html" if page else "partials/task_modal.html",
         {
+            "page": page,
+            "path": tree.path(task.item_id) if page else [],
             "user": user,
             "task": task,
             "due": due,
@@ -339,6 +344,20 @@ def task_modal(request: Request, task_id: int, db: Session = Depends(get_db), us
             "left": recurrence.remaining(task.recurrence),
         },
     )
+
+
+def _on_task_page(request: Request, task_id: int) -> bool:
+    """Was the action sent from the full task page (/tasks/{id}) rather than the window over a list?"""
+    current = request.headers.get("hx-current-url") or ""
+    return urlsplit(current).path.rstrip("/") == f"/tasks/{task_id}"
+
+
+def _after_action(request: Request, task: Task, *, leave: bool) -> HTMLResponse:
+    """Reload the page the window was opened over; the full task page goes back to its zone after
+    "Zrobione"/"Pomiń" (and whenever the task has nothing left to show)."""
+    if _on_task_page(request, task.id) and (leave or not task.active):
+        return HTMLResponse("", headers={"HX-Redirect": f"/items/{task.item_id}"})
+    return HTMLResponse("", headers={"HX-Refresh": "true"})
 
 
 def _postpone_choices(due: date | None, t: date) -> list[tuple[str, date]]:
@@ -375,7 +394,7 @@ async def complete(request: Request, task_id: int, db: Session = Depends(get_db)
         vendor=(form.get("vendor") or "").strip(),
         notes=(form.get("notes") or "").strip(),
     )
-    return HTMLResponse("", headers={"HX-Refresh": "true"})
+    return _after_action(request, task, leave=True)
 
 
 @router.post("/tasks/bulk-done", dependencies=[Depends(verify_csrf)])
@@ -399,7 +418,7 @@ def undo(comp_id: int, db: Session = Depends(get_db), user: User = Depends(curre
 
 
 @router.post("/tasks/{task_id}/skip", dependencies=[Depends(verify_csrf)])
-def skip(task_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+def skip(request: Request, task_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     """Skip this occurrence without recording a completion.
 
     In a counted series the skipped occurrence is used up (a skipped instalment is still
@@ -413,7 +432,7 @@ def skip(task_id: int, db: Session = Depends(get_db), user: User = Depends(curre
     if nxt is None:
         task.active = False
     db.commit()
-    return HTMLResponse("", headers={"HX-Refresh": "true"})
+    return _after_action(request, task, leave=True)
 
 
 @router.post("/tasks/{task_id}/postpone", dependencies=[Depends(verify_csrf)])
@@ -436,7 +455,7 @@ async def postpone(request: Request, task_id: int, db: Session = Depends(get_db)
         task.recurrence = rule
         task.next_due_date = new
         db.commit()
-    return HTMLResponse("", headers={"HX-Refresh": "true"})
+    return _after_action(request, task, leave=False)
 
 
 def _postpone_error(msg: str) -> HTMLResponse:

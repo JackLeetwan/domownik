@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ task.title }} · Domownik{% endblock %}
+{% block content %}
+{# The task window as a page of its own: a refreshed or opened link to /tasks/{id} #}
+{% set crumbs_link_last = True %}
+{% include "partials/breadcrumbs.html" %}
+<article class="task-page">
+  {% include "partials/task_modal.html" %}
+</article>
+{% endblock %}

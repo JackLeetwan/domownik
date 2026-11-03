@@ -10,7 +10,7 @@
   <h3>{{ KINDS[k][1] }} {{ KINDS[k][0] }} <small class="muted">({{ hits|length }})</small></h3>
   <ul class="search-hits">
     {% for h in (hits[:limit] if limit else hits) %}
-    <li><a {% if h.task_id %}href="#" hx-get="/tasks/{{ h.task_id }}" hx-target="#modal-body" hx-push-url="false"{% else %}href="{{ h.url }}"{% endif %} data-search-hit>
+    <li><a {% if h.task_id %}href="/tasks/{{ h.task_id }}" hx-get="/tasks/{{ h.task_id }}" hx-target="#modal-body" hx-push-url="false"{% else %}href="{{ h.url }}"{% endif %} data-search-hit>
       <span class="hit-ic" aria-hidden="true">{{ h.icon }}</span>
       <span class="hit-txt">
         <strong>{{ h.title }}</strong>

@@ -7,7 +7,7 @@
 
 {% macro task_line(p, show_zone=True) %}
 <li class="cal-row st-{{ st(p) }}">
-  <a href="#" hx-get="/tasks/{{ p.task_id }}" hx-target="#modal-body" hx-push-url="false">
+  <a href="/tasks/{{ p.task_id }}" hx-get="/tasks/{{ p.task_id }}" hx-target="#modal-body" hx-push-url="false">
     <span class="cal-row-ic" aria-hidden="true">{{ p.icon }}</span>
     <span class="cal-row-txt">
       <strong>{{ avatar(p.assignee) }}{{ p.title }}</strong>

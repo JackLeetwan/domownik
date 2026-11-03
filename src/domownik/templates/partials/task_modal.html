@@ -1,6 +1,7 @@
+{# Window over a list (htmx) or, with `page`, the body of the full page /tasks/{id} (task_page.html) #}
 <header>
-  <button class="close" aria-label="Zamknij" data-close>✕</button>
-  <h3 id="modal-title">{{ task.category_icon }} {{ task.title }}{% if task.series_label %} <small class="badge series">{{ task.series_label }}</small>{% endif %}</h3>
+  {% if not page %}<button class="close" aria-label="Zamknij" data-close>✕</button>{% endif %}
+  <{{ 'h1' if page else 'h3' }} id="modal-title">{{ task.category_icon }} {{ task.title }}{% if task.series_label %} <small class="badge series">{{ task.series_label }}</small>{% endif %}</{{ 'h1' if page else 'h3' }}>
   <p class="muted">{{ zone }} · {{ task.recurrence|rule }}</p>
 </header>
 <p>
@@ -54,7 +55,7 @@
             hx-confirm="{% if task.series_label %}Pominąć ten termin ({{ task.series_label }})? Nie trafi do historii, ale liczy się jako wykorzystany{% if left == 1 %} – to ostatnia, seria się zakończy{% endif %}. Żeby tylko przesunąć termin, użyj „Przełóż”.{% else %}Pominąć ten termin bez zapisu w historii? Zadanie przejdzie do następnego terminu. Żeby tylko przesunąć termin, użyj „Przełóż”.{% endif %}">Pomiń termin</button>
     {% endif %}
     <a href="/tasks/{{ task.id }}/edit" role="button" class="outline secondary" hx-boost="false">Edytuj</a>
-    <a href="/items/{{ task.item_id }}" role="button" class="outline secondary" hx-boost="false">Strefa</a>
+    {% if not page %}<a href="/items/{{ task.item_id }}" role="button" class="outline secondary" hx-boost="false">Strefa</a>{% endif %}
   </footer>
 </form>
 {% if postpone_to %}<form id="postpone-{{ task.id }}" hx-post="/tasks/{{ task.id }}/postpone" hx-target="#postpone-error" hidden></form>{% endif %}

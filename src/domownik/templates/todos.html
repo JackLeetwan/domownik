@@ -10,11 +10,14 @@
 </header>
 <p class="muted"><small>Sprawy bez terminu. Gdy któraś dostanie datę, kliknij ją i wybierz „Zaplanuj” – trafi na oś czasu i do przypomnień.</small></p>
 
-<details class="quick-add" {% if not count %}open{% endif %}>
-  <summary>＋ Dodaj sprawę</summary>
-  <form method="post" action="/do-zrobienia">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <label>Co<input name="title" required placeholder="np. umówić hydraulika, oddać książki do biblioteki"></label>
+<form method="post" action="/do-zrobienia" class="todo-add">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="todo-add-row">
+    <input name="title" required placeholder="Co trzeba zrobić?" aria-label="Co trzeba zrobić?" enterkeyhint="done">
+    <button type="submit">Dodaj</button>
+  </div>
+  <details class="todo-add-more">
+    <summary>Więcej opcji</summary>
     <div class="grid">
       <label>Dotyczy
         <select name="item_id">
@@ -28,9 +31,8 @@
       <label>Notatka<input name="notes" placeholder="opcjonalnie"></label>
       <label>Szacowany koszt (zł)<input name="amount" inputmode="decimal" placeholder="opcjonalnie"></label>
     </div>
-    <button type="submit">Dodaj</button>
-  </form>
-</details>
+  </details>
+</form>
 
 {% for group, todos in groups.items() %}
 <h2 class="todo-group">{{ group }} <small>({{ todos|length }})</small></h2>

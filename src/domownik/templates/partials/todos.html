@@ -5,19 +5,21 @@
     {% for td in todos %}{% set show_zone = td.item_id != item.id %}{% include "partials/todo.html" %}{% endfor %}
   </ul>
   {% endif %}
-  <details class="quick-add">
-    <summary>＋ Dodaj</summary>
-    <form method="post" action="/items/{{ item.id }}/todos">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
-      <label>Co<input name="title" required placeholder="np. Wyszlifować i zabezpieczyć reflektory"></label>
+  <form method="post" action="/items/{{ item.id }}/todos" class="todo-add">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="todo-add-row">
+      <input name="title" required placeholder="Co trzeba zrobić?" aria-label="Co trzeba zrobić?" enterkeyhint="done">
+      <button type="submit">Dodaj</button>
+    </div>
+    <details class="todo-add-more">
+      <summary>Więcej opcji</summary>
       <label>Notatka<textarea name="notes" rows="2" placeholder="materiały, sposób, link do poradnika…"></textarea></label>
       <div class="grid">
         <label>Szacowany koszt (zł)<input name="amount" inputmode="decimal" placeholder="opcjonalnie"></label>
         <label>Kto<select name="assignee_id"><option value="">—</option>{% for u in users %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}</select></label>
       </div>
-      <button type="submit">Dodaj</button>
-    </form>
-  </details>
+    </details>
+  </form>
   {% if done_todos %}
   <details>
     <summary>Zrobione ({{ done_todos|length }})</summary>

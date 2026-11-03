@@ -141,7 +141,8 @@ def test_complete_task_flow(auth_client, db, user):
     assert comp.due_date == due and comp.actual_amount_gr == 4500 and comp.performed_by_id == user.id
     tr = db.scalar(select(Transaction).where(Transaction.completion_id == comp.id))
     assert tr.amount_gr == -4500 and tr.item_id == item.id
-    assert "<td>−45" in auth_client.get(f"/items/{item.id}").text  # history: expense with a minus, like the lists
+    # history: expense with a minus, like the lists
+    assert '<td class="h-amt">−45' in auth_client.get(f"/items/{item.id}").text
 
     # undo restores the previous due date and removes the transaction (cascade)
     auth_client.post(f"/completions/{comp.id}/undo")

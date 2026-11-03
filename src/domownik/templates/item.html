@@ -94,11 +94,11 @@
     <tbody>
     {% for c in history %}
       <tr>
-        <td>{{ c.done_on|d }}</td>
-        <td>{{ c.task.category_icon }} {{ c.task.title }}{% if c.km %} <small class="muted">· {{ c.km }} km</small>{% endif %}{% if c.vendor %} <small class="muted">· {{ c.vendor }}</small>{% endif %}{% if c.notes %}<br><small class="muted">{{ c.notes }}</small>{% endif %}</td>
-        <td>{% if c.task.direction == 'income' %}{{ c.actual_amount_gr|pln(sign=True) }}{% elif c.task.direction == 'expense' and c.actual_amount_gr %}{{ (-c.actual_amount_gr)|pln(sign=True) }}{% else %}{{ c.actual_amount_gr|pln }}{% endif %}</td>
-        <td>{{ c.performed_by.name if c.performed_by else ('automatycznie' if c.notes == 'Zapłacone automatycznie' else '') }}</td>
-        <td>
+        <td class="h-date">{{ c.done_on|d }}</td>
+        <td class="h-task">{{ c.task.category_icon }} {{ c.task.title }}{% if c.km %} <small class="muted">· {{ c.km }} km</small>{% endif %}{% if c.vendor %} <small class="muted">· {{ c.vendor }}</small>{% endif %}{% if c.notes %}<small class="muted h-note">{{ c.notes }}</small>{% endif %}</td>
+        <td class="h-amt">{% if c.task.direction == 'income' %}{{ c.actual_amount_gr|pln(sign=True) }}{% elif c.task.direction == 'expense' and c.actual_amount_gr %}{{ (-c.actual_amount_gr)|pln(sign=True) }}{% else %}{{ c.actual_amount_gr|pln }}{% endif %}</td>
+        <td class="h-who">{{ c.performed_by.name if c.performed_by else ('automatycznie' if c.notes == 'Zapłacone automatycznie' else '') }}</td>
+        <td class="h-undo">
           {% if c.id in undoable %}
           <form method="post" action="/completions/{{ c.id }}/undo" class="inline" hx-confirm="Cofnąć to wykonanie? Termin wróci na {{ c.due_date|d }}.{% if c.task.autopay and c.notes == 'Zapłacone automatycznie' and not c.performed_by %} Płatność automatyczna zostanie wyłączona dla tego zadania.{% endif %}">
             <input type="hidden" name="csrf" value="{{ csrf }}">
