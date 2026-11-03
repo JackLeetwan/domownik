@@ -184,5 +184,17 @@ def test_slow_submit_shows_busy_state():
 
 def test_asset_versions_bumped():
     base = (STATIC.parent / "templates" / "base.html").read_text()
-    assert int(re.search(r"app\.css\?v=(\d+)", base).group(1)) >= 51
-    assert int(re.search(r"app\.js\?v=(\d+)", base).group(1)) >= 29
+    assert int(re.search(r"app\.css\?v=(\d+)", base).group(1)) >= 52
+    assert int(re.search(r"app\.js\?v=(\d+)", base).group(1)) >= 30
+
+
+def test_one_style_for_titles_and_view_switches():
+    css = _css()
+    # every page title the same size (phone and desktop), and every view switch drawn by one rule
+    assert re.search(r"main h1, main \.cal-title \{ font-size: 1\.75rem", css)
+    assert (
+        "main .who > [role=button]:not(.outline), .timeline-toolbar .zoom > button[aria-pressed=true], .cal-views > a[aria-current=page]"
+        in css
+    )
+    js = (STATIC / "app.js").read_text()
+    assert "markRange(savedRange)" in js  # the timeline zoom shows which range is on

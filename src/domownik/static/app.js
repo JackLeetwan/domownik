@@ -1022,9 +1022,13 @@
     }
   });
 
+  // the chosen range looks pressed, like every other view switch in the app
+  const markRange = (days) => card.querySelectorAll("[data-range]").forEach((b) => b.setAttribute("aria-pressed", String(parseInt(b.dataset.range, 10) === days)));
+  markRange(savedRange);
   card.querySelectorAll("[data-range]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const days = parseInt(btn.dataset.range, 10);
+      markRange(days);
       store.set(rangeKey, String(days));
       timeline.setWindow(new Date(today.getTime() - days * 0.15 * DAY), new Date(today.getTime() + days * 0.85 * DAY));
     });

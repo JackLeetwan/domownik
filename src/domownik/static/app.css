@@ -1432,6 +1432,19 @@ button.link.danger { background: none; border: 0; color: var(--pico-del-color, #
 @media (pointer: coarse) {
   .who [role=button], .cal-nav [role=button], .cal-views a, .seg .seg-btn, .chip-btn, .mic, .bud-settings, .cal-ext-link, .timeline-cal, .small-link, form.inline button.link { min-height: 2.5rem; display: inline-flex; align-items: center; }
   .who [role=button], .cal-views a { justify-content: center; }
+  .chip-btn { gap: 0.3rem; }
   .todo-body > summary { padding-block: 0.5rem; }
   .shop-check, .todo-check { min-width: 2.5rem; min-height: 2.5rem; display: inline-flex; align-items: center; justify-content: center; }
 }
+
+/* ---------------------------------------------------------------- one look on every screen */
+/* page titles: one size everywhere (they ranged from 1.2rem in the calendar to Pico's 2rem+ on lists) */
+main h1, main .cal-title { font-size: 1.75rem; line-height: 1.2; }
+main h2 { font-size: 1.3rem; line-height: 1.25; }
+@media (max-width: 639.98px) { main h1, main .cal-title { font-size: 1.4rem; } main h2 { font-size: 1.15rem; } }
+/* view switches (Wszyscy/Moje, Miesiąc/Tydzień, zoom of the timeline): one pill style, the chosen one green */
+main .who, .timeline-toolbar .zoom, .cal-views { display: inline-flex; width: auto; gap: 0; padding: 0; border: 1px solid var(--dm-tile-border); border-radius: 999px; overflow: hidden; background: var(--dm-surface); box-shadow: none; }
+main .who, .timeline-toolbar .zoom { margin: 0; }
+main .who > [role=button], .timeline-toolbar .zoom > button, .cal-views > a { margin: 0; padding: 0.3rem 0.9rem; border: 0; border-radius: 0; background: transparent; color: var(--dm-label); font-size: 0.85rem; font-weight: 400; box-shadow: none; text-decoration: none; }
+main .who > [role=button]:not(.outline), .timeline-toolbar .zoom > button[aria-pressed=true], .cal-views > a[aria-current=page] { background: var(--pico-primary-background); color: #fff; font-weight: 600; }
+main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-visible, .cal-views > a:focus-visible { outline: 2px solid var(--pico-primary); outline-offset: -2px; }
