@@ -3,7 +3,7 @@
 {% block content %}
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/budzet">💰 Budżet</a></li><li>Kategorie i limity</li></ul></nav>
 <h1>Kategorie i limity</h1>
-<p class="muted"><small>Koperta to miesięczny limit kategorii – plan kategorii to koperta plus terminy zadań z kwotą przypisanych do niej. Archiwalne kategorie znikają z list wyboru, ale ich historia zostaje.</small></p>
+<p class="muted"><small>Dotknij kategorii, żeby zmienić nazwę, ikonę albo kopertę. Koperta to miesięczny limit kategorii – plan kategorii to koperta plus terminy zadań z kwotą przypisanych do niej. Archiwalne kategorie znikają z list wyboru, ale ich historia zostaje.</small></p>
 
 <section class="bud-section" id="dochody">
   <h2>Dochody co miesiąc</h2>
@@ -13,6 +13,8 @@
     {% for inc in incomes %}
     {% set ended = inc.ends_on is not none and inc.ends_on < today() %}
     <li class="bud-cat-edit{% if ended %} archived{% endif %}">
+      <details class="bud-row">
+      <summary><span class="bud-row-name">{{ inc.name }}</span><span class="bud-row-info">{{ inc.amount_gr|pln }} · {{ inc.day }}. dnia{% if inc.ends_on %} · do {{ inc.ends_on|d }}{% endif %}</span></summary>
       <form method="post" action="/budzet/dochody/{{ inc.id }}" class="bud-inc-form">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <label>Nazwa <input name="name" value="{{ inc.name }}" required maxlength="120"></label>
@@ -34,12 +36,13 @@
         <form method="post" action="/budzet/dochody/{{ inc.id }}/zakoncz" class="inline" hx-confirm="Przestać oczekiwać „{{ inc.name }}”? Potwierdzone miesiące zostają w historii."><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link danger">zakończ</button></form>
         {% endif %}
       </div>
+      </details>
       <div id="inc-error-{{ inc.id }}"></div>
     </li>
     {% endfor %}
   </ul>
   {% endif %}
-  <details class="bud-add" {% if not incomes %}open{% endif %}>
+  <details class="bud-add">
     <summary>＋ Nowy stały dochód</summary>
     <form method="post" action="/budzet/dochody" class="bud-inc-form">
       <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -64,6 +67,9 @@
   <ul class="bud-cat-list">
     {% for c in by_kind[kind] %}
     <li class="bud-cat-edit{% if c.archived %} archived{% endif %}" id="c{{ c.id }}">
+      {% set n = usage.get(c.id, 0) %}
+      <details class="bud-row">
+      <summary><span class="bud-row-name"><span aria-hidden="true">{{ c.icon or '🏷️' }}</span> {{ c.name }}</span><span class="bud-row-info">{% if kind != 'income' %}{{ (c.monthly_limit_gr|pln ~ '/mies.') if c.monthly_limit_gr else 'bez limitu' }} · {% endif %}{% if n %}{{ n }} {{ 'zadanie' if n == 1 else 'zadania' if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14) else 'zadań' }}{% else %}bez zadań{% endif %}{% if c.archived %} · w archiwum{% endif %}</span></summary>
       <form method="post" action="/budzet/kategorie/{{ c.id }}" class="bud-cat-form">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <label class="bud-icon">Ikona <input name="icon" value="{{ c.icon or '' }}" maxlength="16"></label>
@@ -77,9 +83,9 @@
         <button type="submit" class="small">Zapisz</button>
       </form>
       <div class="bud-cat-meta">
-        <small class="muted">{% if usage.get(c.id) %}{{ usage[c.id] }} {{ 'zadanie' if usage[c.id] == 1 else 'zadania' if usage[c.id] % 10 in (2, 3, 4) and usage[c.id] % 100 not in (12, 13, 14) else 'zadań' }}{% else %}bez zadań{% endif %}{% if c.archived %} · w archiwum{% endif %}</small>
         <form method="post" action="/budzet/kategorie/{{ c.id }}/archiwum" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link{% if not c.archived %} danger{% endif %}">{{ 'przywróć' if c.archived else 'archiwizuj' }}</button></form>
       </div>
+      </details>
       <div id="cat-error-{{ c.id }}"></div>
     </li>
     {% endfor %}
@@ -88,7 +94,8 @@
 {% endfor %}
 
 <section class="bud-section">
-  <h2>Nowa kategoria</h2>
+  <details class="bud-add">
+  <summary>＋ Nowa kategoria</summary>
   <form method="post" action="/budzet/kategorie" class="bud-cat-form">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <label class="bud-icon">Ikona <input name="icon" maxlength="16" placeholder="🐶"></label>
@@ -99,6 +106,7 @@
     <label>Koperta [zł/mies.] <input name="limit" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" placeholder="bez limitu"></label>
     <button type="submit" class="small">Dodaj</button>
   </form>
+  </details>
   <div id="cat-error-new"></div>
 </section>
 {% endblock %}

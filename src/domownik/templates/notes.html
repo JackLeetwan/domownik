@@ -3,7 +3,7 @@
 {% block content %}
 <header class="item-head"><h1>📝 Notatki</h1></header>
 
-<details class="note-add-box" {% if not total %}open{% endif %}>
+<details class="note-add-box">
   <summary role="button" class="outline">＋ Nowa notatka</summary>
   <form class="note-add" method="post" action="/notatki" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -29,7 +29,7 @@
 {% elif total %}
 <p class="muted">Brak notatek w tej kategorii.</p>
 {% else %}
-<p class="muted">Brak notatek.</p>
+<p class="muted">Brak notatek. Karteczka dla wszystkich: kod do furtki, plan lekcji, lista na wyjazd – dodaj ją przyciskiem wyżej albo przez „＋ Dodaj”.</p>
 {% endif %}
 
 {% if archive %}

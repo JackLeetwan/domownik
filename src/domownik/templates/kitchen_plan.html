@@ -2,12 +2,14 @@
 {% block title %}Jadłospis · Domownik{% endblock %}
 {% block content %}
 {% include "partials/kitchen_tabs.html" %}
-<nav class="week-nav" aria-label="Tydzień">
-  <a role="button" class="outline secondary" href="/kuchnia/jadlospis?t={{ prev.isoformat() }}" aria-label="Poprzedni tydzień">‹</a>
-  <span class="week-title">{{ monday|d }} – {{ (days[-1].day)|d }}</span>
-  <a role="button" class="outline secondary" href="/kuchnia/jadlospis?t={{ next.isoformat() }}" aria-label="Następny tydzień">›</a>
-  <a role="button" class="outline secondary" href="/kuchnia/jadlospis">Ten tydzień</a>
-</nav>
+<header class="cal-head">
+  <h2 class="cal-title">{{ monday|week }}</h2>
+  <nav class="cal-nav" aria-label="Tygodnie">
+    <a role="button" class="outline secondary" href="/kuchnia/jadlospis?t={{ prev.isoformat() }}" aria-label="Poprzedni tydzień" title="Poprzedni tydzień">‹</a>
+    <a role="button" class="outline secondary" href="/kuchnia/jadlospis">Ten tydzień</a>
+    <a role="button" class="outline secondary" href="/kuchnia/jadlospis?t={{ next.isoformat() }}" aria-label="Następny tydzień" title="Następny tydzień">›</a>
+  </nav>
+</header>
 {% if has_recipes_in_week %}
 <p><button type="button" class="outline" hx-get="/kuchnia/jadlospis/zakupy?t={{ monday.isoformat() }}" hx-target="#modal-body">🛒 Składniki z tego tygodnia na listę zakupów</button></p>
 {% endif %}

@@ -3,7 +3,7 @@
 {% block content %}
 {% set wq = '&who=me' if who == 'me' else '' %}
 <header class="cal-head">
-  <h1 class="cal-title">📅 {{ monday|d }} – {{ days[-1].sel|d }}</h1>
+  <h1 class="cal-title">📅 {{ monday|week }}</h1>
   <nav class="cal-nav" aria-label="Tygodnie">
     <a role="button" class="outline secondary" href="/kalendarz/tydzien?d={{ prev.isoformat() }}{{ wq }}" aria-label="Poprzedni tydzień" title="Poprzedni tydzień">‹</a>
     <a role="button" class="outline secondary" href="/kalendarz/tydzien{{ '?who=me' if who == 'me' else '' }}">Ten tydzień</a>

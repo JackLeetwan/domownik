@@ -12,11 +12,10 @@ from sqlalchemy.orm import Session
 from domownik import schedule, services
 from domownik.config import today
 from domownik.db import get_db
-from domownik.domain.recurrence import MONTH_GENITIVE
 from domownik.domain.tree import Tree
 from domownik.models import MEMBER_KINDS, ScheduleEvent, User
 from domownik.security import current_user, verify_csrf
-from domownik.web import render
+from domownik.web import render, week_title
 
 router = APIRouter()
 
@@ -37,15 +36,6 @@ class WeekDay:
     @property
     def short(self) -> str:
         return schedule.DAY_SHORT[self.date.weekday()]
-
-
-def week_title(monday: date) -> str:
-    sunday = monday + timedelta(days=6)
-    if monday.month == sunday.month:
-        text = f"{monday.day}–{sunday.day} {MONTH_GENITIVE[sunday.month]}"
-    else:
-        text = f"{monday.day} {MONTH_GENITIVE[monday.month]} – {sunday.day} {MONTH_GENITIVE[sunday.month]}"
-    return text + (f" {sunday.year}" if sunday.year != today().year else "")
 
 
 def _back(url: str) -> RedirectResponse:

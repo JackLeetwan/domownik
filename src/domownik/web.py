@@ -71,6 +71,19 @@ def other_avatar(assignee, me) -> Markup:
     return avatar(assignee)
 
 
+def week_title(monday) -> str:
+    """ "2–8 listopada", "30 listopada – 6 grudnia" (+ the year when it is not this one) – one form for every week view."""
+    from datetime import timedelta
+
+    sunday = monday + timedelta(days=6)
+    g = recurrence.MONTH_GENITIVE
+    if monday.month == sunday.month:
+        text = f"{monday.day}–{sunday.day} {g[sunday.month]}"
+    else:
+        text = f"{monday.day} {g[monday.month]} – {sunday.day} {g[sunday.month]}"
+    return text + (f" {sunday.year}" if sunday.year != today().year else "")
+
+
 def items_text(items: list[dict] | None) -> str:
     """A checklist note as editable text: one point per line, ticked ones start with ✓."""
     return "\n".join(("✓ " if i.get("d") else "") + i.get("t", "") for i in items or [])
@@ -82,6 +95,7 @@ env.filters["pln_input"] = input_pln
 env.filters["d"] = fmt_date
 env.filters["days"] = humanize_days
 env.filters["rule"] = recurrence.describe
+env.filters["week"] = week_title
 env.globals.update(
     CATEGORIES=CATEGORIES,
     DIRECTIONS=DIRECTIONS,

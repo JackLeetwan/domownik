@@ -445,9 +445,6 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .kitchen-tabs::-webkit-scrollbar { display: none; }
 .kitchen-tabs a { padding: 0.5rem 0.7rem; text-decoration: none; color: var(--pico-muted-color); border-bottom: 3px solid transparent; white-space: nowrap; }
 .kitchen-tabs a[aria-current=page] { color: var(--pico-color); border-bottom-color: var(--pico-primary); font-weight: 600; }
-.week-nav { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; margin: 0 0 1rem; }
-.week-nav a[role=button] { margin: 0; padding: 0.3rem 0.8rem; }
-.week-title { font-weight: 600; margin: 0 0.3rem; }
 .plan-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; }
 .plan-day { padding: 0.7rem 0.9rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-tile-bg); margin: 0; }
 .plan-day.is-today { border-color: var(--pico-primary); box-shadow: inset 0 0 0 1px var(--pico-primary); }
@@ -548,6 +545,7 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .goal-new > summary[role=button] { display: inline-block; width: auto; }
 .goal-done { margin-top: 0.5rem; }
 .note-add-box { margin: 0.5rem 0 0; }
+.note-add-box[open] { margin-bottom: 1.25rem; }
 .note-add-box > summary[role=button] { display: inline-block; width: auto; margin-bottom: 0.75rem; }
 .note-add-box[open] > summary[role=button] { margin-bottom: 0.75rem; }
 .note-add input[name=title], .note-card input[name=title] { margin-bottom: 0.5rem; font-weight: 600; }
@@ -1003,6 +1001,13 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 .bud-cat-list { list-style: none; margin: 0; padding: 0; }
 .bud-cat-edit { list-style: none; margin: 0; padding: 0.6rem 0; border-bottom: 1px solid var(--dm-tile-border); }
 .bud-cat-edit.archived { opacity: 0.6; }
+/* a category / income as one row; its form opens on tap */
+.bud-row { margin: 0; }
+.bud-row > summary { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin: 0; padding: 0.15rem 0; line-height: 1.4; color: var(--pico-color); }
+.bud-row > summary::after { flex: none; align-self: center; }
+.bud-row-name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.bud-row-info { margin-left: auto; font-size: 0.85rem; color: var(--pico-muted-color); text-align: right; white-space: nowrap; }
+.bud-row[open] > summary { margin-bottom: 0.6rem; }
 .bud-cat-form, .bud-inc-form { display: grid; grid-template-columns: 4.2rem minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.2fr) auto; gap: 0 0.6rem; align-items: end; margin: 0; }
 .bud-inc-form { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 4.5rem minmax(0, 1.3fr) minmax(0, 1.3fr) auto; }
 .bud-cat-form label, .bud-inc-form label { margin: 0; font-size: 0.8rem; color: var(--pico-muted-color); }
@@ -1430,6 +1435,7 @@ button.link.danger { background: none; border: 0; color: var(--pico-del-color, #
 @media (max-width: 575.98px) { .task-form .time-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 /* fingers: small pills and text links get a ~40px hit area on touch screens */
 @media (pointer: coarse) {
+  .bud-row > summary { min-height: 2.5rem; align-items: center; }
   .who [role=button], .cal-nav [role=button], .cal-views a, .seg .seg-btn, .chip-btn, .mic, .bud-settings, .cal-ext-link, .timeline-cal, .small-link, form.inline button.link { min-height: 2.5rem; display: inline-flex; align-items: center; }
   .who [role=button], .cal-views a { justify-content: center; }
   .chip-btn { gap: 0.3rem; }
@@ -1442,6 +1448,8 @@ button.link.danger { background: none; border: 0; color: var(--pico-del-color, #
 main h1, main .cal-title { font-size: 1.75rem; line-height: 1.2; }
 main h2 { font-size: 1.3rem; line-height: 1.25; }
 @media (max-width: 639.98px) { main h1, main .cal-title { font-size: 1.4rem; } main h2 { font-size: 1.15rem; } }
+main h2.cal-title { font-size: 1.3rem; } /* the week under a section's own h1 (Kuchnia) */
+@media (max-width: 639.98px) { main h2.cal-title { font-size: 1.15rem; flex-basis: auto; } }
 /* view switches (Wszyscy/Moje, Miesiąc/Tydzień, zoom of the timeline): one pill style, the chosen one green */
 main .who, .timeline-toolbar .zoom, .cal-views { display: inline-flex; width: auto; gap: 0; padding: 0; border: 1px solid var(--dm-tile-border); border-radius: 999px; overflow: hidden; background: var(--dm-surface); box-shadow: none; }
 main .who, .timeline-toolbar .zoom { margin: 0; }
