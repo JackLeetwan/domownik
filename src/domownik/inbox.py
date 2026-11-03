@@ -226,7 +226,7 @@ def finish_policy(
     item = _item(db, att, item_raw)
     name = (name or "").strip()[:200]
     if not name:
-        raise InboxError("Nazwij dokument, np. „OC Mazda 2027”")
+        raise InboxError("Nazwij dokument, np. „OC 2027”")
     w = Warranty(item_id=item.id, name=name, ends_on=ends_on, attachment_id=att.id, created_by_id=user.id)
     db.add(w)
     _close(att, doc_kind if doc_kind in ("policy", "contract") else "policy", name)
