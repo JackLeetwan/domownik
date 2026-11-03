@@ -48,9 +48,10 @@
   <input type="hidden" name="freq" value="once">
   <input type="hidden" name="category" value="event">
   <input type="hidden" name="lead_days" value="1">
+  <input type="hidden" name="direction" value="none">
   <label>Co <input name="title" required autofocus placeholder="np. Dentysta, zebranie w przedszkolu" maxlength="200"></label>
-  <div class="grid qa-time">
-    <label>Dzień <input type="date" name="next_due_date" required value="{{ today.isoformat() }}"></label>
+  <label>Dzień <input type="date" name="next_due_date" required value="{{ today.isoformat() }}"></label>
+  <div class="qa-time">
     <label>Od <input type="time" name="due_time" required></label>
     <label>Do <input type="time" name="ends_at"></label>
   </div>

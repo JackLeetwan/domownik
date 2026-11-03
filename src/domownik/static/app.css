@@ -583,7 +583,7 @@ code.topic { user-select: all; word-break: break-all; }
 .step-add input { margin: 0; }
 .step-add button { margin: 0; white-space: nowrap; }
 .badge.steps { font-weight: 500; }
-.qa-time { grid-template-columns: 1.4fr 1fr 1fr; }
+.qa-time { display: grid; grid-template-columns: 1fr 1fr; gap: 0 0.75rem; }
 .time-tag { font-variant-numeric: tabular-nums; font-weight: 600; }
 .task-form .form-row > [hidden] { display: none; }
 .task-form label { margin-bottom: 0.25rem; }
@@ -639,7 +639,7 @@ code.topic { user-select: all; word-break: break-all; }
 .cal-cell.we .cal-num { color: var(--pico-muted-color); }
 .cal-cell.out { background: var(--dm-tile-bg); }
 .cal-cell.hol .cal-num { color: var(--pico-del-color, #c62828); font-weight: 700; }
-.cal-hol { font-size: 0.68rem; line-height: 1.15; color: var(--pico-del-color, #c62828); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-hol { max-width: 100%; font-size: 0.68rem; line-height: 1.15; color: var(--pico-del-color, #c62828); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cal-hol-line { margin: -0.4rem 0 0.6rem; color: var(--pico-del-color, #c62828); font-size: 0.9rem; }
 .cal-cell.out > * { opacity: 0.45; }
 .cal-cell.sel { box-shadow: inset 0 0 0 2px var(--pico-primary); }
@@ -689,6 +689,7 @@ code.topic { user-select: all; word-break: break-all; }
   .cal-cell { min-height: 3.4rem; padding: 0.2rem 0.1rem; align-items: center; gap: 0.05rem; }
   .cal-num { font-size: 0.85rem; }
   .cal-chips { display: none; }
+  .cal-hol { display: none; }
   .cal-dots { display: flex; align-items: center; gap: 0.12rem; font-size: 0.66rem; line-height: 1; }
   .cal-dots .dot { width: 0.42rem; height: 0.42rem; margin: 0; }
   .cal-dots .dot.forecast { border-width: 1px; }

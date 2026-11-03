@@ -72,6 +72,7 @@ def test_quick_event_saves_hour_and_reminder(auth_client, db, user):
             "item_id": item.id,
             "freq": "once",
             "category": "event",
+            "direction": "none",
             "lead_days": "1",
             "next_due_date": "2030-05-06",
             "due_time": "14:30",
@@ -84,7 +85,7 @@ def test_quick_event_saves_hour_and_reminder(auth_client, db, user):
     assert r.status_code == 200, r.text
     t = db.scalar(select(Task).where(Task.title == "Dentysta"))
     assert (t.due_time, t.ends_at, t.remind_minutes, t.category) == ("14:30", "15:15", 30, "event")
-    assert t.time_label == "14:30–15:15"
+    assert t.time_label == "14:30–15:15" and t.direction == "none"
 
 
 def test_end_before_start_and_bad_hour_are_messages(auth_client, db):
