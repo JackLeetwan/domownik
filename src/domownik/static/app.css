@@ -888,3 +888,126 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 .doc-open { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .doc-open [role=button] { margin: 0; }
 .h-file { text-decoration: none; }
+
+/* ---- week schedule (/grafik): phone = list of days (today first), wide screen = 7 columns */
+.sched-bar { display: flex; align-items: center; gap: 0.5rem 1rem; flex-wrap: wrap; margin: 0 0 0.75rem; }
+.sched-bar [role=button] { padding: 0.35rem 0.9rem; font-size: 0.9rem; margin: 0; }
+.week { display: flex; flex-direction: column; gap: 0.5rem; }
+.wk-day { margin: 0; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); border-radius: 12px; padding: 0.55rem 0.75rem; min-width: 0; }
+.wk-day.is-today { border-color: var(--pico-primary); box-shadow: inset 0 0 0 1px var(--pico-primary); }
+.wk-head { display: flex; align-items: baseline; gap: 0.5rem; font-size: 1rem; margin: 0 0 0.4rem; }
+.wk-name { font-weight: 700; text-transform: capitalize; }
+.wk-short { display: none; }
+.wk-date { color: var(--pico-muted-color); font-size: 0.85rem; font-weight: 400; }
+.wk-head .badge { margin-left: auto; }
+.wk-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.wk-occ { list-style: none; display: flex; align-items: center; gap: 0.5rem; margin: 0; padding: 0.4rem 0.55rem; border-radius: 8px; background: var(--dm-surface); border-left: 3px solid var(--dm-later); }
+.wk-main { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.1rem 0.5rem; text-decoration: none; color: var(--pico-color); }
+.wk-time { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
+.wk-title { font-weight: 600; overflow-wrap: break-word; hyphens: auto; }
+.wk-item { font-size: 0.82rem; color: var(--pico-muted-color); }
+.wk-off { font-size: 0.75rem; color: var(--dm-overdue); font-weight: 600; }
+.wk-foot { display: flex; align-items: center; gap: 0.15rem 0.4rem; flex: none; font-size: 0.82rem; }
+.wk-foot .avatar { margin-right: 0; }
+.wk-who-name { color: var(--pico-muted-color); }
+.wk-cancel { margin: 0 0 0 0.35rem; }
+.wk-cancel .link { font-size: 0.8rem; color: var(--pico-muted-color); }
+.wk-occ.cancelled { opacity: 0.65; border-left-color: var(--dm-done); }
+.wk-occ.cancelled .wk-title { text-decoration: line-through; }
+.wk-none { margin: 0; font-size: 0.85rem; }
+.avatar.av-shared { background: var(--dm-tile-border); color: var(--pico-color); font-size: 0.7rem; box-shadow: none; }
+@media (max-width: 1023px) {
+  .week.is-current .wk-day.past { order: 2; opacity: 0.7; }
+  .wk-day.empty { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.35rem 0.75rem; }
+  .wk-day.empty .wk-head { margin: 0; }
+}
+@media (max-width: 480px) {
+  .wk-occ { flex-wrap: wrap; }
+  .wk-foot { flex: 1 1 100%; justify-content: flex-end; }
+}
+@media (min-width: 1024px) {
+  .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.4rem; align-items: start; }
+  .wk-day { padding: 0.45rem; min-height: 8rem; }
+  .wk-long { display: none; }
+  .wk-short { display: inline; }
+  .wk-head { flex-wrap: wrap; gap: 0.1rem 0.4rem; font-size: 0.95rem; }
+  .wk-occ { flex-direction: column; align-items: stretch; gap: 0.2rem; padding: 0.35rem 0.45rem; }
+  .wk-main { flex-direction: column; gap: 0.05rem; }
+  .wk-title { font-size: 0.92rem; line-height: 1.3; }
+  .wk-foot { justify-content: space-between; }
+  .wk-who-name { display: none; }
+  .week.is-current .wk-day.past { opacity: 0.7; }
+}
+.sched-all { margin-top: 1.25rem; }
+.sched-events { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.sched-events li { list-style: none; display: flex; flex-direction: column; padding: 0.45rem 0; margin: 0; border-bottom: 1px solid var(--dm-tile-border); }
+.sched-events li.ended { opacity: 0.6; }
+.sched-form { max-width: 680px; }
+.sched-form .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 0.75rem; align-items: end; }
+.chip-check { display: inline-flex; position: relative; margin: 0 0.3rem 0.4rem 0; }
+.chip-check input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.chip-check span { display: inline-block; padding: 0.3rem 0.75rem; border-radius: 999px; border: 1px solid var(--dm-tile-border); background: var(--dm-tile-bg); cursor: pointer; font-size: 0.9rem; }
+.chip-check input:checked + span { background: var(--pico-primary); border-color: var(--pico-primary); color: var(--pico-primary-inverse); }
+.chip-check input:focus-visible + span { outline: 2px solid var(--pico-primary); outline-offset: 2px; }
+.who-opts { display: flex; flex-wrap: wrap; gap: 0 1rem; }
+.who-opts label { margin: 0 0 0.4rem; }
+.mode-pane { display: none; margin-top: 0.4rem; }
+.who-mode:has(input[value=one]:checked) .mode-one,
+.who-mode:has(input[value=days]:checked) .mode-days,
+.who-mode:has(input[value=weeks]:checked) .mode-weeks { display: block; }
+.day-who { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0 0.75rem; }
+.day-who label > span { font-size: 0.85rem; }
+/* "wg dnia": only the weekdays ticked above */
+.sched-form:has(input[name=days][value="0"]:not(:checked)) .day-who [data-d="0"],
+.sched-form:has(input[name=days][value="1"]:not(:checked)) .day-who [data-d="1"],
+.sched-form:has(input[name=days][value="2"]:not(:checked)) .day-who [data-d="2"],
+.sched-form:has(input[name=days][value="3"]:not(:checked)) .day-who [data-d="3"],
+.sched-form:has(input[name=days][value="4"]:not(:checked)) .day-who [data-d="4"],
+.sched-form:has(input[name=days][value="5"]:not(:checked)) .day-who [data-d="5"],
+.sched-form:has(input[name=days][value="6"]:not(:checked)) .day-who [data-d="6"] { display: none; }
+.form-hint { margin-top: -0.5rem; }
+
+/* ---- dashboard "Dziś" (under the timeline) and the calendar's day list */
+.today-card { margin: 0 0 1.25rem; padding: 0.6rem 0.9rem; border-radius: 12px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }
+.today-head { font-size: 1rem; margin: 0 0 0.3rem; }
+.today-head a { color: var(--pico-color); text-decoration: none; }
+.today-list { list-style: none; padding: 0; margin: 0; }
+.today-list li { list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.5rem; margin: 0; padding: 0.2rem 0; }
+.today-list li a { overflow-wrap: anywhere; }
+.today-who { margin-left: auto; }
+.today-chores { display: block; margin-top: 0.3rem; text-decoration: none; color: var(--pico-color); font-size: 0.92rem; }
+.today-list + .today-chores { border-top: 1px solid var(--dm-tile-border); padding-top: 0.4rem; }
+.cal-sched-head { font-size: 1rem; margin: 1rem 0 0.35rem; }
+.cal-sched { list-style: none; padding: 0; margin: 0; }
+.cal-sched li { list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.5rem; margin: 0; padding: 0.35rem 0; border-bottom: 1px solid var(--dm-tile-border); }
+.cal-sched li .avatar { margin-left: auto; }
+.cal-sched li.cancelled a { text-decoration: line-through; }
+
+/* ---- house chores (/obowiazki) */
+.chore-add-row .chore-every { display: flex; align-items: center; gap: 0.3rem; flex: none; margin: 0; font-size: 0.9rem; }
+.chore-add-row .chore-every input { width: 4.2rem; flex: none; margin: 0; }
+@media (max-width: 480px) { .chore-add-row { flex-wrap: wrap; } .chore-add-row > input { flex-basis: 100%; } .chore-add-row button { margin-left: auto; } }
+.chore-sugs { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin: 0 0 1rem; }
+.chore-sugs form { margin: 0; }
+.chip-btn { width: auto; margin: 0; padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.85rem; background: var(--dm-tile-bg); color: inherit; border: 1px dashed var(--pico-muted-border-color, var(--dm-tile-border)); }
+.chip-btn small { color: var(--pico-muted-color); }
+.chore-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.chore { list-style: none; margin: 0; padding: 0.6rem 0.8rem; border-radius: 12px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }
+.chore.lvl-overdue { border-left: 4px solid var(--dm-overdue); }
+.chore-top, .chore-bottom { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.chore-name { display: flex; flex-direction: column; min-width: 0; }
+.chore-name strong { overflow-wrap: anywhere; }
+.chore-state { flex: none; }
+.chore-bar { margin: 0.45rem 0; height: 0.5rem; }
+.chore-bar > i { background: hsl(var(--h, 120) 62% 42%); }
+.chore-turn { font-size: 0.9rem; }
+.chore-bottom button.small { padding: 0.3rem 0.85rem; font-size: 0.85rem; }
+.chore-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; margin-top: 0.35rem; }
+.chore-meta form.inline { margin: 0; }
+.chore-meta .link { font-size: 0.8rem; }
+.chore-more { margin: 0; }
+.chore-more > summary { font-size: 0.8rem; color: var(--pico-muted-color); }
+.chore-more[open] { flex-basis: 100%; }
+.chore-edit { margin-top: 0.5rem; }
+.rota { margin-bottom: 0.5rem; }
+.rota legend { font-size: 0.9rem; }

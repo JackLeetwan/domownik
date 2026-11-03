@@ -14,6 +14,8 @@
   <ul class="side-links">
     <li><a href="/" {% if p == '/' %}aria-current="page"{% endif %}><span class="ic">🏠</span> Pulpit</a></li>
     <li><a href="/kalendarz" {% if p.startswith('/kalendarz') %}aria-current="page"{% endif %}><span class="ic">📅</span> Kalendarz</a></li>
+    <li><a href="/grafik" {% if p.startswith('/grafik') %}aria-current="page"{% endif %}><span class="ic">🗓️</span> Grafik</a></li>
+    <li><a href="/obowiazki" {% if p.startswith('/obowiazki') %}aria-current="page"{% endif %}><span class="ic">🧹</span> Obowiązki{% if nav.chores %}<span class="count">{{ nav.chores }}</span>{% endif %}</a></li>
     <li><a href="/zakupy" {% if p.startswith('/zakupy') %}aria-current="page"{% endif %}><span class="ic">🛒</span> Zakupy{% if nav.shopping %}<span class="count">{{ nav.shopping }}</span>{% endif %}</a></li>
     <li><a href="/notatki" {% if p.startswith('/notatki') %}aria-current="page"{% endif %}><span class="ic">📝</span> Notatki{% if nav.notes %}<span class="count">{{ nav.notes }}</span>{% endif %}</a></li>
     <li><a href="/do-zrobienia" {% if p.startswith('/do-zrobienia') %}aria-current="page"{% endif %}><span class="ic">☐</span> Do zrobienia{% if nav.todos %}<span class="count">{{ nav.todos }}</span>{% endif %}</a></li>

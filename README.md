@@ -31,6 +31,18 @@ terminy liczone jak na osi czasu). Wykonanie to transakcje: zapłacone zadania (
 Stałe dochody (pensje, czynsz od najemcy) wpisuje się raz w **Kategorie i limity**, a co miesiąc
 potwierdza „✓ Wpłynęło” – bez przypomnień i bez osi czasu.
 
+## Grafik tygodnia i obowiązki
+
+`/grafik` – stałe pozycje tygodnia z godziną (zajęcia dzieci, odbiór z przedszkola, basen, sprzątanie):
+dni tygodnia, okres obowiązywania, kogo dotyczy i kto się zajmuje – jedna osoba, wspólnie, osoba na
+każdy dzień albo naprzemiennie co tydzień. Pojedynczy dzień można odwołać. Dzisiejsze pozycje są w karcie
+„Dziś” pod osią czasu i w porannym powiadomieniu, jutrzejsze w wieczornym; w kalendarzu tylko w liście dnia.
+
+`/obowiazki` – obowiązki domowe co N dni z paskiem świeżości (zielony → czerwony), posortowane od
+najpilniejszych, z rotacją „Teraz: osoba”. Po „✓ Zrobione” kolej przechodzi na osobę po tej, która
+faktycznie zrobiła (odhaczenie za kogoś też się liczy); „cofnij” przywraca poprzednią kolej. Zaległe
+obowiązki danej osoby to jedna linia porannego powiadomienia – nie trafiają na oś czasu ani do terminów.
+
 ## Powiadomienia
 
 Web Push wysyłany przez samego Domownika (service worker `/sw.js`, klucze VAPID w `data/secrets/`) –

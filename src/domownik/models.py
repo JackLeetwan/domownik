@@ -12,6 +12,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -510,3 +511,112 @@ class Warranty(Base):
     item: Mapped[Item] = relationship(back_populates="warranties")
     attachment: Mapped[Attachment | None] = relationship()
     task: Mapped[Task | None] = relationship()
+
+
+# ---------------------------------------------------------------- week schedule and house chores
+
+WEEKDAY_SHORT = ("pn", "wt", "śr", "czw", "pt", "sob", "nd")
+SCHEDULE_MODES = ("fixed", "days", "weeks")
+
+
+class ScheduleEvent(Base):
+    """A fixed weekly slot ("Robotyka, wt 17:00–18:00", "odbiór z przedszkola pn–pt 16:00").
+
+    Who takes care of it (assign_mode):
+      fixed – assignee_id, or nobody = shared by everyone;
+      days  – day_assignees {"0": user_id | None, …} (Monday = 0), e.g. who picks the kids up on which day;
+      weeks – assignee_id in the week of rota_anchor (a Monday) and every other week, alt_assignee_id in between.
+    Not a Task: no due date to tick off, never on the timeline – it shows in /grafik, the dashboard's
+    "Dziś" card, the calendar's day list and the morning / evening push.
+    """
+
+    __tablename__ = "schedule_event"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(120))
+    weekdays: Mapped[str] = mapped_column(String(20))  # "0,2,4" – Monday = 0
+    starts_at: Mapped[str] = mapped_column(String(5))  # "17:00"
+    ends_at: Mapped[str | None] = mapped_column(String(5))
+    item_id: Mapped[int | None] = mapped_column(ForeignKey("item.id", ondelete="SET NULL"))
+    assign_mode: Mapped[str] = mapped_column(String(10), default="fixed", server_default="fixed")
+    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    alt_assignee_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    day_assignees: Mapped[dict[str, Any]] = mapped_column(default=dict)
+    rota_anchor: Mapped[date | None] = mapped_column(Date)
+    starts_on: Mapped[date | None] = mapped_column(Date)  # e.g. the school year
+    ends_on: Mapped[date | None] = mapped_column(Date)
+    notify: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    item: Mapped[Item | None] = relationship()
+    assignee: Mapped[User | None] = relationship(foreign_keys=[assignee_id])
+    alt_assignee: Mapped[User | None] = relationship(foreign_keys=[alt_assignee_id])
+    skips: Mapped[list[ScheduleSkip]] = relationship(
+        back_populates="event", cascade="all, delete-orphan", order_by="ScheduleSkip.on_date"
+    )
+
+    @property
+    def days(self) -> list[int]:
+        return sorted({int(x) for x in (self.weekdays or "").split(",") if x.strip().isdigit() and int(x) < 7})
+
+    @property
+    def time_label(self) -> str:
+        return f"{self.starts_at}–{self.ends_at}" if self.ends_at else self.starts_at
+
+
+class ScheduleSkip(Base):
+    """One occurrence called off ("odwołane w tym tygodniu")."""
+
+    __tablename__ = "schedule_skip"
+    __table_args__ = (UniqueConstraint("event_id", "on_date"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    event_id: Mapped[int] = mapped_column(ForeignKey("schedule_event.id", ondelete="CASCADE"), index=True)
+    on_date: Mapped[date] = mapped_column(Date)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    event: Mapped[ScheduleEvent] = relationship(back_populates="skips")
+
+
+class Chore(Base):
+    """A house chore done every N days by people taking turns ("łazienka co 7 dni, Ala ↔ Ola").
+
+    Not a Task: a chore has no hard due date – it goes stale (green → red) and is listed by urgency in
+    /obowiazki; it must not crowd the timeline or "Najbliższe terminy".
+    """
+
+    __tablename__ = "chore"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    room: Mapped[str | None] = mapped_column(String(60))  # free text: "Łazienka", "Kuchnia"…
+    every_days: Mapped[int] = mapped_column(Integer, default=7)
+    est_minutes: Mapped[int | None] = mapped_column(Integer)
+    rotation: Mapped[list[int]] = mapped_column(JSON, default=list)  # user ids in turn order; [] = anyone
+    turn_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    turn_user: Mapped[User | None] = relationship(foreign_keys=[turn_user_id])
+    history: Mapped[list[ChoreDone]] = relationship(
+        back_populates="chore", cascade="all, delete-orphan", order_by="ChoreDone.id.desc()"
+    )
+
+
+class ChoreDone(Base):
+    """A chore ticked off: who did it, when, and whose turn it was (to undo the rotation step)."""
+
+    __tablename__ = "chore_done"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chore_id: Mapped[int] = mapped_column(ForeignKey("chore.id", ondelete="CASCADE"), index=True)
+    done_on: Mapped[date] = mapped_column(Date)
+    done_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    turn_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    chore: Mapped[Chore] = relationship(back_populates="history")
+    done_by: Mapped[User | None] = relationship(foreign_keys=[done_by_id])

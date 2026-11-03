@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Nowy wpis' if ev is none else ev.title }} · Grafik · Domownik{% endblock %}
+{% block content %}
+<div class="crumbs-bar">
+  <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/grafik" class="home-link">← Grafik</a></li></ul></nav>
+</div>
+<h1>{{ 'Dodaj do grafiku' if ev is none else 'Zmień wpis grafiku' }}</h1>
+{% set days_on = ev.days if ev else [] %}
+<form method="post" action="{{ '/grafik' if ev is none else '/grafik/' ~ ev.id }}" class="sched-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div id="sched-error"></div>
+  <label>Co <input name="title" value="{{ ev.title if ev else '' }}" required maxlength="120" placeholder="np. Robotyka, Odbiór z przedszkola, Basen"></label>
+
+  <fieldset class="sched-days">
+    <legend>Dni tygodnia</legend>
+    {% for name in day_short %}
+    <label class="chip-check"><input type="checkbox" name="days" value="{{ loop.index0 }}" {% if loop.index0 in days_on %}checked{% endif %}><span>{{ name }}</span></label>
+    {% endfor %}
+  </fieldset>
+
+  <div class="form-row">
+    <label>Od godziny <input type="time" name="starts_at" value="{{ ev.starts_at if ev else '' }}" required></label>
+    <label>Do godziny <input type="time" name="ends_at" value="{{ ev.ends_at or '' if ev else '' }}"></label>
+  </div>
+
+  <label>Kogo dotyczy
+    <select name="item_id">
+      <option value="">— nikogo konkretnego —</option>
+      {% if people %}<optgroup label="Domownicy">{% for i in people %}<option value="{{ i.id }}" {% if ev and ev.item_id == i.id %}selected{% endif %}>{{ i.display_icon }} {{ i.name }}</option>{% endfor %}</optgroup>{% endif %}
+      {% if others %}<optgroup label="Strefy i elementy">{% for i in others %}<option value="{{ i.id }}" {% if ev and ev.item_id == i.id %}selected{% endif %}>{{ label(i.id) }}</option>{% endfor %}</optgroup>{% endif %}
+    </select>
+  </label>
+
+  <fieldset class="who-mode">
+    <legend>Kto się zajmuje</legend>
+    <div class="who-opts">
+      <label><input type="radio" name="who_mode" value="shared" {% if mode == 'shared' %}checked{% endif %}> wspólne</label>
+      <label><input type="radio" name="who_mode" value="one" {% if mode == 'one' %}checked{% endif %}> jedna osoba</label>
+      <label><input type="radio" name="who_mode" value="days" {% if mode == 'days' %}checked{% endif %}> wg dnia</label>
+      <label><input type="radio" name="who_mode" value="weeks" {% if mode == 'weeks' %}checked{% endif %}> naprzemiennie co tydzień</label>
+    </div>
+    <div class="mode-pane mode-one">
+      <label>Osoba
+        <select name="assignee_id">{% for u in users %}<option value="{{ u.id }}" {% if (ev and ev.assign_mode == 'fixed' and ev.assignee_id == u.id) or (not (ev and ev.assignee_id) and u.id == user.id) %}selected{% endif %}>{{ u.name }}</option>{% endfor %}</select>
+      </label>
+    </div>
+    <div class="mode-pane mode-days">
+      <p class="muted"><small>Dla zaznaczonych dni tygodnia (pozostałe są pomijane):</small></p>
+      <div class="day-who">
+        {% for name in day_names %}{% set d = loop.index0 %}
+        {% set cur = (ev.day_assignees or {}).get(d|string) if ev else none %}
+        <label data-d="{{ d }}"><span>{{ name }}</span>
+          <select name="day_{{ d }}"><option value="">wspólne</option>{% for u in users %}<option value="{{ u.id }}" {% if cur == u.id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}</select>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="mode-pane mode-weeks">
+      <div class="form-row">
+        <label>W tym tygodniu
+          <select name="week_a">{% for u in users %}<option value="{{ u.id }}" {% if (week_a == u.id) or (week_a is none and u.id == user.id) %}selected{% endif %}>{{ u.name }}</option>{% endfor %}</select>
+        </label>
+        <label>W następnym
+          <select name="week_b">{% for u in users %}<option value="{{ u.id }}" {% if (week_b == u.id) or (week_b is none and u.id != user.id and loop.index <= 2) %}selected{% endif %}>{{ u.name }}</option>{% endfor %}</select>
+        </label>
+      </div>
+      <p class="muted"><small>Potem na zmianę, tydzień po tygodniu.</small></p>
+    </div>
+  </fieldset>
+
+  <div class="form-row">
+    <label>Obowiązuje od <input type="date" name="starts_on" value="{{ ev.starts_on.isoformat() if ev and ev.starts_on else '' }}"></label>
+    <label>do <input type="date" name="ends_on" value="{{ ev.ends_on.isoformat() if ev and ev.ends_on else '' }}"></label>
+  </div>
+  <p class="muted form-hint"><small>Np. rok szkolny. Puste = bez końca. Pojedynczy dzień (choroba, ferie) odwołasz w widoku tygodnia.</small></p>
+
+  <label><input type="checkbox" role="switch" name="notify" value="1" {% if ev is none or ev.notify %}checked{% endif %}> W powiadomieniu rano (dziś) i wieczorem (jutro)</label>
+  <label>Notatka <textarea name="notes" rows="2" placeholder="opcjonalnie, np. sala 12, zabrać strój">{{ ev.notes or '' if ev else '' }}</textarea></label>
+
+  <button type="submit">{{ 'Dodaj' if ev is none else 'Zapisz' }}</button>
+</form>
+{% if ev %}
+<form method="post" action="/grafik/{{ ev.id }}/usun" class="danger-zone" hx-confirm="Usunąć „{{ ev.title }}” z grafiku (wszystkie tygodnie)?">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit" class="outline secondary danger">Usuń z grafiku</button>
+</form>
+{% endif %}
+{% endblock %}

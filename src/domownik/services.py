@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from domownik import catalog
+from domownik import chores as chores_mod
 from domownik.domain import recurrence
 from domownik.domain.status import Due, compute_due
 from domownik.domain.tree import Tree
@@ -264,6 +265,7 @@ class Nav:
     shopping: int
     notes: int
     todos: int
+    chores: int = 0  # overdue house chores (whole household)
 
 
 def nav_context(db: Session, today: date) -> Nav:
@@ -281,6 +283,7 @@ def nav_context(db: Session, today: date) -> Nav:
         shopping=shopping or 0,
         notes=len(active_notes(db, today)),
         todos=len(open_todos(db, tree)),
+        chores=sum(1 for st in chores_mod.states(db, today) if st.overdue),
     )
 
 

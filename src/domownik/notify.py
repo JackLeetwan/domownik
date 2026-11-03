@@ -34,11 +34,15 @@ MAX_LINES = 12
 # ---------------------------------------------------------------- what to send
 
 
+RANK_SCHEDULE = 4  # one line "🗓️ Grafik: 16:00 Odbiór z przedszkola, 17:00 Basen"
+RANK_CHORES = 5  # one line "🧹 Obowiązki: łazienka, śmieci" (morning only)
+
+
 @dataclass
 class Line:
-    rank: int  # 0 overdue, 1 today, 2 soon, 3 tomorrow
+    rank: int  # 0 overdue, 1 today, 2 soon, 3 tomorrow; 4 week schedule, 5 chores
     text: str
-    tasks: list[Task]  # one task, or a group of payments
+    tasks: list[Task]  # one task, or a group of payments; empty for the schedule / chores lines
     due: date
 
 
@@ -66,14 +70,23 @@ class Digest:
             parts.append(f"{c[1]} na dziś")
         if c.get(2):
             parts.append(f"{c[2]} wkrótce")
+        if not parts:
+            ranks = {ln.rank for ln in self.lines}
+            if RANK_SCHEDULE in ranks:
+                return "Domownik: grafik na dziś"
+            if RANK_CHORES in ranks:
+                return "Domownik: obowiązki"
         return "Domownik: " + " · ".join(parts) if parts else "Domownik"
 
     def message(self) -> str:
-        shown = self.lines[:MAX_LINES]
-        text = "\n".join(ln.text for ln in shown)
-        if len(self.lines) > MAX_LINES:
-            text += f"\n…i {len(self.lines) - MAX_LINES} więcej"
-        return text
+        """Task lines (at most MAX_LINES), then the schedule and chores lines – those are never cut off."""
+        tasks = [ln for ln in self.lines if ln.rank < RANK_SCHEDULE]
+        extra = [ln for ln in self.lines if ln.rank >= RANK_SCHEDULE]
+        out = [ln.text for ln in tasks[:MAX_LINES]]
+        if len(tasks) > MAX_LINES:
+            out.append(f"…i {len(tasks) - MAX_LINES} więcej")
+        out += [ln.text for ln in extra]
+        return "\n".join(out)
 
 
 def _already(db: Session, user: User, kind: str, *, task_id: int | None, ref: date | None, since: date) -> bool:
@@ -161,8 +174,39 @@ def build_digests(db: Session, slot: str, today: date, *, preview_for: User | No
                 title = rs[0].task.full_title
             tasks = [r.task for r in rs]
             digests[user.id].lines.append(Line(rank, _line_text(rank, title, due, today, tasks), tasks, due))
-        digests[user.id].lines.sort(key=lambda ln: (ln.rank, ln.due, ln.text))
+    _add_household_lines(db, list(digests.values()), slot, today)
+    for d in digests.values():
+        d.lines.sort(key=lambda ln: (ln.rank, ln.due, ln.text))
     return list(digests.values())
+
+
+def _add_household_lines(db: Session, digests: list[Digest], slot: str, today: date) -> None:
+    """Week schedule (morning: today, evening: tomorrow) and overdue chores (morning) – one line each.
+
+    A slot goes to the person taking care of it, a shared one to everyone. The chores line rides along
+    with any other line; on its own it is pushed at most every OVERDUE_REPEAT_DAYS days.
+    """
+    from domownik import chores, schedule
+
+    day = today if slot == "morning" else today + timedelta(days=1)
+    slots = [o for o in schedule.occurrences(db, day, day, cancelled=False) if o.event.notify]
+    late = [s for s in chores.states(db, today) if s.overdue] if slot == "morning" else []
+    for d in digests:
+        mine = [o for o in slots if o.mine(d.user.id)]
+        if mine:
+            what = ", ".join(
+                f"{o.event.starts_at} {o.event.title}" + (f" ({o.event.item.name})" if o.event.item else "")
+                for o in mine
+            )
+            prefix = "🗓️ Grafik: " if slot == "morning" else "🗓️ Jutro w grafiku: "
+            d.lines.append(Line(RANK_SCHEDULE, prefix + what, [], day))
+        my_late = [s for s in late if s.mine(d.user.id)]
+        if not my_late:
+            continue
+        since = today - timedelta(days=OVERDUE_REPEAT_DAYS - 1)
+        if d.lines or not _already(db, d.user, "chores", task_id=None, ref=None, since=since):
+            names = ", ".join(s.chore.name.lower() for s in my_late)
+            d.lines.append(Line(RANK_CHORES, f"🧹 Obowiązki: {names}", [], today))
 
 
 # ---------------------------------------------------------------- one-tap "done"
@@ -233,7 +277,10 @@ RANK_KIND = {0: "overdue", 1: "today", 2: "task", 3: "tomorrow"}
 
 def record(db: Session, d: Digest, today: date) -> None:
     for ln in d.lines:
-        kind = RANK_KIND[ln.rank]
+        if ln.rank == RANK_CHORES:  # spaces out a chores-only push (see _add_household_lines)
+            db.add(NotificationLog(user_id=d.user.id, task_id=None, kind="chores", ref_date=today, sent_on=today))
+            continue
+        kind = RANK_KIND.get(ln.rank)
         for t in ln.tasks:
             db.add(NotificationLog(user_id=d.user.id, task_id=t.id, kind=kind, ref_date=ln.due, sent_on=today))
 

@@ -17,9 +17,11 @@ from domownik.routers import (
     board,
     budget,
     calendar,
+    chores,
     dashboard,
     documents,
     items,
+    schedule,
     shopping,
     tasks,
 )
@@ -81,6 +83,8 @@ def create_app() -> FastAPI:
     app.include_router(calendar.router)
     app.include_router(budget.router)
     app.include_router(documents.router)
+    app.include_router(schedule.router)
+    app.include_router(chores.router)
 
     @app.exception_handler(LoginRequired)
     async def _login_required(request: Request, _exc: LoginRequired):

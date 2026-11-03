@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Grafik · Domownik{% endblock %}
+{% block content %}
+{% set wq = '&who=me' if who == 'me' else '' %}
+{% set wkey = '' if is_current else monday.isoformat() %}
+<header class="cal-head">
+  <h1 class="cal-title">🗓️ Grafik · {{ title }}</h1>
+  <nav class="cal-nav" aria-label="Tygodnie">
+    <a role="button" class="outline secondary" href="/grafik?w={{ prev.isoformat() }}{{ wq }}" aria-label="Poprzedni tydzień" title="Poprzedni tydzień">‹</a>
+    <a role="button" class="outline secondary" href="/grafik{{ '?who=me' if who == 'me' else '' }}">Ten tydzień</a>
+    <a role="button" class="outline secondary" href="/grafik?w={{ next.isoformat() }}{{ wq }}" aria-label="Następny tydzień" title="Następny tydzień">›</a>
+  </nav>
+  <div role="group" class="who">
+    <a href="/grafik{% if wkey %}?w={{ wkey }}{% endif %}" role="button" class="{% if who == 'me' %}outline {% endif %}secondary">Wszyscy</a>
+    <a href="/grafik?{% if wkey %}w={{ wkey }}&{% endif %}who=me" role="button" class="{% if who != 'me' %}outline {% endif %}secondary">Moje</a>
+  </div>
+</header>
+
+{% if not events %}
+<article class="empty">
+  <h2>Stały plan tygodnia</h2>
+  <p>Wpisz rzeczy, które powtarzają się co tydzień o tej samej godzinie: zajęcia dzieci, odbiór z przedszkola, basen, sprzątanie przez firmę. Przy każdej ustalisz, kto się nią zajmuje – jedna osoba, wspólnie, inna osoba w każdy dzień albo naprzemiennie co tydzień.</p>
+  <p class="muted"><small>Dzisiejsze pozycje pokażą się na pulpicie w karcie „Dziś” i w porannym powiadomieniu, jutrzejsze – w wieczornym.</small></p>
+  <a href="/grafik/nowe" role="button">＋ Dodaj do grafiku</a>
+</article>
+{% else %}
+<p class="sched-bar">
+  <a href="/grafik/nowe" role="button" class="small-btn">＋ Dodaj do grafiku</a>
+  <small class="muted">Kliknij pozycję, żeby ją zmienić. „Odwołaj” dotyczy tylko tego jednego dnia.</small>
+</p>
+
+<div class="week{% if is_current %} is-current{% endif %}">
+  {% for day in days %}
+  <section class="wk-day{% if day.is_today %} is-today{% endif %}{% if day.past %} past{% endif %}{% if not day.entries %} empty{% endif %}" aria-label="{{ day.name }}, {{ day.date|d }}">
+    <h2 class="wk-head">
+      <span class="wk-name"><span class="wk-long">{{ day.name }}</span><span class="wk-short">{{ day.short }}</span></span>
+      <span class="wk-date">{{ day.date|d }}</span>
+      {% if day.is_today %}<span class="badge today">dziś</span>{% endif %}
+    </h2>
+    {% if day.entries %}
+    <ul class="wk-list">
+      {% for o in day.entries %}
+      <li class="wk-occ{% if o.cancelled %} cancelled{% endif %}">
+        <a class="wk-main" href="/grafik/{{ o.event.id }}">
+          <span class="wk-time">{{ o.event.time_label }}</span>
+          <span class="wk-title">{{ o.event.title }}</span>
+          {% if o.event.item %}<span class="wk-item">{{ o.event.item.display_icon }} {{ o.event.item.name }}</span>{% endif %}
+          {% if o.cancelled %}<span class="wk-off">odwołane</span>{% endif %}
+        </a>
+        <span class="wk-foot">
+          {% if o.assignee %}{{ avatar(o.assignee) }}<span class="wk-who-name">{{ o.assignee.name }}</span>{% else %}<span class="avatar av-shared" title="Wspólne" aria-label="Wspólne">👥</span><span class="wk-who-name">wspólne</span>{% endif %}
+          <form method="post" action="/grafik/{{ o.event.id }}/odwolaj" class="inline wk-cancel"{% if not o.cancelled %} hx-confirm="Odwołać „{{ o.event.title }}” w dniu {{ day.date|d }}?"{% endif %}>
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="d" value="{{ day.date.isoformat() }}">
+            <input type="hidden" name="who" value="{{ who or '' }}">
+            <button type="submit" class="link">{{ 'przywróć' if o.cancelled else 'odwołaj' }}</button>
+          </form>
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="wk-none muted">wolne</p>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>
+
+<details class="sched-all">
+  <summary>Wszystkie stałe wpisy <small class="muted">({{ events|length }})</small></summary>
+  <ul class="sched-events">
+    {% for ev in events %}
+    {% set ended = ev.ends_on and ev.ends_on < t %}
+    <li class="{% if ended %}ended{% endif %}">
+      <a href="/grafik/{{ ev.id }}"><strong>{{ ev.title }}</strong></a>
+      <small class="muted">
+        {{ days_label(ev.days) }} · {{ ev.time_label }}
+        {% if ev.item %} · {{ ev.item.display_icon }} {{ ev.item.name }}{% endif %}
+        · {{ who_label(ev, users) }}
+        {% if ev.starts_on or ev.ends_on %} · {% if ev.starts_on %}od {{ ev.starts_on|d }} {% endif %}{% if ev.ends_on %}do {{ ev.ends_on|d }}{% endif %}{% endif %}
+        {% if ended %} · zakończone{% endif %}
+        {% if not ev.notify %} · 🔕 bez powiadomień{% endif %}
+      </small>
+    </li>
+    {% endfor %}
+  </ul>
+</details>
+{% endif %}
+{% endblock %}

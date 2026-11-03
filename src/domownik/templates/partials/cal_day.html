@@ -1,9 +1,9 @@
-{# Tasks of the selected day, under the month grid. Needs: sel, sel_title, entries #}
+{# Tasks of the selected day, under the month grid. Needs: sel, sel_title, entries (+ slots: week schedule) #}
 {% import "partials/cal_macros.html" as cm with context %}
 <section id="cal-day" class="cal-day" data-sel="{{ sel.isoformat() }}" aria-live="polite">
   <h2>{{ sel_title }}</h2>
   {% if not entries %}
-  <p class="muted">Nic na ten dzień.</p>
+  {% if not slots %}<p class="muted">Nic na ten dzień.</p>{% endif %}
   {% else %}
   <ul class="cal-list">
     {% for e in entries %}
@@ -18,6 +18,15 @@
         </details>
       </li>
       {% else %}{{ cm.task_line(e) }}{% endif %}
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if slots %}
+  <h3 class="cal-sched-head">🗓️ Grafik</h3>
+  <ul class="cal-sched">
+    {% for o in slots %}
+    <li class="{% if o.cancelled %}cancelled{% endif %}"><span class="wk-time">{{ o.event.time_label }}</span> <a href="/grafik/{{ o.event.id }}">{{ o.event.title }}</a>{% if o.event.item %} <small class="muted">{{ o.event.item.display_icon }} {{ o.event.item.name }}</small>{% endif %}{% if o.cancelled %} <small class="muted">odwołane</small>{% endif %}
+      {% if o.assignee %}{{ avatar(o.assignee) }}{% else %}<span class="avatar av-shared" title="Wspólne" aria-label="Wspólne">👥</span>{% endif %}</li>
     {% endfor %}
   </ul>
   {% endif %}

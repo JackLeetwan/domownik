@@ -7,8 +7,8 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+from domownik import schedule, services
 from domownik import search as search_mod
-from domownik import services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.recurrence import MONTH_GENITIVE
@@ -46,6 +46,11 @@ def _who(who: str | None, user: User) -> int | None:
     return user.id if who == "me" else None
 
 
+def _slots(db: Session, day: date, who: str | None, user: User) -> list[schedule.Occurrence]:
+    """Week-schedule slots of the selected day – only in the day list, the month grid stays uncluttered."""
+    return schedule.occurrences(db, day, day, user_id=_who(who, user))
+
+
 @router.get("/kalendarz")
 def calendar_page(
     request: Request,
@@ -76,6 +81,7 @@ def calendar_page(
             "sel": sel,
             "sel_title": day_title(sel),
             "entries": entries,
+            "slots": _slots(db, sel, who, user),
             "who": who if who == "me" else None,
             "any_assigned": services.any_assigned(db),
         },
@@ -95,7 +101,7 @@ def calendar_day(
     return render(
         request,
         "partials/cal_day.html",
-        {"user": user, "sel": d, "sel_title": day_title(d), "entries": entries},
+        {"user": user, "sel": d, "sel_title": day_title(d), "entries": entries, "slots": _slots(db, d, who, user)},
     )
 
 

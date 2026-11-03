@@ -13,6 +13,24 @@
 {% else %}
 {% include "partials/timeline.html" %}
 
+{# today's week schedule and overdue chores – a compact card under the timeline, only when there is something #}
+{% if today_slots or late_chores %}
+<section class="today-card" aria-label="Dziś">
+  <h2 class="today-head"><a href="/grafik{{ '?who=me' if who == 'me' else '' }}">Dziś</a></h2>
+  {% if today_slots %}
+  <ul class="today-list">
+    {% for o in today_slots %}
+    <li><span class="wk-time">{{ o.event.time_label }}</span> <a href="/grafik/{{ o.event.id }}">{{ o.event.title }}</a>{% if o.event.item %} <small class="muted">{{ o.event.item.display_icon }} {{ o.event.item.name }}</small>{% endif %}
+      <span class="today-who">{% if o.assignee %}{{ avatar(o.assignee) }}{% else %}<span class="avatar av-shared" title="Wspólne" aria-label="Wspólne">👥</span>{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if late_chores %}
+  <a class="today-chores" href="/obowiazki{{ '?who=me' if who == 'me' else '' }}">🧹 Obowiązki: <b>{{ late_chores|length }} zaległe</b> <small class="muted">– {% for s in late_chores[:4] %}{{ s.chore.name|lower }}{% if not loop.last %}, {% endif %}{% endfor %}{% if late_chores|length > 4 %}…{% endif %}</small></a>
+  {% endif %}
+</section>
+{% endif %}
+
 {# full tiles only for lists with content; empty ones collapse into one line of shortcuts #}
 {% if shopping or notes or todos %}
 <section class="tools" aria-label="Narzędzia">

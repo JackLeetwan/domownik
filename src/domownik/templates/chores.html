@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Obowiązki · Domownik{% endblock %}
+{% block content %}
+{% macro rotation_fields(c) %}
+<input type="hidden" name="rotation_sent" value="1">
+<fieldset class="rota">
+  <legend>Na zmianę <small class="muted">(odznacz wszystkich = ktokolwiek)</small></legend>
+  {% for u in users %}
+  <label class="chip-check"><input type="checkbox" name="rotation" value="{{ u.id }}" {% if c is none or u.id in (c.rotation or []) %}checked{% endif %}><span>{{ u.name }}</span></label>
+  {% endfor %}
+</fieldset>
+{% if c is not none and c.rotation and c.rotation|length > 1 %}
+<label>Teraz kolej
+  <select name="turn">{% for u in users if u.id in c.rotation %}<option value="{{ u.id }}" {% if u.id == c.turn_user_id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}</select>
+</label>
+{% endif %}
+{% endmacro %}
+
+<header class="agenda-head">
+  <h1>🧹 Obowiązki{% if overdue_n %} <small class="badge overdue">{{ overdue_n }} zaległe</small>{% endif %}</h1>
+  <div role="group" class="who">
+    <a href="/obowiazki" role="button" class="{% if who == 'me' %}outline {% endif %}secondary">Wszyscy</a>
+    <a href="/obowiazki?who=me" role="button" class="{% if who != 'me' %}outline {% endif %}secondary">Moje</a>
+  </div>
+</header>
+<p class="muted"><small>Pasek pokazuje, jak dawno coś było robione – zielony świeżo, czerwony zaległe. Po „✓ Zrobione” kolej przechodzi na następną osobę po tej, która zrobiła.</small></p>
+
+<form method="post" action="/obowiazki" class="todo-add">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="who" value="{{ who or '' }}">
+  <div class="todo-add-row chore-add-row">
+    <input name="name" required maxlength="120" placeholder="Nowy obowiązek, np. Podlewanie kwiatów" aria-label="Nazwa obowiązku" enterkeyhint="done">
+    <label class="chore-every"><span>co</span><input name="every_days" type="number" min="1" max="730" value="7" required aria-label="Co ile dni"><span>dni</span></label>
+    <button type="submit">Dodaj</button>
+  </div>
+  <div id="chore-error-new"></div>
+  <details class="todo-add-more">
+    <summary>Więcej opcji</summary>
+    <div class="grid">
+      <label>Pomieszczenie <input name="room" maxlength="60" list="rooms" placeholder="np. Łazienka"></label>
+      <label>Szacowany czas [min] <input name="est_minutes" type="number" min="1" max="1440" placeholder="opcjonalnie"></label>
+    </div>
+    {{ rotation_fields(none) }}
+  </details>
+  <datalist id="rooms">{% for r in rooms %}<option value="{{ r }}">{% endfor %}</datalist>
+</form>
+
+{% if suggestions %}
+<div class="chore-sugs" aria-label="Propozycje">
+  <small class="muted">Dodaj jednym kliknięciem:</small>
+  {% for name, room, every, minutes in suggestions %}
+  <form method="post" action="/obowiazki/propozycja" class="inline">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="name" value="{{ name }}"><input type="hidden" name="who" value="{{ who or '' }}">
+    <button type="submit" class="chip-btn" title="{{ room }} · co {{ every }} dni{% if minutes %} · ok. {{ minutes }} min{% endif %}">＋ {{ name }} <small>{{ every }} d</small></button>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if states %}
+<ul class="chore-list">
+  {% for s in states %}{% set c = s.chore %}
+  <li class="chore lvl-{{ s.level }}" id="ch{{ c.id }}">
+    <div class="chore-top">
+      <span class="chore-name"><strong>{{ c.name }}</strong>
+        <small class="muted">{% if c.room %}{{ c.room }} · {% endif %}co {{ c.every_days }} {{ 'dzień' if c.every_days == 1 else 'dni' }}{% if c.est_minutes %} · ok. {{ c.est_minutes }} min{% endif %}</small>
+      </span>
+      <span class="chore-state">
+        {% if s.level == 'new' %}<span class="badge soon">do zrobienia</span>
+        {% elif s.level == 'overdue' %}<span class="badge overdue">zaległe {{ -s.days_left }} {{ 'dzień' if s.days_left == -1 else 'dni' }}</span>
+        {% elif s.level == 'today' %}<span class="badge today">dziś</span>
+        {% elif s.level == 'soon' %}<span class="badge soon">{{ s.days_left|days }}</span>
+        {% else %}<span class="badge ok">{{ s.days_left|days }}</span>{% endif %}
+      </span>
+    </div>
+    <span class="bar chore-bar" aria-hidden="true"><i style="width: {{ [s.fresh_pct, 3]|max }}%; --h: {{ s.hue }}"></i></span>
+    <div class="chore-bottom">
+      <span class="chore-turn">
+        {% if s.turn %}Teraz: {{ avatar(s.turn) }}<b>{{ s.turn.name }}</b>{% else %}<span class="muted">Ktokolwiek</span>{% endif %}
+      </span>
+      <form method="post" action="/obowiazki/{{ c.id }}/zrobione" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="who" value="{{ who or '' }}">
+        <button type="submit" class="small">✓ Zrobione</button>
+      </form>
+    </div>
+    <div class="chore-meta">
+      {% if s.last %}
+      <small class="muted">Ostatnio: {{ s.last.done_by.name if s.last.done_by else '?' }}, {{ s.last.done_on|d }}</small>
+      <form method="post" action="/obowiazki/{{ c.id }}/cofnij" class="inline" hx-confirm="Cofnąć ostatnie odhaczenie „{{ c.name }}”?">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="who" value="{{ who or '' }}">
+        <button type="submit" class="link">cofnij</button>
+      </form>
+      {% else %}<small class="muted">Jeszcze nie odhaczone.</small>{% endif %}
+      {% if users|length > 1 %}
+      <details class="chore-more">
+        <summary>za kogoś</summary>
+        <form method="post" action="/obowiazki/{{ c.id }}/zrobione" class="bud-inline">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="who" value="{{ who or '' }}">
+          <select name="by" aria-label="Kto zrobił">{% for u in users if u.id != user.id %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}</select>
+          <button type="submit" class="small">✓ Zrobił(a)</button>
+        </form>
+      </details>
+      {% endif %}
+      <details class="chore-more">
+        <summary>edytuj</summary>
+        <form method="post" action="/obowiazki/{{ c.id }}" class="chore-edit">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="who" value="{{ who or '' }}">
+          <div id="chore-error-{{ c.id }}"></div>
+          <div class="grid">
+            <label>Nazwa <input name="name" value="{{ c.name }}" required maxlength="120"></label>
+            <label>Co ile dni <input name="every_days" type="number" min="1" max="730" value="{{ c.every_days }}" required></label>
+          </div>
+          <div class="grid">
+            <label>Pomieszczenie <input name="room" value="{{ c.room or '' }}" maxlength="60" list="rooms"></label>
+            <label>Szacowany czas [min] <input name="est_minutes" type="number" min="1" max="1440" value="{{ c.est_minutes or '' }}"></label>
+          </div>
+          {{ rotation_fields(c) }}
+          <button type="submit" class="small">Zapisz</button>
+        </form>
+        <form method="post" action="/obowiazki/{{ c.id }}/usun" class="inline" hx-confirm="Usunąć obowiązek „{{ c.name }}” razem z historią?">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="who" value="{{ who or '' }}">
+          <button type="submit" class="link danger">usuń obowiązek</button>
+        </form>
+      </details>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% elif has_any %}
+<p class="muted">Nic dla Ciebie – wszystkie obowiązki ma teraz ktoś inny. 🎉</p>
+{% else %}
+<p class="muted">Brak obowiązków. Dodaj własny albo wybierz z propozycji powyżej.</p>
+{% endif %}
+{% endblock %}
