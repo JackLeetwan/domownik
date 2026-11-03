@@ -31,6 +31,17 @@ terminy liczone jak na osi czasu). Wykonanie to transakcje: zapłacone zadania (
 Stałe dochody (pensje, czynsz od najemcy) wpisuje się raz w **Kategorie i limity**, a co miesiąc
 potwierdza „✓ Wpłynęło” – bez przypomnień i bez osi czasu.
 
+**🏦 Import z banku** (`/budzet/import`) – CSV z historią rachunku (mBank; inne banki z kolumnami daty,
+opisu i kwoty też). Najpierw podgląd z propozycją dla każdej operacji: opłacone zadanie z harmonogramu
+(odhacza je), dochód co miesiąc, „już w budżecie” (wpisane ręcznie / „Zakończ zakupy” / autopay – nic się
+nie dubluje), kategoria z zapamiętanej reguły albo z kategorii banku, pominięcie (przelewy własne). Wybrana
+ręcznie kategoria staje się regułą („biedronka” → Jedzenie). Każda operacja jest zapamiętana – ten sam plik
+można wgrać ponownie.
+
+**📊 Koszty stref** (`/budzet/strefy?y=2026`) – ile w roku kosztowała każda strefa (auta, dom, mieszkanie
+wynajęte…): płatności zadań, wpisy ze strefą, wpływy z dochodów przypisanych do strefy (czynsz od najemcy),
+podział na elementy i kategorie, miesiące, porównanie z poprzednim rokiem. Skrót na stronie strefy.
+
 ## Grafik tygodnia i obowiązki
 
 `/grafik` – stałe pozycje tygodnia z godziną (zajęcia dzieci, odbiór z przedszkola, basen, sprzątanie):
@@ -69,6 +80,15 @@ osoby przypisanej). Punkty ⭐ i „Wymaga zatwierdzenia” – w „Więcej szc
 
 `/kalendarz` – miesiąc (polskie święta i dni wolne czerwonym numerem) albo `/kalendarz/tydzien` – siedem dni
 jako lista. Filtr „Moje”.
+Dwuklik na dzień (albo „＋” przy wybranym dniu) – „＋ Dodaj” wydarzenie, zadanie lub wydatek na ten dzień.
+
+Dziecko: na stronie dziecka „💉 Szczepienia i bilanse” – z daty urodzenia terminy szczepień obowiązkowych
+(PSO) i bilansów zdrowia; zaznaczone stają się jednorazowymi zadaniami „Zdrowie” (przypomnienie 2 tygodnie
+wcześniej).
+
+Lista zakupów działa **offline**: service worker trzyma ostatnią wersję `/zakupy`, odhaczenia i dopisane
+pozycje bez sieci czekają w telefonie i wysyłają się, gdy wróci zasięg (bez sieci każda strona otwiera
+listę zakupów).
 
 ## Notatki, kuchnia, punkty
 

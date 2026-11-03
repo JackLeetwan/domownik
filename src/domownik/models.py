@@ -221,12 +221,15 @@ class RecurringIncome(Base):
     amount_gr: Mapped[int] = mapped_column(Integer)  # planned, positive
     day: Mapped[int] = mapped_column(Integer, default=10)  # expected day of the month (31 = last day)
     budget_category_id: Mapped[int | None] = mapped_column(ForeignKey("budget_category.id", ondelete="SET NULL"))
+    # zone it belongs to (rent from a tenant → the rented flat) – counted in the yearly zone costs
+    item_id: Mapped[int | None] = mapped_column(ForeignKey("item.id", ondelete="SET NULL"))
     starts_on: Mapped[date] = mapped_column(Date)  # first month it is expected (1st day of that month)
     ends_on: Mapped[date | None] = mapped_column(Date)  # last day it is expected; None = open-ended
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     budget_category: Mapped[BudgetCategory | None] = relationship()
+    item: Mapped[Item | None] = relationship()
 
     def expected_in(self, first: date, last: date) -> bool:
         return self.starts_on <= last and (self.ends_on is None or self.ends_on >= first)
@@ -991,3 +994,29 @@ class Comment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     user: Mapped[User | None] = relationship()
+
+
+class BankRule(Base):
+    """Learned from the bank import: a word in the description ("biedronka") → a budget category."""
+
+    __tablename__ = "bank_rule"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    pattern: Mapped[str] = mapped_column(String(80), unique=True)  # lower case, matched as a substring
+    budget_category_id: Mapped[int] = mapped_column(ForeignKey("budget_category.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    budget_category: Mapped[BudgetCategory] = relationship()
+
+
+class BankLine(Base):
+    """One line of a bank statement that was already looked at (booked or skipped) – never offered again."""
+
+    __tablename__ = "bank_line"
+
+    ref: Mapped[str] = mapped_column(String(40), primary_key=True)  # hash of date, amount, description
+    booked_on: Mapped[date] = mapped_column(Date)
+    amount_gr: Mapped[int] = mapped_column(Integer)
+    description: Mapped[str] = mapped_column(String(300))
+    transaction_id: Mapped[int | None] = mapped_column(ForeignKey("transaction.id", ondelete="SET NULL"))
+    imported_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

@@ -1,5 +1,5 @@
 <li class="shop-row{% if s.checked_at %} in-cart{% endif %}">
-  <button type="button" class="shop-check" hx-post="/zakupy/{{ s.id }}/check" hx-target="#shopping-list" hx-swap="outerHTML"
+  <button type="button" class="shop-check" data-sid="{{ s.id }}" hx-post="/zakupy/{{ s.id }}/check?to={{ 0 if s.checked_at else 1 }}" hx-target="#shopping-list" hx-swap="outerHTML"
           aria-label="{% if s.checked_at %}Wyjmij z koszyka{% else %}Do koszyka{% endif %}: {{ s.name }}">{% if s.checked_at %}☑{% else %}☐{% endif %}</button>
   <details class="shop-body">
     <summary>

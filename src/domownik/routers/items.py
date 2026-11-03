@@ -204,12 +204,29 @@ def item_page(request: Request, item_id: int, db: Session = Depends(get_db), use
     attachments = list(item.attachments)
     # "Gwarancja do" typed into the item's details (appliance templates) – offer it as a real warranty
     warranty_attr = (item.attributes or {}).get("warranty_until")
+    child_plan, child_birthday = None, None
+    if item.kind == "child":
+        from domownik.domain import child_health
+
+        child_birthday = documents.parse_loose_date(str((item.attributes or {}).get("birthday") or ""))
+        if child_birthday:
+            titles = {x.lower() for x in db.scalars(select(Task.title).where(Task.item_id == item.id))}
+            child_plan = child_health.plan_for(child_birthday, t, titles)
+    zone_cost = None
+    if item.parent_id is None and not item.archived:
+        from domownik import zonecosts
+
+        zone_cost = zonecosts.zone_year_total(db, item.id, t.year)
     return render(
         request,
         "item.html",
         {
             "user": user,
             "item": item,
+            "zone_cost": zone_cost,
+            "child_plan": child_plan,
+            "child_birthday": child_birthday,
+            "zone_year": t.year,
             "path": tree.path(item_id),
             "kids": kids,
             "stats": stats,
@@ -424,6 +441,45 @@ async def add_visit(request: Request, item_id: int, db: Session = Depends(get_db
     )
     db.commit()
     return _redirect(f"/items/{item.id}")
+
+
+@router.post("/{item_id}/szczepienia", dependencies=[Depends(verify_csrf)])
+async def add_child_plan(
+    request: Request, item_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    """Vaccinations and check-ups picked from the child's plan → one-off health tasks on their dates."""
+    from domownik.domain import child_health
+
+    item = _get_item(db, item_id)
+    if item.kind != "child":
+        raise HTTPException(400, "Kalendarz szczepień jest dla dzieci")
+    birthday = documents.parse_loose_date(str((item.attributes or {}).get("birthday") or ""))
+    if birthday is None:
+        raise HTTPException(400, "Najpierw wpisz datę urodzenia")
+    form = await request.form()
+    existing = {x.lower() for x in db.scalars(select(Task.title).where(Task.item_id == item.id))}
+    added = 0
+    for key in form.getlist("v"):
+        v = child_health.BY_KEY.get(str(key))
+        if v is None or v.title.lower() in existing:
+            continue
+        on = v.due(birthday)
+        db.add(
+            Task(
+                item_id=item.id,
+                title=v.title,
+                category="health",
+                recurrence={"mode": "once", "date": on.isoformat()},
+                lead_days=14,
+                next_due_date=on,
+                direction="none",
+                notes=f"{v.what}.\nTermin orientacyjny (wiek dziecka) – dokładny dzień ustala przychodnia; zmienisz go przez „Przełóż”.",
+            )
+        )
+        existing.add(v.title.lower())
+        added += 1
+    db.commit()
+    return _redirect(f"/items/{item.id}#szczepienia")
 
 
 @router.post("/{item_id}/issues", dependencies=[Depends(verify_csrf)])

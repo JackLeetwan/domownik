@@ -27,6 +27,10 @@
 
 {% include "partials/timeline.html" %}
 
+{% if zone_cost and (zone_cost.expense_gr or zone_cost.income_gr) %}
+<a class="zone-cost" href="/budzet/strefy?y={{ zone_year }}">📊 W {{ zone_year }}: wydano <b>{{ zone_cost.expense_gr|pln }}</b>{% if zone_cost.income_gr %} · wpływy {{ zone_cost.income_gr|pln }}{% endif %} →</a>
+{% endif %}
+
 {% if kids or is_container or suggested %}
 <section class="tiles">
   {% for it in kids %}{% include "partials/tile.html" %}{% endfor %}
@@ -56,6 +60,7 @@
 </section>
 {% endif %}
 {% if item.is_member %}{% include "partials/member_health.html" %}{% endif %}
+{% if item.kind == 'child' %}{% include "partials/child_vaccines.html" %}{% endif %}
 <section id="zadania">
   <h2>Zadania{% if own_rows or sub_rows %} <small class="muted">({{ own_rows|length + sub_rows|length }})</small>{% endif %}</h2>
   {% if task_entries %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Import z banku · Domownik{% endblock %}
+{% block content %}
+<header class="item-head">
+  <p class="crumbs"><a href="/budzet">💰 Budżet</a></p>
+  <h1>🏦 Import z banku</h1>
+</header>
+
+{% if result %}
+<article class="imp-result" role="status">
+  <h2>✓ Zaimportowano</h2>
+  <ul>
+    {% if result.paid %}<li>💳 {{ result.paid }} – opłacone zadania z harmonogramu (odhaczone)</li>{% endif %}
+    {% if result.incomes %}<li>💵 {{ result.incomes }} – potwierdzone dochody</li>{% endif %}
+    {% if result.booked %}<li>🧾 {{ result.booked }} – nowe wpisy w kategoriach</li>{% endif %}
+    {% if result.linked %}<li>🔗 {{ result.linked }} – już były w budżecie, tylko połączone</li>{% endif %}
+    {% if result.skipped %}<li>⏭️ {{ result.skipped }} – pominięte</li>{% endif %}
+    {% if result.rules %}<li>🧠 {{ result.rules }} – nowe reguły na przyszłość</li>{% endif %}
+  </ul>
+  <a href="/budzet" role="button">Przejdź do budżetu</a>
+</article>
+{% endif %}
+
+{% if preview %}
+{% set pv = preview %}
+{% if not pv.proposals %}
+<article>
+  <p>Wszystkie operacje z pliku <b>{{ filename }}</b> były już zaimportowane ({{ pv.already }}). Nic nowego. ✓</p>
+  <a href="/budzet/import" role="button" class="secondary">Inny plik</a>
+</article>
+{% else %}
+<form method="post" action="/budzet/import/zapisz" class="imp-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <p class="muted"><small>{{ filename }}: {{ pv.proposals|length }} nowych operacji{% if pv.already %} · {{ pv.already }} zaimportowanych wcześniej pominięto{% endif %}. Sprawdź propozycje i zapisz.</small></p>
+  <ul class="imp-list">
+    {% for p in pv.proposals %}
+    {% set ln = p.line %}{% set i = loop.index0 %}{% set income = ln.amount_gr > 0 %}
+    <li class="imp-row imp-{{ p.choice.split(':')[0] }}">
+      <input type="hidden" name="ref_{{ i }}" value="{{ ln.ref }}">
+      <input type="hidden" name="d_{{ i }}" value="{{ ln.booked_on.isoformat() }}">
+      <input type="hidden" name="a_{{ i }}" value="{{ ln.amount_gr }}">
+      <input type="hidden" name="t_{{ i }}" value="{{ ln.description }}">
+      <input type="hidden" name="p_{{ i }}" value="{{ p.choice }}">
+      {% if p.learned %}<input type="hidden" name="r_{{ i }}" value="1">{% endif %}
+      <div class="imp-line">
+        <span class="imp-date">{{ ln.booked_on|d }}</span>
+        <b class="imp-amount {{ 'pos' if income else 'neg' }}">{{ ln.amount_gr|pln(sign=True) }}</b>
+        <span class="imp-desc">{{ ln.description }}</span>
+      </div>
+      <label class="imp-pick">
+        <small class="muted">{{ p.why }}</small>
+        <select name="c_{{ i }}" aria-label="Co to jest: {{ ln.description }}">
+          <option value="skip" {% if p.choice == 'skip' %}selected{% endif %}>⏭️ Pomiń</option>
+          {% set kind, _, oid = p.choice.partition(':') %}
+          {% if kind == 'dup' %}{% set tx = pv.duplicates[oid|int] %}
+          <option value="{{ p.choice }}" selected>🔗 Już w budżecie: {{ tx.note or (tx.budget_category.name if tx.budget_category else 'wpis') }} ({{ tx.booked_on|d }})</option>
+          {% elif kind == 'task' %}{% set t = pv.tasks[oid|int] %}
+          <option value="{{ p.choice }}" selected>💳 Opłacone: {{ t.title }} (termin {{ t.next_due_date|d }})</option>
+          {% elif kind == 'inc' %}{% set inc = pv.incomes[oid|int] %}
+          <option value="{{ p.choice }}" selected>💵 Wpłynęło: {{ inc.name }}</option>
+          {% endif %}
+          <optgroup label="{{ 'Wpływ w kategorii' if income else 'Wydatek w kategorii' }}">
+            {% for c in categories if c.is_income == income %}
+            <option value="cat:{{ c.id }}" {% if p.choice == 'cat:' ~ c.id %}selected{% endif %}>{{ c.icon or '' }} {{ c.name }}</option>
+            {% endfor %}
+          </optgroup>
+        </select>
+      </label>
+    </li>
+    {% endfor %}
+  </ul>
+  <label><input type="checkbox" name="remember" value="1" role="switch" checked> 🧠 Zapamiętaj wybrane kategorie – następnym razem sklep sam trafi do tej kategorii</label>
+  <footer class="imp-actions">
+    <button type="submit">Zapisz w budżecie</button>
+    <a href="/budzet/import" role="button" class="outline secondary">Anuluj</a>
+  </footer>
+</form>
+{% endif %}
+{% endif %}
+
+{% if not preview %}
+<article class="imp-upload">
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="/budzet/import" enctype="multipart/form-data" hx-boost="false">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Plik CSV z historią rachunku
+      <input type="file" name="file" accept=".csv,text/csv,text/plain" required>
+    </label>
+    <button type="submit">Pokaż propozycje</button>
+  </form>
+  <details class="imp-help">
+    <summary>Skąd wziąć plik?</summary>
+    <p><small>mBank: <b>Historia</b> → ustaw okres (np. ostatni miesiąc) → <b>Pobierz</b> / „Eksportuj” → format <b>CSV</b>. Inne banki: eksport historii do CSV z kolumnami daty, opisu i kwoty też zadziała.</small></p>
+    <p><small>Nic nie zapisuje się od razu – najpierw zobaczysz każdą operację z propozycją: <b>opłacone zadanie</b> (rata, OC – zostanie odhaczone), <b>dochód</b>, <b>już w budżecie</b> (wpisane ręcznie albo przy „Zakończ zakupy”) albo <b>kategoria</b>. Ten sam plik możesz wgrać ponownie – zaimportowane operacje są pomijane.</small></p>
+  </details>
+  {% if last_line %}<p class="muted"><small>Ostatnia zaimportowana operacja: {{ last_line|d }}. Pobierz historię od tego dnia.</small></p>{% endif %}
+</article>
+{% endif %}
+
+<section id="reguly" class="imp-rules">
+  <h2>🧠 Zapamiętane reguły <small class="muted">({{ rules|length }})</small></h2>
+  {% if rules %}
+  <ul>
+    {% for r in rules %}
+    <li><code>{{ r.pattern }}</code> → {{ r.budget_category.icon or '' }} {{ r.budget_category.name }}
+      <form method="post" action="/budzet/import/reguly/{{ r.id }}/usun" class="inline" hx-confirm="Usunąć regułę „{{ r.pattern }}”?">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" class="link danger" aria-label="Usuń regułę {{ r.pattern }}"><small>✕</small></button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted"><small>Jeszcze żadnych. Powstają same, gdy przy imporcie wybierzesz kategorię dla sklepu lub firmy.</small></p>
+  {% endif %}
+</section>
+{% endblock %}

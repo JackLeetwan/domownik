@@ -560,6 +560,7 @@ def confirm_income(
         amount_gr=amount,
         budget_category_id=inc.budget_category_id,
         income_id=inc.id,
+        item_id=inc.item_id,
         note=inc.name,
         created_by_id=user_id,
     )

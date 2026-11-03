@@ -233,6 +233,152 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", pushOnLoad);
   else pushOnLoad();
 
+  // ------------------------------------------------------------------ offline: shopping list
+  // The service worker keeps the last /zakupy page. Without signal (shop basement) taps on the list are
+  // done on screen at once and queued here; they are sent when the connection is back.
+  const QKEY = "dm-shop-queue";
+  const loadQ = () => { try { return JSON.parse(store.get(QKEY) || "[]") || []; } catch (_) { return []; } };
+  const saveQ = (q) => { store.set(QKEY, JSON.stringify(q)); showOffline(); };
+  function changes(n) {
+    if (n === 1) return "zmiana czeka";
+    const few = [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100);
+    return few ? "zmiany czekają" : "zmian czeka";
+  }
+  function showOffline() {
+    const bar = document.getElementById("offline-bar");
+    if (!bar) return;
+    const n = loadQ().length;
+    const off = !navigator.onLine;
+    bar.hidden = !off && !n;
+    bar.textContent = off
+      ? `📴 Bez sieci – lista zakupów działa dalej${n ? `; ${n} ${changes(n)} na wysłanie` : ""}.`
+      : `⏳ Wysyłanie zmian z listy zakupów (${n})…`;
+  }
+  function rowOf(id) {
+    const btn = document.querySelector(`#shopping-list .shop-check[data-sid="${id}"]`);
+    return btn ? btn.closest("li") : null;
+  }
+  function paintCheck(id, to) {
+    const li = rowOf(id);
+    if (!li) return;
+    const btn = li.querySelector(".shop-check");
+    li.classList.toggle("in-cart", to === 1);
+    btn.textContent = to === 1 ? "☑" : "☐";
+    btn.setAttribute("hx-post", `/zakupy/${id}/check?to=${to === 1 ? 0 : 1}`);
+    if (typeof htmx !== "undefined") htmx.process(btn);
+  }
+  function paintPending() {
+    const list = document.getElementById("shopping-list");
+    if (!list) return;
+    list.querySelectorAll(".shop-pending").forEach((el) => el.remove());
+    const adds = [];
+    loadQ().forEach((op) => {
+      if (op.op === "check") paintCheck(op.id, op.to);
+      else if (op.op === "del") { const li = rowOf(op.id); if (li) li.remove(); }
+      else if (op.op === "add") adds.push(op.text);
+    });
+    if (adds.length) {
+      const ul = document.createElement("ul");
+      ul.className = "shop-list shop-pending";
+      adds.forEach((t) => {
+        const li = document.createElement("li");
+        li.className = "shop-row";
+        li.innerHTML = '<span class="shop-check" aria-hidden="true">⏳</span><span class="shop-body"></span>';
+        li.querySelector(".shop-body").textContent = t;
+        ul.appendChild(li);
+      });
+      list.prepend(ul);
+    }
+  }
+  // what a request to the shopping list means, as an op that can wait
+  function shopOp(cfg) {
+    if (!cfg || cfg.verb !== "post") return null;
+    const path = (cfg.path || "").split("#")[0];
+    let m = path.match(/^\/zakupy\/(\d+)\/check\?to=([01])$/);
+    if (m) return { op: "check", id: +m[1], to: +m[2] };
+    m = path.match(/^\/zakupy\/(\d+)\/delete$/);
+    if (m) return { op: "del", id: +m[1] };
+    if (path === "/zakupy" && cfg.elt && cfg.elt.matches && cfg.elt.matches("form.shop-add")) {
+      const text = ((cfg.elt.querySelector("input[name=text]") || {}).value || "").trim();
+      return text ? { op: "add", text } : null;
+    }
+    return null;
+  }
+  function queueOp(op, elt) {
+    let q = loadQ();
+    if (op.op === "check" || op.op === "del") q = q.filter((o) => !(o.id === op.id && o.op === "check"));
+    q.push(op);
+    saveQ(q);
+    if (op.op === "add" && elt && elt.reset) elt.reset();
+    paintPending();
+  }
+  document.addEventListener("htmx:beforeRequest", (e) => {
+    if (navigator.onLine) return;
+    const cfg = e.detail.requestConfig || {};
+    if (cfg.verb === "get" && (cfg.path || "").startsWith("/zakupy/lista")) { e.preventDefault(); return; }
+    const op = shopOp(Object.assign({ elt: e.detail.elt }, cfg));
+    if (op) { e.preventDefault(); queueOp(op, e.detail.elt); }
+  });
+  document.addEventListener("htmx:sendError", (e) => {
+    const cfg = e.detail.requestConfig || {};
+    const op = shopOp(Object.assign({ elt: e.detail.elt }, cfg));
+    if (op) { e.detail.dmOffline = true; queueOp(op, e.detail.elt); }
+    else if (cfg.verb === "get" && (cfg.path || "").startsWith("/zakupy/lista")) e.detail.dmOffline = true;
+  });
+  let flushing = false;
+  async function flushQueue() {
+    if (flushing || !navigator.onLine || !loadQ().length) { showOffline(); return; }
+    flushing = true;
+    showOffline();
+    try {
+      for (let q = loadQ(); q.length; q = loadQ()) {
+        const op = q[0];
+        const url = op.op === "check" ? `/zakupy/${op.id}/check?to=${op.to}`
+          : op.op === "del" ? `/zakupy/${op.id}/delete` : "/zakupy";
+        const body = new URLSearchParams({ csrf: csrf() });
+        if (op.op === "add") body.set("text", op.text);
+        let r;
+        try {
+          r = await fetch(url, { method: "POST", credentials: "same-origin", body, headers: { "X-CSRF-Token": csrf() } });
+        } catch (_) { break; } // still no connection – try later
+        if (!r.ok && r.status !== 404 && r.status !== 400) break; // e.g. logged out: keep it
+        saveQ(loadQ().slice(1));
+      }
+    } finally {
+      flushing = false;
+      showOffline();
+      const list = document.getElementById("shopping-list");
+      if (list && typeof htmx !== "undefined" && navigator.onLine) {
+        htmx.ajax("GET", "/zakupy/lista", { target: "#shopping-list", swap: "outerHTML" });
+      }
+    }
+  }
+  window.addEventListener("online", flushQueue);
+  window.addEventListener("offline", showOffline);
+  setInterval(flushQueue, 30000);
+  document.addEventListener("htmx:afterSwap", (e) => {
+    if (e.detail.target && (e.detail.target.id === "shopping-list" || e.detail.target.querySelector?.("#shopping-list"))) paintPending();
+  });
+  // the service worker: offline copy of /zakupy (and push, when switched on)
+  function warmOffline() {
+    if (!("serviceWorker" in navigator) || !loggedIn()) return;
+    navigator.serviceWorker.register("/sw.js").then(() => navigator.serviceWorker.ready).then((reg) => {
+      const last = +(store.get("dm-offline-warm") || 0);
+      if (!navigator.onLine || Date.now() - last < 10 * 60000 || !reg.active) return;
+      store.set("dm-offline-warm", String(Date.now()));
+      reg.active.postMessage({ type: "warm" });
+    }).catch(() => {});
+  }
+  function offlineOnLoad() {
+    showOffline();
+    paintPending();
+    warmOffline();
+    flushQueue();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", offlineOnLoad);
+  else offlineOnLoad();
+  document.addEventListener("htmx:afterSettle", showOffline);
+
   // ------------------------------------------------------------------ errors
   // htmx swallows failed requests by default – then a click "does nothing".
   function toast(msg, ok) {
@@ -251,6 +397,7 @@
   }
   document.addEventListener("htmx:sendError", (e) => {
     const cfg = e.detail.requestConfig || {};
+    if (e.detail.dmOffline) return; // the shopping list queued it
     if (cfg.boosted && cfg.verb === "get") {
       window.location.href = cfg.path; // let the browser show its own error page
       return;

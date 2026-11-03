@@ -21,6 +21,9 @@
         <label>Kategoria
           <select name="budget_category_id"><option value="">—</option>{% for c in income_categories %}<option value="{{ c.id }}" {% if c.id == inc.budget_category_id %}selected{% endif %}>{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}</select>
         </label>
+        <label>Strefa
+          <select name="item_id" title="Np. czynsz od najemcy → mieszkanie wynajęte (liczy się w kosztach strefy)"><option value="">—</option>{% for z in zones %}<option value="{{ z.id }}" {% if z.id == inc.item_id %}selected{% endif %}>{{ z.display_icon }} {{ z.name }}</option>{% endfor %}</select>
+        </label>
         <button type="submit" class="small">Zapisz</button>
       </form>
       <div class="bud-cat-meta">
@@ -45,6 +48,9 @@
       <label>Dzień <input type="number" name="day" min="1" max="31" value="10"></label>
       <label>Kategoria
         <select name="budget_category_id"><option value="">—</option>{% for c in income_categories %}<option value="{{ c.id }}">{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}</select>
+      </label>
+      <label>Strefa
+        <select name="item_id" title="Np. czynsz od najemcy → mieszkanie wynajęte (liczy się w kosztach strefy)"><option value="">—</option>{% for z in zones %}<option value="{{ z.id }}">{{ z.display_icon }} {{ z.name }}</option>{% endfor %}</select>
       </label>
       <button type="submit" class="small">Dodaj</button>
     </form>

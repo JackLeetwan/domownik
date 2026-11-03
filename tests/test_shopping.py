@@ -118,3 +118,23 @@ def test_remove_from_list_with_undo(auth_client, db):
     # undo twice does not duplicate
     auth_client.post("/zakupy/przywroc", data={"name": "Jajka"}, headers=HX)
     assert len([x for x in db.scalars(select(ShoppingItem)) if x.name == "Jajka"]) == 1
+
+
+def test_check_to_is_idempotent(auth_client, db):
+    """Taps made offline are replayed with ?to= – sending the same state twice must not toggle back."""
+    from domownik.models import ShoppingItem
+
+    s = ShoppingItem(name="Mleko", section="nabial")
+    db.add(s)
+    db.commit()
+    for _ in range(2):
+        auth_client.post(f"/zakupy/{s.id}/check?to=1")
+        db.refresh(s)
+        assert s.checked_at is not None
+    auth_client.post(f"/zakupy/{s.id}/check?to=0")
+    db.refresh(s)
+    assert s.checked_at is None
+    auth_client.post(f"/zakupy/{s.id}/check")  # plain toggle still works
+    db.refresh(s)
+    assert s.checked_at is not None
+    assert f"/zakupy/{s.id}/check?to=0" in auth_client.get("/zakupy").text

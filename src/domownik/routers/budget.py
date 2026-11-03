@@ -253,6 +253,7 @@ def categories_page(request: Request, db: Session = Depends(get_db), user: User 
             "usage": usage,
             "incomes": incomes,
             "income_categories": [c for c in cats if c.is_income and not c.archived],
+            "zones": Tree.load(db).roots(),
             "goal_today": t,
         },
     )
@@ -338,6 +339,9 @@ def _apply_income(inc: RecurringIncome, form, db: Session) -> None:
     raw = str(form.get("budget_category_id") or "").strip()
     cat = db.get(BudgetCategory, int(raw)) if raw.isdigit() else None
     inc.budget_category_id = cat.id if cat is not None and cat.is_income else None
+    raw_item = str(form.get("item_id") or "").strip()
+    item = db.get(Item, int(raw_item)) if raw_item.isdigit() else None
+    inc.item_id = item.id if item is not None else None
 
 
 @router.post("/budzet/dochody", dependencies=[Depends(verify_csrf)])
@@ -388,3 +392,31 @@ def resume_income(inc_id: int, db: Session = Depends(get_db), user: User = Depen
     inc.ends_on = None
     db.commit()
     return _back("/budzet/kategorie#dochody")
+
+
+# ---------------------------------------------------------------- yearly costs of zones
+
+
+@router.get("/budzet/strefy")
+def zone_costs_page(
+    request: Request, y: int | None = None, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    from domownik import zonecosts
+
+    t = today()
+    year = y if y and 2000 <= y <= t.year + 1 else t.year
+    zones, rest = zonecosts.year_costs(db, year)
+    return render(
+        request,
+        "budget_zones.html",
+        {
+            "user": user,
+            "year": year,
+            "zones": zones,
+            "rest": rest,
+            "total_expense": sum(z.expense_gr for z in zones) + rest.expense_gr,
+            "is_current": year == t.year,
+            "months_passed": t.month if year == t.year else 12,
+            "can_next": year < t.year,
+        },
+    )

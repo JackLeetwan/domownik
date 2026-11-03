@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Koszty stref {{ year }} · Domownik{% endblock %}
+{% block content %}
+{% set MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'] %}
+<header class="cal-head bud-head">
+  <h1 class="cal-title">📊 Koszty stref · {{ year }}</h1>
+  <nav class="cal-nav" aria-label="Lata">
+    <a role="button" class="outline secondary" href="/budzet/strefy?y={{ year - 1 }}" aria-label="Poprzedni rok" title="Poprzedni rok">‹</a>
+    <a role="button" class="outline secondary" href="/budzet/strefy">Ten rok</a>
+    {% if can_next %}<a role="button" class="outline secondary" href="/budzet/strefy?y={{ year + 1 }}" aria-label="Następny rok" title="Następny rok">›</a>{% endif %}
+  </nav>
+  <a href="/budzet" class="bud-settings">💰 Budżet miesiąca</a>
+</header>
+<p class="muted"><small>Wszystko, co zaksięgowane w budżecie {{ 'od początku roku' if is_current else 'w tym roku' }}: płatności zadań, wpisy ręczne i z banku przypisane do strefy oraz dochody ze strefą (np. czynsz od najemcy). Bez wpłat na cele oszczędnościowe. Razem wydatki: <b>{{ total_expense|pln }}</b>.</small></p>
+
+{% if not zones and not rest.expense_gr %}
+<article><p class="muted">W {{ year }} nic nie zaksięgowano.</p></article>
+{% endif %}
+
+<ul class="zc-list">
+  {% for z in zones %}
+  <li class="zc-zone">
+    <details {% if loop.first %}open{% endif %}>
+      <summary>
+        <span class="zc-name">{{ z.item.display_icon }} {{ z.item.name }}</span>
+        <span class="zc-total">
+          <b>{{ z.expense_gr|pln }}</b>
+          {% if z.income_gr %}<small class="pos">+{{ z.income_gr|pln }} wpływów</small>{% endif %}
+        </span>
+        <span class="zc-bar" aria-hidden="true"><i style="width: {{ (z.expense_gr * 100 // (zones[0].expense_gr or 1)) if zones[0].expense_gr else 0 }}%"></i></span>
+      </summary>
+      <div class="zc-body">
+        <p class="zc-facts">
+          <span>średnio <b>{{ (z.expense_gr // months_passed)|pln }}</b> / mies.</span>
+          {% if z.income_gr %}<span>bilans <b class="{{ 'pos' if z.net_gr >= 0 else 'neg' }}">{{ z.net_gr|pln(sign=True) }}</b></span>{% endif %}
+          {% if z.prev_expense_gr %}<span>{{ year - 1 }}: {{ z.prev_expense_gr|pln }}{% if z.change_pct is not none and not is_current %} ({{ '+' if z.change_pct > 0 else '' }}{{ z.change_pct }}%){% endif %}</span>{% endif %}
+          <a href="/items/{{ z.item.id }}">strona strefy →</a>
+        </p>
+        {% if z.expense_gr %}
+        <div class="zc-months" role="img" aria-label="Wydatki w kolejnych miesiącach">
+          {% for m in z.months %}<span class="zc-m" title="{{ MONTHS[loop.index0] }}: {{ m|pln }}"><i style="height: {{ (m * 100 // z.month_max) if m else 0 }}%"></i><small>{{ MONTHS[loop.index0][:1] }}</small></span>{% endfor %}
+        </div>
+        <div class="zc-cols">
+          {% if z.by_item %}
+          <section>
+            <h3>Elementy</h3>
+            <ul class="zc-parts">{% for p in z.by_item %}<li><span>{{ p.icon }} {{ p.name }}</span><b>{{ p.gr|pln }}</b></li>{% endfor %}</ul>
+          </section>
+          {% endif %}
+          <section>
+            <h3>Kategorie</h3>
+            <ul class="zc-parts">{% for p in z.by_category %}<li><span>{{ p.icon }} {{ p.name }}</span><b>{{ p.gr|pln }}</b></li>{% endfor %}</ul>
+          </section>
+        </div>
+        {% endif %}
+      </div>
+    </details>
+  </li>
+  {% endfor %}
+  {% if rest.expense_gr %}
+  <li class="zc-zone zc-rest">
+    <details>
+      <summary>
+        <span class="zc-name">🧾 Bez strefy</span>
+        <span class="zc-total"><b>{{ rest.expense_gr|pln }}</b></span>
+      </summary>
+      <div class="zc-body">
+        <p class="muted"><small>Codzienne wydatki (jedzenie, zakupy) i wpisy bez wskazanej strefy.</small></p>
+        <ul class="zc-parts">{% for p in rest.by_category %}<li><span>{{ p.icon }} {{ p.name }}</span><b>{{ p.gr|pln }}</b></li>{% endfor %}</ul>
+      </div>
+    </details>
+  </li>
+  {% endif %}
+</ul>
+{% endblock %}

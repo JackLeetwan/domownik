@@ -142,9 +142,15 @@ async def add(request: Request, db: Session = Depends(get_db), user: User = Depe
 
 
 @router.post("/{sid}/check", dependencies=[Depends(verify_csrf)])
-def check(request: Request, sid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+async def check(request: Request, sid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Into / out of the cart. ?to=1|0 sets the state (replayed taps made offline must not toggle twice)."""
     s = _get(db, sid)
-    s.checked_at = None if s.checked_at else datetime.now()
+    to = request.query_params.get("to")
+    if to in ("0", "1"):
+        if (to == "1") != bool(s.checked_at):
+            s.checked_at = datetime.now() if to == "1" else None
+    else:
+        s.checked_at = None if s.checked_at else datetime.now()
     db.commit()
     return _respond(request, db, user)
 

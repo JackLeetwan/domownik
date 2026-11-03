@@ -1002,7 +1002,7 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 .bud-cat-edit { list-style: none; margin: 0; padding: 0.6rem 0; border-bottom: 1px solid var(--dm-tile-border); }
 .bud-cat-edit.archived { opacity: 0.6; }
 .bud-cat-form, .bud-inc-form { display: grid; grid-template-columns: 4.2rem minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.2fr) auto; gap: 0 0.6rem; align-items: end; margin: 0; }
-.bud-inc-form { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 4.5rem minmax(0, 1.4fr) auto; }
+.bud-inc-form { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 4.5rem minmax(0, 1.3fr) minmax(0, 1.3fr) auto; }
 .bud-cat-form label, .bud-inc-form label { margin: 0; font-size: 0.8rem; color: var(--pico-muted-color); }
 .bud-cat-form input, .bud-cat-form select, .bud-inc-form input, .bud-inc-form select { margin: 0.15rem 0 0; height: auto; padding: 0.3rem 0.5rem; font-size: 0.92rem; color: var(--pico-color); }
 .bud-cat-form select, .bud-inc-form select { padding-right: 2rem; }
@@ -1302,3 +1302,61 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
   .sidebar .side-links a { padding-block: 0.12rem; font-size: 0.9rem; line-height: 1.25; }
   .sidebar .side-head { margin: 0.55rem 0 0.1rem; }
 }
+
+/* ---------------------------------------------------------------- bank import */
+.imp-list { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 0.5rem; }
+.imp-row { list-style: none; margin: 0; padding: 0.6rem 0.8rem; border-radius: 10px; border: 1px solid var(--dm-tile-border); background: var(--dm-tile-bg); display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 0.25rem 1rem; align-items: center; }
+.imp-row.imp-skip { opacity: 0.85; }
+.imp-row.imp-task, .imp-row.imp-inc { border-left: 4px solid var(--pico-primary); }
+.imp-row.imp-dup { border-left: 4px solid var(--pico-muted-border-color); }
+.imp-line { display: flex; flex-wrap: wrap; gap: 0.15rem 0.6rem; align-items: baseline; min-width: 0; }
+.imp-date { font-size: 0.85rem; color: var(--pico-muted-color); }
+.imp-amount.neg { color: var(--pico-del-color, #c0392b); }
+.imp-amount.pos { color: var(--pico-ins-color, #2e8b57); }
+.imp-desc { flex-basis: 100%; font-size: 0.9rem; overflow-wrap: anywhere; }
+.imp-pick { margin: 0; }
+.imp-pick select { margin: 0.15rem 0 0; padding-top: 0.35rem; padding-bottom: 0.35rem; font-size: 0.9rem; }
+.imp-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem; }
+.imp-actions > * { width: auto; margin: 0; }
+.imp-rules ul { padding-left: 1rem; }
+.imp-rules li form { display: inline; }
+@media (max-width: 640px) { .imp-row { grid-template-columns: 1fr; } }
+
+/* ---------------------------------------------------------------- offline */
+.offline-bar { position: sticky; top: 0; z-index: 50; padding: 0.4rem 1rem; font-size: 0.9rem; text-align: center; background: #8a6d1d; color: #fff; }
+.shop-pending .shop-row { opacity: 0.7; }
+.shop-pending .shop-check { display: inline-flex; width: 2rem; justify-content: center; }
+
+/* ---------------------------------------------------------------- yearly zone costs */
+.zc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.zc-zone { list-style: none; margin: 0; border-radius: 12px; border: 1px solid var(--dm-tile-border); background: var(--dm-tile-bg); }
+.zc-zone > details { margin: 0; }
+.zc-zone summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.2rem 0.75rem; align-items: baseline; padding: 0.7rem 0.9rem; cursor: pointer; }
+.zc-zone summary::after { display: none; }
+.zc-name { font-weight: 600; overflow-wrap: anywhere; }
+.zc-total { display: flex; flex-direction: column; align-items: flex-end; }
+.zc-total small, .zc-facts .pos, .zc-total .pos { color: var(--pico-ins-color, #2e8b57); }
+.zc-facts .neg { color: var(--pico-del-color, #c0392b); }
+.zc-bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--pico-muted-border-color); overflow: hidden; }
+.zc-bar i { display: block; height: 100%; background: var(--pico-primary-background); }
+.zc-body { padding: 0 0.9rem 0.8rem; }
+.zc-facts { display: flex; flex-wrap: wrap; gap: 0.25rem 1.1rem; font-size: 0.9rem; margin: 0 0 0.6rem; }
+.zc-months { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; height: 5rem; align-items: end; margin-bottom: 0.75rem; }
+.zc-m { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; text-align: center; }
+.zc-m i { display: block; background: var(--pico-primary-background); border-radius: 3px 3px 0 0; min-height: 1px; }
+.zc-m small { font-size: 0.65rem; color: var(--pico-muted-color); }
+.zc-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.5rem 1.5rem; }
+.zc-cols h3 { font-size: 0.95rem; margin: 0 0 0.3rem; }
+.zc-parts { list-style: none; margin: 0; padding: 0; }
+.zc-parts li { list-style: none; display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.2rem 0; border-bottom: 1px dashed var(--pico-muted-border-color); font-size: 0.92rem; }
+.zone-cost { display: inline-block; margin: 0 0 0.75rem; font-size: 0.92rem; }
+
+/* ---------------------------------------------------------------- child: vaccinations and check-ups */
+.child-plan-list { list-style: none; margin: 0 0 0.75rem; padding: 0; }
+.child-plan-list li { list-style: none; margin: 0; padding: 0.35rem 0; border-bottom: 1px dashed var(--pico-muted-border-color); }
+.child-plan-list label { display: grid; grid-template-columns: auto 6.5rem minmax(0, 1fr); gap: 0 0.6rem; align-items: start; margin: 0; }
+.child-plan-list input { margin-top: 0.2rem; }
+.child-plan-list .past .cp-title, .child-plan-list .past .cp-date { opacity: 0.6; }
+.cp-date { font-size: 0.85rem; color: var(--pico-muted-color); padding-top: 0.1rem; }
+@media (max-width: 480px) { .child-plan-list label { grid-template-columns: auto minmax(0, 1fr); } .cp-date { grid-column: 2; } .cp-title { grid-column: 2; } }
+.child-plan-past { margin: 0 0 0.75rem; }

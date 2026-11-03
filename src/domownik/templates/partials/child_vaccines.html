@@ -1,0 +1,35 @@
+{# Vaccinations (PSO) and check-ups of a child, from the birthday. Needs: item, child_plan, child_birthday #}
+<section class="child-plan" id="szczepienia">
+  <h2>💉 Szczepienia i bilanse</h2>
+  {% if not child_birthday %}
+  <p class="muted"><small>Wpisz <a href="/items/{{ item.id }}/edit">datę urodzenia</a> (np. 2024-05-14), a Domownik podpowie terminy szczepień obowiązkowych i bilansów zdrowia.</small></p>
+  {% else %}
+  {% set todo = child_plan|rejectattr('planned')|rejectattr('past')|list %}
+  {% set planned = child_plan|selectattr('planned')|list %}
+  <details class="quick-add" {% if todo and not planned %}open{% endif %}>
+    <summary>{% if planned %}Kalendarz: {{ planned|length }} z {{ child_plan|length }} w zadaniach{% if todo %} · {{ todo|length }} do dodania{% endif %}{% else %}＋ Dodaj kalendarz szczepień i bilansów{% endif %}</summary>
+    <form method="post" action="/items/{{ item.id }}/szczepienia">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      {% macro offer(o) %}
+        <li class="{% if o.past %}past{% endif %}{% if o.planned %} planned{% endif %}">
+          <label>
+            <input type="checkbox" name="v" value="{{ o.visit.key }}" {% if o.planned %}checked disabled{% elif not o.past %}checked{% endif %}>
+            <span class="cp-date">{{ o.due|d }}</span>
+            <span class="cp-title">{{ o.visit.icon }} {{ o.visit.title }}{% if o.planned %} <small class="muted">✓ w zadaniach</small>{% endif %}<br><small class="muted">{{ o.visit.what }}</small></span>
+          </label>
+        </li>
+      {% endmacro %}
+      {% set past = child_plan|selectattr('past')|rejectattr('planned')|list %}
+      <ul class="child-plan-list">{% for o in child_plan if not o.past or o.planned %}{{ offer(o) }}{% endfor %}</ul>
+      {% if past %}
+      <details class="child-plan-past">
+        <summary><small>Minione terminy ({{ past|length }}) – zaznacz, jeśli chcesz je mieć w historii</small></summary>
+        <ul class="child-plan-list">{% for o in past %}{{ offer(o) }}{% endfor %}</ul>
+      </details>
+      {% endif %}
+      <button type="submit">Dodaj zaznaczone do zadań</button>
+      <p class="muted"><small>Terminy orientacyjne według Programu Szczepień Ochronnych i bilansów – dokładny dzień ustala przychodnia (zmienisz go przez „Przełóż”). Przypomnienie 2 tygodnie wcześniej. Szczepienia zalecane (meningokoki, ospa, grypa) warto omówić z pediatrą.</small></p>
+    </form>
+  </details>
+  {% endif %}
+</section>
