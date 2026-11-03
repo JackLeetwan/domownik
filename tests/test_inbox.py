@@ -142,6 +142,121 @@ def test_tyres_create_a_task_four_years_on(auth_client, db, car):
     assert t.recurrence["every"] == 4 and t.recurrence["anchor"] == "completion" and t.amount_gr == 252000
 
 
+def test_a_far_seasonal_swap_is_not_preselected(auth_client, db, car):
+    """A tyre photo in November must not tick off next April's swap – it is a new set of tyres."""
+    spring = Task(
+        item_id=car.id,
+        title="Zmiana opon na letnie",
+        category="service",
+        recurrence={"mode": "fixed", "dates": ["04-10"]},
+        next_due_date=today() + timedelta(days=150),
+    )
+    db.add(spring)
+    db.commit()
+    _snap(auth_client)
+    att = db.query(Attachment).one()
+    inbox.tag(db, att, item_id=car.id, kind="tyres")
+    db.commit()
+    page = auth_client.get("/zdjecia").text
+    assert f'<option value="{spring.id}" selected' not in page and '<option value="" selected' in page
+    assert 'value="4y" checked' in page
+
+    spring.next_due_date = today() + timedelta(days=10)  # the swap is due now: that is the one
+    db.commit()
+    assert f'<option value="{spring.id}" selected' in auth_client.get("/zdjecia").text
+
+
+def test_a_service_ticked_off_already_gets_the_photo(auth_client, db, car):
+    """Ticked off two days ago, the printout photographed later: attached, not ticked off a second time."""
+    from domownik import services
+
+    oil = Task(
+        item_id=car.id,
+        title="Wymiana oleju",
+        category="service",
+        recurrence={"mode": "interval", "every": 1, "unit": "year", "anchor": "completion"},
+        next_due_date=today(),
+    )
+    db.add(oil)
+    db.commit()
+    comp = services.complete_task(
+        db, oil, user=None, done_on=today() - timedelta(days=2), amount_gr=None, km=None, vendor=None, notes=None
+    )
+    due_after = oil.next_due_date
+    _snap(auth_client)
+    att = db.query(Attachment).one()
+    inbox.tag(db, att, item_id=car.id, kind="service")
+    db.commit()
+    page = auth_client.get("/zdjecia").text
+    assert f'<option value="c{comp.id}" selected' in page
+
+    r = auth_client.post(
+        f"/zdjecia/{att.id}/zapisz",
+        data={"item_id": car.id, "task_id": f"c{comp.id}", "amount": "600", "next": "keep", "plan_next": "1"},
+        headers=HX,
+    )
+    assert r.status_code == 200 and "dołączone" in json.loads(r.headers["HX-Trigger"])["dm-added"]
+    db.expire_all()
+    assert db.query(Completion).count() == 1 and db.get(Completion, comp.id).actual_amount_gr == 60000
+    assert db.query(Transaction).one().amount_gr == -60000  # the missing cost, booked once
+    assert db.get(Task, oil.id).next_due_date == due_after and db.get(Task, oil.id).amount_gr == 63000
+    a = db.get(Attachment, att.id)
+    assert not a.inbox and a.completion_id == comp.id
+
+
+@pytest.fixture
+def oc(db, car):
+    t = Task(
+        item_id=car.id,
+        title="Ubezpieczenie OC",
+        category="insurance",
+        recurrence={"mode": "interval", "every": 1, "unit": "year", "anchor": "due"},
+        next_due_date=today() + timedelta(days=20),
+        amount_gr=60000,
+    )
+    db.add(t)
+    db.commit()
+    return t
+
+
+def test_policy_renews_the_known_insurance(auth_client, db, car, oc):
+    _snap(auth_client)
+    att = db.query(Attachment).one()
+    inbox.tag(db, att, item_id=car.id, kind="policy")
+    db.commit()
+    page = auth_client.get("/zdjecia").text
+    assert f'<option value="{oc.id}" selected' in page and "Odnowienie: Ubezpieczenie OC" in page
+
+    ends = today() + timedelta(days=385)
+    r = auth_client.post(
+        f"/zdjecia/{att.id}/zapisz",
+        data={"item_id": car.id, "task_id": str(oc.id), "ends_on": ends.isoformat(), "amount": "640,50"},
+        headers=HX,
+    )
+    assert r.status_code == 200, r.text
+    db.expire_all()
+    t = db.get(Task, oc.id)
+    assert t.next_due_date == ends and t.amount_gr == 64050 and len(t.completions) == 1
+    assert db.query(Warranty).count() == 0  # no second reminder next to the insurance
+    assert db.query(Transaction).one().amount_gr == -64050
+    assert db.get(Attachment, att.id).completion_id == t.completions[0].id
+
+
+def test_policy_mid_term_is_only_filed(auth_client, db, car, oc):
+    oc.next_due_date = today() + timedelta(days=200)
+    db.commit()
+    _snap(auth_client)
+    att = db.query(Attachment).one()
+    inbox.tag(db, att, item_id=car.id, kind="policy")
+    db.commit()
+    assert f'<option value="d{oc.id}" selected' in auth_client.get("/zdjecia").text
+    auth_client.post(f"/zdjecia/{att.id}/zapisz", data={"item_id": car.id, "task_id": f"d{oc.id}"}, headers=HX)
+    db.expire_all()
+    a = db.get(Attachment, att.id)
+    assert not a.inbox and a.task_id == oc.id and a.doc_kind == "policy"
+    assert not db.get(Task, oc.id).completions and db.query(Warranty).count() == 0
+
+
 def test_no_next_time(auth_client, db, car):
     _snap(auth_client)
     att = db.query(Attachment).one()

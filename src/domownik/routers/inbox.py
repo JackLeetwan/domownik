@@ -43,7 +43,8 @@ def _ctx(db: Session, att: Attachment, mode: str, user: User) -> dict:
     if att.item_id and att.item_id in tree.items and all(i.id != att.item_id for i in top):
         top = [tree.items[att.item_id], *top[: inbox.QUICK_ITEMS - 1]]
         rest = [i for i in rest if i.id != att.item_id]
-    tasks, best = inbox.task_choices(db, att.item_id, att.capture_kind)
+    taken_on = _taken_on(att)
+    choices = inbox.task_choices(db, att.item_id, att.capture_kind, taken_on)
     return {
         "user": user,
         "att": att,
@@ -54,9 +55,8 @@ def _ctx(db: Session, att: Attachment, mode: str, user: User) -> dict:
         "KINDS": CAPTURE_KINDS,
         "NEXT": inbox.NEXT,
         "default_next": inbox.DEFAULT_NEXT.get(att.capture_kind or "", "1y"),
-        "tasks": tasks,
-        "best_task": best,
-        "taken_on": _taken_on(att),
+        "choices": choices,
+        "taken_on": taken_on,
         "categories": budget.active_categories(db, income=False),
         "suggested_category": budget.suggest_category(db, tree, att.item_id, "service") if att.item_id else None,
     }
@@ -164,8 +164,11 @@ async def finish(request: Request, att_id: int, db: Session = Depends(get_db), u
                 att,
                 user,
                 item_raw=form.get("item_id"),
+                task_raw=form.get("task_id"),
                 name=str(form.get("name") or ""),
                 ends_on=_date(ends, today()) if ends else None,
+                amount_gr=amount,
+                done_on=_date(form.get("done_on"), _taken_on(att)),
                 doc_kind=str(form.get("doc_kind") or "policy"),
                 today=today(),
             )

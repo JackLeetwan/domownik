@@ -309,6 +309,25 @@ def subtree_issues(db: Session, tree: Tree, item_id: int) -> list[Issue]:
 # ---------------------------------------------------------------- completion
 
 
+def book_cost(db: Session, task: Task, comp: Completion, amount_gr: int | None, user: User | None) -> None:
+    """The actual amount of a completion goes to the budget (an expense, or income for income tasks)."""
+    if not amount_gr or task.direction == "none":
+        return
+    signed = amount_gr if task.direction == "income" else -amount_gr
+    db.add(
+        Transaction(
+            booked_on=comp.done_on,
+            amount_gr=signed,
+            budget_category_id=task.budget_category_id,
+            item_id=task.item_id,
+            task_id=task.id,
+            completion_id=comp.id,
+            note=task.full_title,
+            created_by_id=user.id if user else None,
+        )
+    )
+
+
 def complete_task(
     db: Session,
     task: Task,
@@ -339,20 +358,7 @@ def complete_task(
     if km:
         db.add(Measurement(item_id=task.item_id, kind="odometer", measured_on=done_on, value=km))
 
-    if amount_gr and task.direction != "none":
-        signed = amount_gr if task.direction == "income" else -amount_gr
-        db.add(
-            Transaction(
-                booked_on=done_on,
-                amount_gr=signed,
-                budget_category_id=task.budget_category_id,
-                item_id=task.item_id,
-                task_id=task.id,
-                completion_id=comp.id,
-                note=task.full_title,
-                created_by_id=user.id if user else None,
-            )
-        )
+    book_cost(db, task, comp, amount_gr, user)
 
     rule = task.recurrence
     task.recurrence, nxt = recurrence.advance(rule, previous_due=task.next_due_date, done_on=done_on)

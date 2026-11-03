@@ -9,7 +9,7 @@
   <label role="button" class="outline secondary">🖼️ Z galerii / PDF<input type="file" name="files" multiple accept="image/*,.heic,application/pdf,.pdf" hidden></label>
 </form>
 {% for c in cards %}
-{% with att=c.att, mode='card', top_items=c.top_items, rest_items=c.rest_items, KINDS=c.KINDS, NEXT=c.NEXT, default_next=c.default_next, tasks=c.tasks, best_task=c.best_task, taken_on=c.taken_on, categories=c.categories, suggested_category=c.suggested_category %}
+{% with att=c.att, mode='card', top_items=c.top_items, rest_items=c.rest_items, KINDS=c.KINDS, NEXT=c.NEXT, default_next=c.default_next, choices=c.choices, taken_on=c.taken_on, categories=c.categories, suggested_category=c.suggested_category %}
 {% include "partials/capture_card.html" %}
 {% endwith %}
 {% else %}

@@ -88,7 +88,7 @@
 {% set c = ln.category %}
 <details class="bud-cat lvl-{{ ln.level }}" id="k{{ ln.key }}" {% if open == ln.key %}open{% endif %}>
   <summary>
-    <span class="bud-cat-name"><span class="ic" aria-hidden="true">{{ (c.icon if c else '') or ('💰' if ln.income else '❔') }}</span> <span class="lbl">{{ c.name if c else 'Bez kategorii' }}</span>{% if c and c.archived %} <small class="muted">(archiwum)</small>{% endif %}</span>
+    <span class="bud-cat-name"><span class="ic" aria-hidden="true">{{ (c.icon or '🏷️') if c else ('💰' if ln.income else '❔') }}</span> <span class="lbl">{{ c.name if c else 'Bez kategorii' }}</span>{% if c and c.archived %} <small class="muted">(archiwum)</small>{% endif %}</span>
     <span class="bud-cat-nums">
       <b>{{ ln.actual_gr|pln }}</b> <small class="muted">z {{ ln.plan_gr|pln }}</small>
     </span>

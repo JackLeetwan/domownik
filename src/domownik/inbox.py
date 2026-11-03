@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -18,7 +18,17 @@ from sqlalchemy.orm import Session
 from domownik import budget, documents, services
 from domownik.domain import recurrence
 from domownik.domain.tree import Tree
-from domownik.models import CAPTURE_KINDS, MEMBER_KINDS, Attachment, Item, Task, Transaction, User, Warranty
+from domownik.models import (
+    CAPTURE_KINDS,
+    MEMBER_KINDS,
+    Attachment,
+    Completion,
+    Item,
+    Task,
+    Transaction,
+    User,
+    Warranty,
+)
 
 # "następny raz": key → (label, rule fragment); None = no next time
 NEXT: dict[str, tuple[str, dict | None]] = {
@@ -32,6 +42,8 @@ NEXT: dict[str, tuple[str, dict | None]] = {
 DEFAULT_NEXT = {"service": "1y", "tyres": "4y"}
 DEFAULT_TITLE = {"service": "Serwis", "tyres": "Wymiana opon"}
 QUICK_ITEMS = 6
+MATCH_AHEAD_DAYS = 60  # a task due within two months (or overdue) is what a photo most likely closes
+RECENT_DAYS = 14  # a completion this close to the photo: the photo is its paper
 NEXT_RAISE = 1.05  # the next one is planned a little dearer
 _TYRES = re.compile(r"opon", re.I)
 
@@ -69,21 +81,69 @@ def item_choices(db: Session, tree: Tree) -> tuple[list[Item], list[Item]]:
     return items[:QUICK_ITEMS], sorted(items[QUICK_ITEMS:], key=lambda i: tree.label(i.id))
 
 
-def task_choices(db: Session, item_id: int | None, kind: str | None) -> tuple[list[Task], int | None]:
-    """Active tasks of the item and the one this photo most likely closes (None = a new one)."""
+@dataclass
+class Choices:
+    """What the photo can close: the item's tasks, completions from around the photo's day, the preselected one.
+
+    Option values: "12" = tick task 12 off, "c5" = the photo is the paper of completion 5 (already ticked off),
+    "d12" = only file the document with task 12 (policies), "" = a new one.
+    """
+
+    tasks: list[Task]
+    recent: list[Completion]
+    best: str
+
+
+def _fits(task: Task, kind: str | None) -> bool:
+    if kind == "tyres":
+        return bool(_TYRES.search(task.title))
+    if kind == "service":
+        return task.category in ("service", "inspection") and not _TYRES.search(task.title)
+    if kind == "policy":
+        return task.category == "insurance"
+    return False
+
+
+def task_choices(db: Session, item_id: int | None, kind: str | None, taken_on: date) -> Choices:
+    """The task the photo most likely closes is one due around the day it was taken – not just the first one:
+    a tyre receipt in November must not tick off next April's swap. A service ticked off a few days ago gets
+    the photo attached instead of being ticked off twice."""
     if item_id is None:
-        return [], None
+        return Choices([], [], "")
     tasks = db.scalars(
         select(Task).where(Task.item_id == item_id, Task.active.is_(True)).order_by(Task.next_due_date, Task.title)
     ).all()
-    tasks = [t for t in tasks if t.category not in ("warranty", "occasion", "event")]
-    if kind == "tyres":
-        best = next((t for t in tasks if _TYRES.search(t.title)), None)
-    elif kind == "service":
-        best = next((t for t in tasks if t.category == "service" and not _TYRES.search(t.title)), None)
+    if kind == "policy":
+        tasks = [t for t in tasks if t.category == "insurance"]
     else:
-        best = None
-    return tasks, best.id if best else None
+        tasks = [t for t in tasks if t.category not in ("warranty", "occasion", "event", "insurance")]
+    recent = [
+        c
+        for c in db.scalars(
+            select(Completion)
+            .join(Task, Completion.task_id == Task.id)
+            .where(
+                Task.item_id == item_id,
+                Completion.done_on >= taken_on - timedelta(days=RECENT_DAYS),
+                Completion.done_on <= taken_on + timedelta(days=RECENT_DAYS),
+            )
+        ).all()
+        if _fits(c.task, kind)
+    ]
+    recent.sort(key=lambda c: abs((c.done_on - taken_on).days))
+    if recent:
+        return Choices(tasks, recent, f"c{recent[0].id}")
+    due = [
+        t
+        for t in tasks
+        if _fits(t, kind) and t.next_due_date and t.next_due_date <= taken_on + timedelta(days=MATCH_AHEAD_DAYS)
+    ]
+    if due:
+        best = min(due, key=lambda t: abs((t.next_due_date - taken_on).days))
+        return Choices(tasks, [], str(best.id))
+    if kind == "policy" and tasks:  # mid-term: most likely the current policy, filed with its task
+        return Choices(tasks, [], f"d{tasks[0].id}")
+    return Choices(tasks, [], "")
 
 
 def next_amount(cost_gr: int) -> int:
@@ -124,6 +184,41 @@ def _close(att: Attachment, doc_kind: str, description: str | None) -> None:
         att.description = description[:300]
 
 
+def _target(db: Session, raw, item: Item) -> tuple[str, Task | None, Completion | None]:
+    """The option picked in "Co zostało zrobione" / "Której polisy": ("tick" | "attach" | "file" | "new", ...)."""
+    raw = str(raw or "").strip()
+    if not raw:
+        return "new", None, None
+    mode, num = {"c": "attach", "d": "file"}.get(raw[0], "tick"), raw.lstrip("cd")
+    if not num.isdigit():
+        return "new", None, None
+    if mode == "attach":
+        comp = db.get(Completion, int(num))
+        if comp is None or comp.task is None or comp.task.item_id != item.id:
+            raise InboxError("Tego wykonania już nie ma – wybierz inne albo „nowe”")
+        return mode, comp.task, comp
+    task = db.get(Task, int(num))
+    if task is None or task.item_id != item.id or not task.active:
+        raise InboxError("Tego zadania już nie ma – wybierz inne albo „nowe”")
+    return mode, task, None
+
+
+def _set_next(task: Task, next_key: str) -> None:
+    """A changed "Następny raz" becomes the task's rule (counted from the day it was done)."""
+    if next_key == "none":
+        task.recurrence = {"mode": "once"}
+    elif next_key in NEXT:
+        task.recurrence = recurrence.validate({"mode": "interval", **NEXT[next_key][1], "anchor": "completion"})
+
+
+def _attach(db: Session, att: Attachment, task: Task, comp: Completion, user: User, amount_gr: int | None) -> None:
+    """The photo is the paper of a completion that is already there: no second tick, the cost only if missing."""
+    att.completion_id = comp.id
+    if amount_gr and not comp.actual_amount_gr:
+        comp.actual_amount_gr = amount_gr
+        services.book_cost(db, task, comp, amount_gr, user)
+
+
 def finish_service(
     db: Session,
     att: Attachment,
@@ -137,16 +232,26 @@ def finish_service(
     next_key: str,
     plan_next: bool,
 ) -> Done:
-    """Tick the service off (or create it) with the cost and the date, and plan the next one."""
+    """Tick the service off (or create it) with the cost and the date and plan the next one – or, when it was
+    already ticked off, attach the photo to that."""
     item = _item(db, att, item_raw)
     kind = att.capture_kind if att.capture_kind in DEFAULT_NEXT else "service"
-    task = None
-    if str(task_raw or "").isdigit():
-        task = db.get(Task, int(task_raw))
-        if task is None or task.item_id != item.id or not task.active:
-            raise InboxError("Tego zadania już nie ma – wybierz inne albo „nowe”")
-    if next_key not in NEXT and next_key != "keep":
+    mode, task, comp = _target(db, task_raw, item)
+    if next_key not in NEXT:
         next_key = "keep"
+    if mode == "attach":
+        _close(att, "invoice", f"{task.title} – {comp.done_on.strftime('%d.%m.%Y')}")
+        _attach(db, att, task, comp, user, amount_gr)
+        if next_key != "keep":
+            _set_next(task, next_key)
+            task.recurrence, task.next_due_date = recurrence.advance(
+                task.recurrence, previous_due=comp.due_date, done_on=comp.done_on
+            )
+            task.active = task.next_due_date is not None
+        if plan_next and amount_gr and task.active:
+            task.amount_gr = next_amount(amount_gr)
+        db.commit()
+        return Done(f"Zdjęcie dołączone do: {task.title} ({comp.done_on.strftime('%d.%m.%Y')})", task)
     if task is None:
         if next_key == "keep":
             next_key = DEFAULT_NEXT[kind]
@@ -163,11 +268,7 @@ def finish_service(
         )
         db.add(task)
         db.flush()
-    rule = NEXT.get(next_key, (None, None))[1] if next_key != "keep" else None
-    if next_key == "none":
-        task.recurrence = {"mode": "once"}
-    elif rule is not None:
-        task.recurrence = recurrence.validate({"mode": "interval", **rule, "anchor": "completion"})
+    _set_next(task, next_key)
     _close(att, "invoice", f"{task.title} – {done_on.strftime('%d.%m.%Y')}")
     comp = services.complete_task(
         db, task, user=user, done_on=done_on, amount_gr=amount_gr, km=None, vendor=None, notes=None
@@ -218,18 +319,51 @@ def finish_policy(
     user: User,
     *,
     item_raw,
+    task_raw,
     name: str,
     ends_on: date | None,
+    amount_gr: int | None,
+    done_on: date,
     doc_kind: str,
     today: date,
 ) -> Done:
+    """A policy of an insurance the app already knows renews it (or is filed with it) – no second reminder.
+    Only a new one becomes a document with a reminder before it ends."""
     item = _item(db, att, item_raw)
     name = (name or "").strip()[:200]
+    doc_kind = doc_kind if doc_kind in ("policy", "contract") else "policy"
+    mode, task, comp = _target(db, task_raw, item)
+    if mode == "attach":
+        _close(att, doc_kind, name or task.title)
+        _attach(db, att, task, comp, user, amount_gr)
+        db.commit()
+        return Done(f"Polisa dołączona do: {task.title}")
+    if mode == "file":
+        _close(att, doc_kind, name or task.title)
+        att.task_id = task.id
+        if ends_on:
+            task.next_due_date = ends_on
+        db.commit()
+        return Done(f"Polisa dołączona do: {task.title}")
+    if mode == "tick":
+        _close(att, doc_kind, name or task.title)
+        comp = services.complete_task(
+            db, task, user=user, done_on=done_on, amount_gr=amount_gr, km=None, vendor=None, notes=name or None
+        )
+        att.completion_id = comp.id
+        if task.active and ends_on:
+            task.next_due_date = ends_on
+        if amount_gr and task.active:
+            task.amount_gr = amount_gr
+        db.commit()
+        if task.active and task.next_due_date:
+            return Done(f"Odnowione. Następne odnowienie: {task.next_due_date.strftime('%d.%m.%Y')}")
+        return Done("Zapisane w historii")
     if not name:
         raise InboxError("Nazwij dokument, np. „OC 2027”")
     w = Warranty(item_id=item.id, name=name, ends_on=ends_on, attachment_id=att.id, created_by_id=user.id)
     db.add(w)
-    _close(att, doc_kind if doc_kind in ("policy", "contract") else "policy", name)
+    _close(att, doc_kind, name)
     db.flush()
     documents.sync_reminder(db, w, today)
     db.commit()
