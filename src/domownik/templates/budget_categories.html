@@ -11,7 +11,7 @@
   {% if incomes %}
   <ul class="bud-cat-list">
     {% for inc in incomes %}
-    {% set ended = inc.ends_on is not none and inc.ends_on < today %}
+    {% set ended = inc.ends_on is not none and inc.ends_on < today() %}
     <li class="bud-cat-edit{% if ended %} archived{% endif %}">
       <form method="post" action="/budzet/dochody/{{ inc.id }}" class="bud-inc-form">
         <input type="hidden" name="csrf" value="{{ csrf }}">

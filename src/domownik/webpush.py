@@ -49,8 +49,31 @@ def _subject() -> str:
     return base if base.startswith("https://") else "mailto:domownik@example.com"
 
 
+# The push services of the browsers people actually use. The server POSTs to the endpoint a browser hands
+# over, so anything else (a LAN address, localhost, some random host) would make Domownik a request proxy.
+PUSH_SERVICES = (
+    "fcm.googleapis.com",  # Chrome, Edge, Samsung Internet, Opera (Android and desktop)
+    "android.googleapis.com",  # older Chrome
+    "push.services.mozilla.com",  # Firefox
+    "push.apple.com",  # Safari / iOS home-screen apps (web.push.apple.com)
+    "notify.windows.com",  # Edge on Windows (legacy WNS endpoints)
+)
+
+
+def allowed_endpoint(endpoint: str) -> bool:
+    parts = urlparse(endpoint)
+    host = (parts.hostname or "").lower()
+    return (
+        parts.scheme == "https"
+        and parts.port in (None, 443)
+        and any(host == s or host.endswith("." + s) for s in PUSH_SERVICES)
+    )
+
+
 def deliver(sub: PushSubscription, data: str, *, urgent: bool = False) -> bool:
     """Send one encrypted message. False = the subscription is gone (delete it)."""
+    if not allowed_endpoint(sub.endpoint):
+        return False
     try:
         webpush(
             subscription_info=sub.info(),

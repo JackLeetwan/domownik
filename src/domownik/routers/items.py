@@ -201,7 +201,7 @@ def item_page(request: Request, item_id: int, db: Session = Depends(get_db), use
     tpl = _template_for_kind(item.kind)
     # a household member linked to an account: everything that person takes care of, house-wide
     care_rows = services.rows_assigned_to(db, vis, t, item.user_id) if item.kind == "member" and item.user_id else []
-    attachments = list(item.attachments)
+    attachments = [a for a in item.attachments if documents.visible(db, a)]  # not a private task's files
     # "Gwarancja do" typed into the item's details (appliance templates) – offer it as a real warranty
     warranty_attr = (item.attributes or {}).get("warranty_until")
     child_plan, child_birthday = None, None

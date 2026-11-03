@@ -519,8 +519,8 @@ async def bulk_done(request: Request, db: Session = Depends(get_db), user: User 
 @router.post("/completions/{comp_id}/undo", dependencies=[Depends(verify_csrf)])
 def undo(comp_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     comp = db.get(Completion, comp_id)
-    if comp is None:
-        raise HTTPException(404)
+    if comp is None or db.get(Task, comp.task_id) is None:  # someone else's private task
+        raise HTTPException(404, "Nie ma takiego wykonania")
     item_id = comp.task.item_id
     services.undo_completion(db, comp)
     return _redirect(f"/items/{item_id}")
@@ -652,7 +652,7 @@ async def add_steps(request: Request, task_id: int, db: Session = Depends(get_db
 
 def _get_step(db: Session, step_id: int) -> TaskStep:
     step = db.get(TaskStep, step_id)
-    if step is None:
+    if step is None or db.get(Task, step.task_id) is None:  # a step of someone else's private task
         raise HTTPException(404, "Nie ma takiego kroku")
     return step
 

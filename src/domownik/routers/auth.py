@@ -8,8 +8,10 @@ from sqlalchemy.orm import Session
 from domownik.db import get_db
 from domownik.models import User
 from domownik.security import (
+    burn_password_check,
     current_user_optional,
     login_blocked,
+    login_key,
     register_fail,
     reset_fails,
     verify_csrf,
@@ -35,12 +37,14 @@ def login(
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    key = f"{request.client.host if request.client else '?'}:{email.lower()}"
+    key = login_key(request.client.host if request.client else None, email)
     if login_blocked(key):
         return render(
             request, "login.html", {"error": "Za dużo prób. Spróbuj za kilka minut.", "email": email}, status_code=429
         )
     user = db.scalar(select(User).where(func.lower(User.email) == email.strip().lower()))
+    if user is None:
+        burn_password_check(password)
     if user is None or not user.is_active or not verify_password(user.password_hash, password):
         register_fail(key)
         return render(

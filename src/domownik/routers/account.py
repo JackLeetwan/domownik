@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -203,9 +203,11 @@ def push_key(user: User = Depends(current_user)):
 @router.post("/push/subscribe", dependencies=[Depends(verify_csrf)])
 async def push_subscribe(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     data = await request.json()
+    if not isinstance(data, dict) or not isinstance(data.get("keys") or {}, dict):
+        raise HTTPException(400, "Nieprawidłowa subskrypcja")
     endpoint = str(data.get("endpoint") or "")
     keys = data.get("keys") or {}
-    if not endpoint.startswith("https://") or not keys.get("p256dh") or not keys.get("auth"):
+    if len(endpoint) > 1000 or not webpush.allowed_endpoint(endpoint) or not keys.get("p256dh") or not keys.get("auth"):
         raise HTTPException(400, "Nieprawidłowa subskrypcja")
     sub = db.scalar(select(PushSubscription).where(PushSubscription.endpoint == endpoint))
     if sub is None:
@@ -223,6 +225,8 @@ async def push_subscribe(request: Request, db: Session = Depends(get_db), user: 
 @router.post("/push/unsubscribe", dependencies=[Depends(verify_csrf)])
 async def push_unsubscribe(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     data = await request.json()
+    if not isinstance(data, dict):
+        raise HTTPException(400, "Nieprawidłowe dane")
     sub = db.scalar(select(PushSubscription).where(PushSubscription.endpoint == str(data.get("endpoint") or "")))
     if sub and sub.user_id == user.id:
         db.delete(sub)
@@ -244,18 +248,18 @@ def done_from_push(token: str, db: Session = Depends(get_db)):
     """'✓' button in a notification. No session (the service worker calls it) – the signed token authorises."""
     data = notify.read_done_token(token)
     if data is None:
-        return HTMLResponse("Link wygasł albo jest nieprawidłowy.", status_code=403)
+        return PlainTextResponse("Link wygasł albo jest nieprawidłowy.", status_code=403)
     task = db.get(Task, data["t"])
     user = db.get(User, data["u"])
     if task is None or user is None or not user.is_active:
-        return HTMLResponse("Nie ma takiego zadania.", status_code=404)
+        return PlainTextResponse("Nie ma takiego zadania.", status_code=404)
     if not task.active or task.next_due_date is None or task.next_due_date.isoformat() != data["d"]:
-        return HTMLResponse(f"Już odhaczone: {task.full_title}")  # tapped twice, or done in the app meanwhile
+        return PlainTextResponse(f"Już odhaczone: {task.full_title}")  # tapped twice, or done in the app meanwhile
     title = task.full_title  # before completing: the series number moves on
     services.complete_task(
         db, task, user=user, done_on=today(), amount_gr=task.amount_gr, km=None, vendor=None, notes="Z powiadomienia"
     )
-    return HTMLResponse(f"Zrobione: {title}")
+    return PlainTextResponse(f"Zrobione: {title}")
 
 
 @router.get("/n/done/{token}")

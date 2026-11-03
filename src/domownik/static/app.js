@@ -406,9 +406,9 @@
   });
   document.addEventListener("htmx:responseError", (e) => {
     const xhr = e.detail.xhr;
-    const tmp = document.createElement("div");
-    tmp.innerHTML = xhr.responseText || "";
-    const text = tmp.textContent.trim().slice(0, 200);
+    // an inert document: unlike a detached <div>, nothing in it loads or runs (<img onerror> included)
+    const doc = new DOMParser().parseFromString(xhr.responseText || "", "text/html");
+    const text = (doc.body ? doc.body.textContent : "").trim().slice(0, 200);
     // 400 = the server explains what to fix (e.g. a wrong amount) – show just that
     toast(xhr.status === 400 && text ? text : `Błąd ${xhr.status}: ${text || xhr.statusText}`);
   });

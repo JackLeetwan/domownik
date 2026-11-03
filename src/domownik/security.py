@@ -26,23 +26,45 @@ def verify_password(password_hash: str, password: str) -> bool:
         return False
 
 
+_DUMMY_HASH = _hasher.hash(secrets.token_urlsafe(16))
+
+
+def burn_password_check(password: str) -> None:
+    """Unknown e-mail: spend the same argon2 time, so the answer's timing does not tell which accounts exist."""
+    verify_password(_DUMMY_HASH, password)
+
+
 # ---------------------------------------------------------------- login rate limit
+# Per address *and* overall: behind `tailscale serve` / Caddy every request comes from the same proxy IP,
+# so the per-address key is effectively per e-mail – the overall cap stops guessing across many e-mails.
 
 _FAILS: dict[str, deque[float]] = defaultdict(deque)
 MAX_FAILS = 5
+MAX_FAILS_ALL = 30
 WINDOW_S = 300
+ALL = "*"
 
 
-def login_blocked(key: str) -> bool:
+def login_key(host: str | None, email: str) -> str:
+    """The same key however the e-mail is typed – ' Jan@X.pl ' and 'jan@x.pl' are one account."""
+    return f"{host or '?'}:{email.strip().lower()}"
+
+
+def _recent(key: str) -> deque[float]:
     q = _FAILS[key]
     cutoff = time.monotonic() - WINDOW_S
     while q and q[0] < cutoff:
         q.popleft()
-    return len(q) >= MAX_FAILS
+    return q
+
+
+def login_blocked(key: str) -> bool:
+    return len(_recent(key)) >= MAX_FAILS or len(_recent(ALL)) >= MAX_FAILS_ALL
 
 
 def register_fail(key: str) -> None:
     _FAILS[key].append(time.monotonic())
+    _FAILS[ALL].append(time.monotonic())
 
 
 def reset_fails(key: str) -> None:
@@ -86,10 +108,23 @@ def csrf_token(request: Request) -> str:
 
 
 FORM_MAX_FIELDS = 10000
+# Before login only the small login / logout forms are posted – nobody unknown gets to make the server
+# read (and spool to disk) a big body or an upload.
+ANON_MAX_BODY = 16 * 1024
+
+
+def _anonymous_body_ok(request: Request) -> bool:
+    if request.session.get("uid"):
+        return True
+    length = request.headers.get("content-length") or ""
+    ctype = request.headers.get("content-type") or ""
+    return length.isdigit() and int(length) <= ANON_MAX_BODY and not ctype.startswith("multipart/")
 
 
 async def verify_csrf(request: Request) -> None:
     """Checks X-CSRF-Token header (htmx) or the csrf form field."""
+    if not _anonymous_body_ok(request):
+        raise LoginRequired()  # not read at all – an upload after the session ran out goes to the login page
     expected = request.session.get("csrf")
     sent = request.headers.get("x-csrf-token")
     if not sent:

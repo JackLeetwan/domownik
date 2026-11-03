@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile
 
 from domownik.config import get_settings
-from domownik.models import DOC_KINDS, Attachment, Item, Task, User, Warranty
+from domownik.models import DOC_KINDS, Attachment, BoardNote, Completion, Item, Task, User, Warranty
 
 log = logging.getLogger("domownik")
 
@@ -129,6 +129,22 @@ def human_size(size: int) -> str:
 
 
 # ---------------------------------------------------------------- paths
+
+
+def visible(db: Session, att: Attachment | None) -> bool:
+    """A file of someone else's private note / task (or of ticking such a task off) is as hidden as its owner:
+    db.get() of a private row returns None for anyone else."""
+    if att is None:
+        return False
+    if att.note_id is not None and db.get(BoardNote, att.note_id) is None:
+        return False
+    if att.task_id is not None and db.get(Task, att.task_id) is None:
+        return False
+    if att.completion_id is not None:
+        comp = db.get(Completion, att.completion_id)
+        if comp is not None and db.get(Task, comp.task_id) is None:
+            return False
+    return True
 
 
 def file_path(att: Attachment) -> Path:

@@ -13,7 +13,7 @@ from domownik import documents
 from domownik.config import get_settings, today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
-from domownik.models import DOC_KINDS, Attachment, BoardNote, Item, User, Warranty
+from domownik.models import DOC_KINDS, Attachment, Item, User, Warranty
 from domownik.security import current_user, verify_csrf
 from domownik.web import is_htmx, render
 
@@ -35,8 +35,7 @@ def _get_item(db: Session, item_id: int) -> Item:
 
 def _get_attachment(db: Session, att_id: int) -> Attachment:
     att = db.get(Attachment, att_id)
-    # a photo of someone else's private note: the note is not visible, so neither is the photo
-    if att is None or (att.note_id is not None and db.get(BoardNote, att.note_id) is None):
+    if not documents.visible(db, att):
         raise HTTPException(404, "Nie ma takiego pliku")
     return att
 

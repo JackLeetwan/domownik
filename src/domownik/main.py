@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from markupsafe import escape
+from sqlalchemy.exc import IntegrityError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -71,9 +73,37 @@ async def lifespan(_app: FastAPI):
         scheduler.shutdown(wait=False)
 
 
+# Sent with every response (a route may set its own, e.g. the stricter CSP of an opened photo).
+# No script-src: base.html has a tiny inline theme script and htmx's hx-on needs eval – the rest still
+# blocks framing (clickjacking), <base> / form hijacking and plugins.
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "same-origin",
+    "Content-Security-Policy": "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+    "Permissions-Policy": "camera=(self), microphone=(self), geolocation=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+}
+HSTS = "max-age=31536000"
+
+# Garbage in a form (a hand-edited request, an old cached page): "int('abc')", a date like 2026-02-30,
+# a number too big for SQLite, an id of something deleted meanwhile – a 400 with a message, never a 500.
+BAD_INPUT = "Nieprawidłowe dane w formularzu – odśwież stronę i spróbuj ponownie."
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="Domownik", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+
+    @app.middleware("http")
+    async def _security_headers(request: Request, call_next):
+        response = await call_next(request)
+        for name, value in SECURITY_HEADERS.items():
+            response.headers.setdefault(name, value)
+        if settings.https_only:
+            response.headers.setdefault("Strict-Transport-Security", HSTS)
+        return response
+
     app.add_middleware(
         SessionMiddleware,
         secret_key=settings.resolved_secret_key(),
@@ -124,10 +154,20 @@ def create_app() -> FastAPI:
             return HTMLResponse(str(exc), status_code=400, headers={"HX-Reswap": "none"})
         return render(request, "error.html", {"code": 400, "detail": str(exc)}, status_code=400)
 
+    @app.exception_handler(ValueError)  # also json.JSONDecodeError
+    @app.exception_handler(OverflowError)
+    @app.exception_handler(IntegrityError)
+    async def _bad_input(request: Request, exc: Exception):
+        log.warning("bad input on %s %s: %s", request.method, request.url.path, exc, exc_info=exc)
+        if is_htmx(request) or request.url.path.startswith(("/api/", "/push/")):
+            return HTMLResponse(BAD_INPUT, status_code=400, headers={"HX-Reswap": "none"})
+        return render(request, "error.html", {"code": 400, "detail": BAD_INPUT}, status_code=400)
+
     @app.exception_handler(StarletteHTTPException)
     async def _http_error(request: Request, exc: StarletteHTTPException):
         if is_htmx(request) or request.url.path.startswith("/api/"):
-            return HTMLResponse(f'<p class="error">{exc.detail}</p>', status_code=exc.status_code)
+            # details may quote what the user typed ("Invalid isoformat string: '<…>'")
+            return HTMLResponse(f'<p class="error">{escape(exc.detail)}</p>', status_code=exc.status_code)
         return render(
             request, "error.html", {"code": exc.status_code, "detail": exc.detail}, status_code=exc.status_code
         )
