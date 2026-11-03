@@ -3,19 +3,31 @@
 {% block content %}
 <header class="item-head"><h1>📝 Notatki</h1></header>
 
-<form class="note-add" method="post" action="/notatki">
-  <input type="hidden" name="csrf" value="{{ csrf }}">
-  <textarea name="body" rows="2" required placeholder="Karteczka dla wszystkich, np. „W piątek odbiór paczki z paczkomatu”"></textarea>
-  <div class="note-opts">
-    <label><input type="checkbox" name="pinned" role="switch"> 📌 Przypnij na górze</label>
-    <label>Ważna do <input type="date" name="valid_until"></label>
+<details class="note-add-box" {% if not total %}open{% endif %}>
+  <summary role="button" class="outline">＋ Nowa notatka</summary>
+  <form class="note-add" method="post" action="/notatki">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% if k and k != NO_LABEL %}<input type="hidden" name="k" value="1">{% endif %}
+    {% with n = none, preset_label = (k if k and k != NO_LABEL else ''), fid = 'new' %}{% include "partials/note_fields.html" %}{% endwith %}
     <button type="submit" class="small">Dodaj</button>
-  </div>
-  <small class="muted">Notatka z datą „ważna do” sama trafi do archiwum następnego dnia.</small>
-</form>
+    <small class="muted">Notatka z datą „ważna do” sama trafi do archiwum następnego dnia.</small>
+  </form>
+</details>
+
+{% if total %}
+<nav class="notes-filter" aria-label="Kategorie notatek">
+  <a href="/notatki" role="button" class="{% if k %}outline {% endif %}secondary">Wszystkie</a>
+  {% for l in labels %}<a href="/notatki?k={{ l|urlencode }}" role="button" class="{% if k != l %}outline {% endif %}secondary">{{ l }}</a>{% endfor %}
+  {% if labels %}<a href="/notatki?k={{ NO_LABEL }}" role="button" class="{% if k != NO_LABEL %}outline {% endif %}secondary">Bez kategorii</a>{% endif %}
+  {% if total > 3 %}<input type="search" placeholder="Szukaj w notatkach" aria-label="Szukaj w notatkach" data-note-filter>{% endif %}
+</nav>
+{% endif %}
 
 {% if notes %}
-<div class="notes-grid">{% for n in notes %}{% include "partials/note_card.html" %}{% endfor %}</div>
+<div class="notes-grid" data-notes-grid>{% for n in notes %}{% include "partials/note_card.html" %}{% endfor %}</div>
+<p class="muted" data-notes-none hidden>Nic nie pasuje.</p>
+{% elif total %}
+<p class="muted">Brak notatek w tej kategorii.</p>
 {% else %}
 <p class="muted">Brak notatek.</p>
 {% endif %}

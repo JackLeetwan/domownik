@@ -82,6 +82,7 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <textarea name="body" rows="3" required autofocus aria-label="Treść notatki" placeholder="Karteczka dla wszystkich, np. „W piątek odbiór paczki”"></textarea>
   <div class="note-opts">
+    <label><input type="checkbox" name="as_list" role="switch"> ☑ Lista (punkt w linii)</label>
     <label><input type="checkbox" name="pinned" role="switch"> 📌 Przypnij na górze</label>
     <label>Ważna do <input type="date" name="valid_until"></label>
   </div>

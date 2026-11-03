@@ -1,0 +1,18 @@
+{# Fields of the add / edit note form. Needs: NOTE_COLORS; optional: n (edited note), all_labels, preset_label, fid #}
+{% set fid = fid|default('new') %}
+<input name="title" maxlength="120" value="{{ n.title if n else '' }}" placeholder="Tytuł (opcjonalnie)" aria-label="Tytuł">
+<textarea name="body" rows="{{ 4 if n and n.is_list else 3 }}" aria-label="Treść"
+  placeholder="Treść. Przy liście: jeden punkt w linii">{% if n %}{% if n.is_list %}{{ items_text(n.items) }}{% else %}{{ n.body }}{% endif %}{% endif %}</textarea>
+<label class="note-as-list"><input type="checkbox" name="as_list" role="switch" {% if n and n.is_list %}checked{% endif %}> ☑ Lista do odhaczania</label>
+<fieldset class="note-colors">
+  <legend>Kolor</legend>
+  {% for key, lbl in NOTE_COLORS.items() %}
+  <label title="{{ lbl }}"><input type="radio" name="color" value="{{ key }}" {% if (n.color if n else none) == key or (key == 'yellow' and not (n and n.color)) %}checked{% endif %} aria-label="{{ lbl }}"><span class="sw c-{{ key }}"></span></label>
+  {% endfor %}
+</fieldset>
+<div class="note-opts">
+  <label>Kategoria <input name="label" maxlength="40" list="note-labels-{{ fid }}" value="{{ n.label if n and n.label else (preset_label or '') }}" placeholder="np. Rachunki" autocomplete="off"></label>
+  {% if all_labels %}<datalist id="note-labels-{{ fid }}">{% for l in all_labels %}<option value="{{ l }}">{% endfor %}</datalist>{% endif %}
+  <label>Ważna do <input type="date" name="valid_until" value="{{ n.valid_until.isoformat() if n and n.valid_until else '' }}"></label>
+  <label><input type="checkbox" name="pinned" role="switch" {% if n and n.pinned %}checked{% endif %}> 📌 Przypięta</label>
+</div>

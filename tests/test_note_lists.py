@@ -1,0 +1,120 @@
+"""Notes: title, checklist with ticking in place, colour, label filter, search, dashboard preview."""
+
+from __future__ import annotations
+
+from sqlalchemy import select
+
+from domownik.models import BoardNote
+from domownik.routers.board import parse_items
+
+HX = {"HX-Request": "true"}
+
+
+def _add(auth_client, **data):
+    r = auth_client.post("/notatki", data=data, follow_redirects=False)
+    assert r.status_code == 303, r.text
+    return r
+
+
+def test_parse_items():
+    assert parse_items("mleko\n✓ chleb\n- [x] masło\n\n  • jajka ") == [
+        {"t": "mleko", "d": False},
+        {"t": "chleb", "d": True},
+        {"t": "masło", "d": True},
+        {"t": "jajka", "d": False},
+    ]
+
+
+def test_list_note_tick_add_clear(auth_client, db):
+    _add(auth_client, title="Coroczne", body="Październik – ubezpieczenie\nWrzesień – podatek", as_list="1")
+    n = db.scalar(select(BoardNote))
+    assert n.is_list and n.body == "" and len(n.items) == 2
+
+    page = auth_client.get("/notatki").text
+    assert "Coroczne" in page and f'hx-post="/notatki/{n.id}/punkt/1"' in page and "0/2" in page
+
+    r = auth_client.post(f"/notatki/{n.id}/punkt/1", headers=HX)
+    assert r.status_code == 200 and f'id="note-{n.id}"' in r.text and "1/2" in r.text
+    db.refresh(n)
+    assert n.items[1]["d"] is True
+
+    r = auth_client.post(f"/notatki/{n.id}/punkt", data={"t": "Grudzień – urodziny"}, headers=HX)
+    assert "Grudzień – urodziny" in r.text
+    r = auth_client.post(f"/notatki/{n.id}/wyczysc", headers=HX)
+    db.refresh(n)
+    assert [i["t"] for i in n.items] == ["Październik – ubezpieczenie", "Grudzień – urodziny"]
+    assert auth_client.post(f"/notatki/{n.id}/punkt/9", headers=HX).status_code == 404
+
+
+def test_edit_switches_list_back_to_text_and_keeps_ticks(auth_client, db):
+    _add(auth_client, body="a\nb", as_list="1")
+    n = db.scalar(select(BoardNote))
+    page = auth_client.get("/notatki").text
+    assert ">a\nb</textarea>" in page  # list shown as lines in the edit form
+    auth_client.post(f"/notatki/{n.id}/edit", data={"body": "✓ a\nb", "as_list": "1"})
+    db.refresh(n)
+    assert n.items == [{"t": "a", "d": True}, {"t": "b", "d": False}]
+    auth_client.post(f"/notatki/{n.id}/edit", data={"body": "zwykły tekst"})
+    db.refresh(n)
+    assert n.items is None and n.body == "zwykły tekst"
+
+
+def test_empty_note_is_refused(auth_client, db):
+    r = auth_client.post("/notatki", data={"body": "  ", "as_list": "1"}, headers=HX)
+    assert r.status_code == 400
+    assert db.scalar(select(BoardNote)) is None
+
+
+def test_title_only_note_colour_and_label_filter(auth_client, db):
+    _add(auth_client, title="Wi-Fi gości", color="blue", label="Dom")
+    _add(auth_client, body="Paczka w piątek", color="nope")
+    a, b = db.scalars(select(BoardNote).order_by(BoardNote.id)).all()
+    assert (a.color, a.label, a.body) == ("blue", "Dom", "")
+    assert b.color is None and b.label is None
+
+    page = auth_client.get("/notatki").text
+    assert "c-blue" in page and "Bez kategorii" in page and 'href="/notatki?k=Dom"' in page
+    only = auth_client.get("/notatki?k=Dom").text
+    assert "Wi-Fi gości" in only and "Paczka w piątek" not in only.split("notes-grid")[1]
+    none = auth_client.get("/notatki?k=_brak").text
+    assert "Paczka w piątek" in none and "Wi-Fi gości" not in none.split("notes-grid")[1]
+
+
+def test_search_and_dashboard_see_list_points(auth_client, db):
+    from domownik.models import Item
+
+    db.add(Item(name="Dom", kind="house"))  # without any zone the dashboard is the welcome screen
+    db.commit()
+    _add(auth_client, title="Zakupy budowlane", body="silikon\nkołki", as_list="1", pinned="1")
+    r = auth_client.get("/szukaj?q=silikon")
+    assert "Zakupy budowlane" in r.text
+    dash = auth_client.get("/").text
+    assert "Zakupy budowlane (0/2)" in dash
+
+
+def test_quick_add_list_note(auth_client, db):
+    r = auth_client.post(
+        "/notatki", data={"body": "x\ny", "as_list": "1"}, headers={"HX-Request": "true", "X-Quick-Add": "1"}
+    )
+    assert r.status_code == 200 and "dm-added" in r.headers["HX-Trigger"]
+    assert db.scalar(select(BoardNote)).items == [{"t": "x", "d": False}, {"t": "y", "d": False}]
+
+
+def test_migration_0017(tmp_path):
+    import sqlalchemy as sa
+    from alembic import command
+
+    from domownik import cli
+    from domownik.db import make_engine
+
+    eng = make_engine(f"sqlite:///{tmp_path / 'm.sqlite'}")
+    cfg = cli.alembic_config()
+    with eng.connect() as conn, conn.begin():
+        cfg.attributes["connection"] = conn
+        command.upgrade(cfg, "head")
+        cols = {r[1] for r in conn.execute(sa.text("PRAGMA table_info(board_note)"))}
+        assert {"title", "items", "color", "label"} <= cols
+        command.downgrade(cfg, "7d2f9b3a1c48")
+        cols = {r[1] for r in conn.execute(sa.text("PRAGMA table_info(board_note)"))}
+        assert not cols & {"title", "items", "color", "label"}
+        command.upgrade(cfg, "head")

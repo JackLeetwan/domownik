@@ -39,7 +39,7 @@
   </a>
   <a class="tool{% if not notes %} tool-empty{% endif %}" href="/notatki">
     <span class="tool-head">📝 Notatki<span class="count">{{ notes|length }}</span></span>
-    <span class="tool-preview">{% if notes %}{% for n in notes[:2] %}{% if n.pinned %}📌 {% endif %}{{ n.body|truncate(70) }}{% if not loop.last %}
+    <span class="tool-preview">{% if notes %}{% for n in notes[:2] %}{% if n.pinned %}📌 {% endif %}{{ n.preview|truncate(70) }}{% if not loop.last %}
 {% endif %}{% endfor %}{% else %}Brak karteczek.{% endif %}</span>
   </a>
   <a class="tool{% if not todos %} tool-empty{% endif %}" href="/do-zrobienia">

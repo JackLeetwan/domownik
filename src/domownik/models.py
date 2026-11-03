@@ -460,7 +460,12 @@ class BoardNote(Base):
     __tablename__ = "board_note"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str | None] = mapped_column(String(120))
     body: Mapped[str] = mapped_column(Text)
+    # checklist note: [{"t": "mleko", "d": false}, …] – None for a plain text note
+    items: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON)
+    color: Mapped[str | None] = mapped_column(String(12))  # NOTE_COLORS key; None = yellow
+    label: Mapped[str | None] = mapped_column(String(40))  # free category ("Rachunki", "Wakacje")
     pinned: Mapped[bool] = mapped_column(Boolean, default=False)
     valid_until: Mapped[date | None] = mapped_column(Date)  # after this day it goes to the archive
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -472,6 +477,36 @@ class BoardNote(Base):
 
     def is_active(self, today: date) -> bool:
         return not self.archived and (self.valid_until is None or self.valid_until >= today)
+
+    @property
+    def is_list(self) -> bool:
+        return self.items is not None
+
+    @property
+    def items_done(self) -> int:
+        return sum(1 for i in self.items or [] if i.get("d"))
+
+    @property
+    def text(self) -> str:
+        """Everything searchable / previewable as one string."""
+        parts = [self.title or "", self.body or ""] + [i.get("t", "") for i in self.items or []]
+        return " · ".join(p for p in parts if p)
+
+    @property
+    def preview(self) -> str:
+        if self.is_list:
+            head = self.title or "Lista"
+            return f"{head} ({self.items_done}/{len(self.items or [])})"
+        return f"{self.title}: {self.body}" if self.title else self.body
+
+
+NOTE_COLORS: dict[str, str] = {
+    "yellow": "Żółta",
+    "green": "Zielona",
+    "blue": "Niebieska",
+    "pink": "Różowa",
+    "gray": "Szara",
+}
 
 
 DOC_KINDS: dict[str, tuple[str, str]] = {

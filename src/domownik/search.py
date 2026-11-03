@@ -226,7 +226,7 @@ def search(db: Session, query: str) -> Results:
         h = _hit(
             "note",
             words,
-            n.body,
+            n.text,
             [],
             icon="📌" if n.pinned else "📝",
             path="w archiwum" if n.archived else "tablica",

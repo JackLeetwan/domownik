@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -14,7 +15,7 @@ from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
 from domownik.domain.tree import Tree
-from domownik.models import BoardNote, Todo, User
+from domownik.models import NOTE_COLORS, BoardNote, Todo, User
 from domownik.security import current_user, verify_csrf
 from domownik.web import is_quick, quick_saved, render
 
@@ -40,8 +41,51 @@ def _int(v) -> int | None:
 # ---------------------------------------------------------------- notes
 
 
+DONE_MARKS = ("✓ ", "✓", "[x] ", "[x]", "[X] ", "[X]")
+MAX_NOTE_ITEMS = 200
+NO_LABEL = "_brak"
+
+
+def parse_items(text: str) -> list[dict]:
+    """One point per line; a line starting with ✓ or [x] is already ticked."""
+    out = []
+    for line in str(text or "").splitlines():
+        line = line.strip().lstrip("-•*").strip()
+        done = False
+        for mark in DONE_MARKS:
+            if line.startswith(mark):
+                line, done = line[len(mark) :].strip(), True
+                break
+        if line:
+            out.append({"t": line[:200], "d": done})
+    return out[:MAX_NOTE_ITEMS]
+
+
+def _fill(n: BoardNote, form) -> None:
+    """Title, content (text or checklist), colour, label, pin, date – from the add / edit form."""
+    n.title = str(form.get("title") or "").strip()[:120] or None
+    content = str(form.get("body") or "").strip()
+    if form.get("as_list"):
+        n.items, n.body = parse_items(content), ""
+    else:
+        n.items, n.body = None, content
+    if not (n.title or n.body or n.items):
+        raise HTTPException(400, "Notatka jest pusta")
+    color = form.get("color")
+    n.color = color if color in NOTE_COLORS and color != "yellow" else None
+    n.label = str(form.get("label") or "").strip()[:40] or None
+    n.pinned = bool(form.get("pinned"))
+    n.valid_until = _date(form.get("valid_until"))
+
+
+def note_labels(notes: list[BoardNote]) -> list[str]:
+    return sorted({n.label for n in notes if n.label}, key=str.lower)
+
+
 @router.get("/notatki")
-def notes_page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+def notes_page(
+    request: Request, k: str | None = None, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
     t = today()
     active = services.active_notes(db, t)
     active_ids = {n.id for n in active}
@@ -50,27 +94,39 @@ def notes_page(request: Request, db: Session = Depends(get_db), user: User = Dep
         key=lambda n: n.updated_at or n.created_at,
         reverse=True,
     )[:50]
-    return render(request, "notes.html", {"user": user, "notes": active, "archive": archive})
+    labels = note_labels(active)
+    shown = active
+    if k == NO_LABEL:
+        shown = [n for n in active if not n.label]
+    elif k:
+        shown = [n for n in active if n.label == k]
+    return render(
+        request,
+        "notes.html",
+        {
+            "user": user,
+            "notes": shown,
+            "total": len(active),
+            "archive": archive,
+            "labels": labels,
+            "all_labels": note_labels(active + archive),
+            "k": k,
+            "NO_LABEL": NO_LABEL,
+            "NOTE_COLORS": NOTE_COLORS,
+        },
+    )
 
 
 @router.post("/notatki", dependencies=[Depends(verify_csrf)])
 async def add_note(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     form = await request.form()
-    body = str(form.get("body") or "").strip()
-    if not body:
-        raise HTTPException(400, "Notatka jest pusta")
-    db.add(
-        BoardNote(
-            body=body,
-            pinned=bool(form.get("pinned")),
-            valid_until=_date(form.get("valid_until")),
-            created_by_id=user.id,
-        )
-    )
+    n = BoardNote(created_by_id=user.id)
+    _fill(n, form)
+    db.add(n)
     db.commit()
     if is_quick(request):
         return quick_saved("Dodano notatkę")
-    return _redirect("/notatki")
+    return _redirect("/notatki" + (f"?k={quote(n.label)}" if n.label and form.get("k") else ""))
 
 
 def _note(db: Session, note_id: int) -> BoardNote:
@@ -84,12 +140,54 @@ def _note(db: Session, note_id: int) -> BoardNote:
 async def edit_note(request: Request, note_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     n = _note(db, note_id)
     form = await request.form()
-    n.body = str(form.get("body") or "").strip() or n.body
-    n.valid_until = _date(form.get("valid_until"))
-    n.pinned = bool(form.get("pinned"))
+    _fill(n, form)
     n.updated_at = datetime.now()
     db.commit()
     return _redirect("/notatki")
+
+
+def _card(request: Request, n: BoardNote, user: User):
+    return render(request, "partials/note_card.html", {"n": n, "user": user, "NOTE_COLORS": NOTE_COLORS})
+
+
+@router.post("/notatki/{note_id}/punkt/{idx}", dependencies=[Depends(verify_csrf)])
+def toggle_note_item(
+    request: Request, note_id: int, idx: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    n = _note(db, note_id)
+    items = [dict(i) for i in n.items or []]
+    if not 0 <= idx < len(items):
+        raise HTTPException(404, "Nie ma takiego punktu")
+    items[idx]["d"] = not items[idx].get("d")
+    n.items = items  # a new list – JSON columns do not track in-place changes
+    n.updated_at = datetime.now()
+    db.commit()
+    return _card(request, n, user)
+
+
+@router.post("/notatki/{note_id}/punkt", dependencies=[Depends(verify_csrf)])
+async def add_note_item(
+    request: Request, note_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    n = _note(db, note_id)
+    form = await request.form()
+    new = parse_items(str(form.get("t") or "").replace("✓", ""))
+    if n.items is None:
+        raise HTTPException(400, "To nie jest lista")
+    n.items = ([dict(i) for i in n.items] + new)[:MAX_NOTE_ITEMS]
+    n.updated_at = datetime.now()
+    db.commit()
+    return _card(request, n, user)
+
+
+@router.post("/notatki/{note_id}/wyczysc", dependencies=[Depends(verify_csrf)])
+def clear_done_items(request: Request, note_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Drop the ticked points of a list note."""
+    n = _note(db, note_id)
+    n.items = [dict(i) for i in n.items or [] if not i.get("d")]
+    n.updated_at = datetime.now()
+    db.commit()
+    return _card(request, n, user)
 
 
 @router.post("/notatki/{note_id}/pin", dependencies=[Depends(verify_csrf)])

@@ -273,6 +273,21 @@
     if (undo) setTimeout(() => undo.remove(), 8000);
   });
 
+  // ------------------------------------------------------------------ notes: filter cards as you type
+  document.addEventListener("input", (e) => {
+    const box = e.target.closest && e.target.closest("[data-note-filter]");
+    if (!box) return;
+    const q = box.value.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll("[data-notes-grid] .note-card").forEach((card) => {
+      const hit = !q || (card.dataset.noteText || "").includes(q);
+      card.hidden = !hit;
+      if (hit) shown += 1;
+    });
+    const none = document.querySelector("[data-notes-none]");
+    if (none) none.hidden = shown > 0;
+  });
+
   // ------------------------------------------------------------------ modal
   // look the dialog up at event time – hx-boost replaces the <body> content on every navigation
   const modalEl = () => document.getElementById("modal");

@@ -15,7 +15,7 @@ from domownik.config import today
 from domownik.domain import holidays, recurrence
 from domownik.domain.money import format_pln, input_pln
 from domownik.domain.status import BUCKETS, STATUS_LABELS, humanize_days
-from domownik.models import CATEGORIES, DIRECTIONS, ITEM_KINDS
+from domownik.models import CATEGORIES, DIRECTIONS, ITEM_KINDS, NOTE_COLORS
 from domownik.security import csrf_token
 
 HERE = Path(__file__).parent
@@ -70,6 +70,11 @@ def other_avatar(assignee, me) -> Markup:
     return avatar(assignee)
 
 
+def items_text(items: list[dict] | None) -> str:
+    """A checklist note as editable text: one point per line, ticked ones start with ✓."""
+    return "\n".join(("✓ " if i.get("d") else "") + i.get("t", "") for i in items or [])
+
+
 env = templates.env
 env.filters["pln"] = format_pln
 env.filters["pln_input"] = input_pln
@@ -91,6 +96,8 @@ env.globals.update(
     avatar_class=avatar_class,
     initials=initials,
     holiday=holidays.name,
+    items_text=items_text,
+    NOTE_COLORS=NOTE_COLORS,
 )
 
 

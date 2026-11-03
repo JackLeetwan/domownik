@@ -1,14 +1,37 @@
+{# One note on the board; swapped in place after ticking a point. Needs: n, NOTE_COLORS #}
 {% set active = n.is_active(today()) %}
-<article class="note-card{% if n.pinned and active %} pinned{% endif %}">
-  <div class="note-body">{% if n.pinned and active %}📌 {% endif %}{{ n.body }}</div>
+<article class="note-card{% if n.color %} c-{{ n.color }}{% endif %}{% if n.pinned and active %} pinned{% endif %}" id="note-{{ n.id }}" data-note-text="{{ n.text|lower }}">
+  {% if n.label %}<span class="note-label">{{ n.label }}</span>{% endif %}
+  {% if n.title %}<h3 class="note-title">{% if n.pinned and active %}📌 {% endif %}{{ n.title }}</h3>{% endif %}
+  {% if n.is_list %}
+  <ul class="note-list">
+    {% for it in n.items %}
+    <li class="{% if it.d %}nl-done{% endif %}">
+      {% if active %}<button type="button" class="nl-check" hx-post="/notatki/{{ n.id }}/punkt/{{ loop.index0 }}" hx-target="#note-{{ n.id }}" hx-swap="outerHTML"
+        aria-label="{% if it.d %}Odznacz{% else %}Odhacz{% endif %}: {{ it.t }}">{% if it.d %}☑{% else %}☐{% endif %}</button>{% else %}<span class="nl-check" aria-hidden="true">{% if it.d %}☑{% else %}☐{% endif %}</span>{% endif %}
+      <span class="nl-text">{{ it.t }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if active %}
+  <form class="note-item-add" hx-post="/notatki/{{ n.id }}/punkt" hx-target="#note-{{ n.id }}" hx-swap="outerHTML">
+    <input name="t" required maxlength="200" autocomplete="off" enterkeyhint="done" placeholder="＋ punkt" aria-label="Nowy punkt listy">
+    <button type="submit" class="small outline">Dodaj</button>
+  </form>
+  {% endif %}
+  {% elif n.body %}
+  <div class="note-body">{% if n.pinned and active and not n.title %}📌 {% endif %}{{ n.body }}</div>
+  {% endif %}
   <div class="note-meta">
     {% if n.created_by %}<span>{{ n.created_by.name }}</span>{% endif %}
     <span>{{ n.created_at.date()|d }}</span>
+    {% if n.is_list and n.items %}<span>{{ n.items_done }}/{{ n.items|length }}</span>{% endif %}
     {% if n.valid_until %}<span>{% if active %}ważna do {{ n.valid_until|d }}{% else %}wygasła {{ n.valid_until|d }}{% endif %}</span>{% endif %}
   </div>
   <div class="note-actions">
     {% if active %}
     <form method="post" action="/notatki/{{ n.id }}/pin" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">{% if n.pinned %}Odepnij{% else %}📌 Przypnij{% endif %}</button></form>
+    {% if n.is_list and n.items_done %}<button type="button" class="link" hx-post="/notatki/{{ n.id }}/wyczysc" hx-target="#note-{{ n.id }}" hx-swap="outerHTML">Usuń odhaczone</button>{% endif %}
     <form method="post" action="/notatki/{{ n.id }}/archive" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">✓ Do archiwum</button></form>
     {% else %}
     <form method="post" action="/notatki/{{ n.id }}/archive" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">↶ Przywróć</button></form>
@@ -20,9 +43,7 @@
     <summary>Edytuj</summary>
     <form method="post" action="/notatki/{{ n.id }}/edit">
       <input type="hidden" name="csrf" value="{{ csrf }}">
-      <textarea name="body" rows="3" required>{{ n.body }}</textarea>
-      <label>Ważna do <input type="date" name="valid_until" value="{{ n.valid_until.isoformat() if n.valid_until else '' }}"></label>
-      <label><input type="checkbox" name="pinned" role="switch" {% if n.pinned %}checked{% endif %}> 📌 Przypięta</label>
+      {% with fid = n.id %}{% include "partials/note_fields.html" %}{% endwith %}
       <button type="submit" class="small">Zapisz</button>
     </form>
   </details>
