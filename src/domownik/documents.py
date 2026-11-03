@@ -174,6 +174,48 @@ def _check_image(path: Path, name: str) -> None:
         raise UploadError(f"„{name}”: plik wygląda na uszkodzony – to nie jest poprawne zdjęcie.") from exc
 
 
+GPS_IFD = 0x8825
+_STRIP_FORMATS = {"JPEG": "JPEG", "MPO": "JPEG", "PNG": "PNG", "WEBP": "WEBP"}
+
+
+def strip_location(path: Path) -> bool:
+    """Remove where a photo was taken (EXIF GPS, XMP) – the files go to backups on a cloud drive.
+
+    The rest of EXIF stays, orientation included, so the photo still shows upright. Rewritten only
+    when there is something to remove (JPEG keeps its quantisation tables – no visible loss).
+    Returns True when the file was rewritten.
+    """
+    with Image.open(path) as im:
+        fmt = _STRIP_FORMATS.get(im.format or "")
+        if fmt is None or (getattr(im, "n_frames", 1) > 1 and fmt != "JPEG"):  # animated: left as is
+            return False
+        exif = im.getexif()
+        has_gps = GPS_IFD in exif
+        has_xmp = any(k in im.info for k in ("xmp", "XML:com.adobe.xmp"))
+        if not (has_gps or has_xmp):
+            return False
+        if has_gps:
+            del exif[GPS_IFD]
+        opts: dict = {"exif": exif.tobytes()}
+        if im.info.get("icc_profile"):
+            opts["icc_profile"] = im.info["icc_profile"]
+        if fmt == "JPEG":
+            opts |= {"quality": "keep", "subsampling": "keep", "progressive": bool(im.info.get("progressive"))}
+        elif fmt == "WEBP":
+            opts |= {"lossless": True} if im.info.get("lossless") else {"quality": 90}
+        tmp = path.with_name(path.stem + ".tmp")
+        try:
+            im.save(tmp, fmt, **opts)
+        except Exception:
+            tmp.unlink(missing_ok=True)
+            if fmt != "JPEG":
+                raise
+            opts |= {"quality": 92, "subsampling": 0}  # e.g. MPO frames refuse "keep"
+            im.save(tmp, fmt, **opts)
+    tmp.replace(path)
+    return True
+
+
 # ---------------------------------------------------------------- storing / removing
 
 
@@ -230,6 +272,12 @@ def store_files(
             has_thumb = False
             if ftype.kind == "image":
                 _check_image(dest, name)
+                try:
+                    if strip_location(dest):
+                        size = dest.stat().st_size
+                except Exception:  # an odd but valid photo is still kept
+                    log.exception("could not strip location from %s", dest.name)
+                    dest.with_name(dest.stem + ".tmp").unlink(missing_ok=True)
                 thumb = dest.with_name(dest.stem + ".thumb.webp")
                 has_thumb = _make_thumb(dest, thumb)
                 if has_thumb:

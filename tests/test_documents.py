@@ -94,6 +94,44 @@ def test_photo_upload_keeps_file_and_makes_upright_thumbnail(auth_client, db):
         assert th.height > th.width  # turned upright
 
 
+def _with_gps(fmt: str) -> bytes:
+    exif = Image.Exif()
+    exif[0x0112] = 6  # portrait photo stored landscape
+    exif[0x010F] = "Producent"
+    gps = exif.get_ifd(documents.GPS_IFD)
+    gps.update({1: "N", 2: (52.0, 13.0, 30.0), 3: "E", 4: (21.0, 0.0, 15.0)})
+    buf = io.BytesIO()
+    Image.new("RGB", (300, 100), (20, 90, 160)).save(buf, fmt, exif=exif)
+    return buf.getvalue()
+
+
+@pytest.mark.parametrize(("fmt", "name", "mime"), [("JPEG", "IMG.jpg", "image/jpeg"), ("PNG", "x.png", "image/png")])
+def test_photo_upload_drops_gps_but_keeps_orientation(auth_client, db, fmt, name, mime):
+    item = _item(db)
+    raw = _with_gps(fmt)
+    with Image.open(io.BytesIO(raw)) as im:
+        assert im.getexif().get_ifd(documents.GPS_IFD)  # the test file really has a location
+    assert _upload(auth_client, item.id, [(name, raw, mime)]).status_code == 303
+    (att,) = _atts(db)
+    path = documents.file_path(att)
+    with Image.open(path) as im:
+        exif = im.getexif()
+        assert documents.GPS_IFD not in exif and not exif.get_ifd(documents.GPS_IFD)
+        assert exif[0x0112] == 6 and exif[0x010F] == "Producent"  # the rest of EXIF stays
+        assert im.size == (300, 100)
+    assert att.size == path.stat().st_size
+    with Image.open(documents.thumb_path(att)) as th:
+        assert th.height > th.width
+
+
+def test_photo_without_location_is_stored_byte_for_byte(auth_client, db):
+    item = _item(db)
+    raw = _jpeg((120, 80), orientation=3)
+    assert _upload(auth_client, item.id, [("a.jpg", raw, "image/jpeg")]).status_code == 303
+    (att,) = _atts(db)
+    assert documents.file_path(att).read_bytes() == raw
+
+
 def test_several_files_at_once_with_kind_and_description(auth_client, db):
     item = _item(db)
     r = _upload(
