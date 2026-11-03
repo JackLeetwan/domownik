@@ -1,0 +1,25 @@
+{# Personal documents of a household member: expiry reminders. Needs: item, id_doc_rows, id_doc_types #}
+<section class="id-docs" id="dokumenty-osobiste">
+  <h2>🪪 Dokumenty</h2>
+  {% if id_doc_rows %}
+  <ul class="task-list">{% set show_zone = False %}{% for row in id_doc_rows %}{% include "partials/task_row.html" %}{% endfor %}</ul>
+  {% else %}
+  <p class="muted"><small>Wpisz, do kiedy ważny jest dowód, paszport czy prawo jazdy – Domownik przypomni z wyprzedzeniem na złożenie wniosku, a po wymianie (✓ Zrobione) policzy kolejną datę.</small></p>
+  {% endif %}
+  <details class="quick-add" {% if not id_doc_rows %}open{% endif %}>
+    <summary>＋ Dokument</summary>
+    <form method="post" action="/items/{{ item.id }}/dokumenty" class="id-doc-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        <label>Dokument
+          <select name="doc" required>
+            {% for d in id_doc_types %}<option value="{{ d.key }}">{{ d.icon }} {{ d.label }} – przypomnienie {{ d.lead_days }} dni wcześniej</option>{% endfor %}
+          </select>
+        </label>
+        <label>Ważny do<input type="date" name="until" required></label>
+      </div>
+      <button type="submit">Zapisz</button>
+      <p class="muted"><small>Bez numerów dokumentów – tylko data ważności. Ten sam dokument wpisany ponownie zmienia datę.</small></p>
+    </form>
+  </details>
+</section>

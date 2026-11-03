@@ -615,11 +615,14 @@ async def update_task(
 
 
 @router.post("/tasks/{task_id}/delete", dependencies=[Depends(verify_csrf)])
-def delete_task(task_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+def delete_task(request: Request, task_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     task = _get_task(db, task_id)
     item_id = task.item_id
+    from_window = is_htmx(request) and not _on_task_page(request, task.id)
     db.delete(task)
     db.commit()
+    if from_window:  # the task's window over the calendar / dashboard: stay there, just refresh it
+        return HTMLResponse("", headers={"HX-Refresh": "true"})
     return _redirect(f"/items/{item_id}")
 
 

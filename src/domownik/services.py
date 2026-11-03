@@ -688,6 +688,7 @@ CATEGORY_PLURALS = {
     "occasion": "Okazje",
     "shopping": "Zakupy",
     "warranty": "Gwarancje i umowy",
+    "document": "Dokumenty",
     "other": "Inne",
 }
 
@@ -964,3 +965,22 @@ def calendar_month(
 
 def calendar_day(db: Session, tree: Tree, today: date, day: date, *, user_id: int | None = None) -> list[dict]:
     return group_day(calendar_points(db, tree, today, day, day, user_id=user_id))
+
+
+BACKUP_WARN_DAYS = 3
+
+
+def backup_warning(today: date) -> str | None:
+    """A line for the dashboard when the daily backup (data/backups/auto) has not run for a few days."""
+    from datetime import datetime as _dt
+
+    from domownik.config import get_settings
+
+    auto = get_settings().backups_dir / "auto"
+    newest = max((p.stat().st_mtime for p in auto.glob("domownik-*.tar.gz")), default=None) if auto.is_dir() else None
+    if newest is None:
+        return "⚠️ Nie ma jeszcze żadnej kopii zapasowej bazy – włącz codzienną kopię (README → Kopie zapasowe)."
+    days = (today - _dt.fromtimestamp(newest).date()).days
+    if days <= BACKUP_WARN_DAYS:
+        return None
+    return f"⚠️ Ostatnia kopia zapasowa bazy: {days} dni temu – sprawdź codzienną kopię (README → Kopie zapasowe)."

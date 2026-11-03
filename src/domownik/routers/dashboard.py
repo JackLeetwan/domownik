@@ -83,6 +83,7 @@ def dashboard(
             "today_slots": today_slots,
             "late_chores": late_chores,
             "today_ext": today_ext,
+            "backup_warning": services.backup_warning(t),
         },
     )
 

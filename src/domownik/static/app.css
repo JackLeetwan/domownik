@@ -1393,3 +1393,6 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 .note-photo-del { position: absolute; top: -0.4rem; right: -0.4rem; width: 1.4rem; height: 1.4rem; padding: 0; margin: 0; border-radius: 50%; font-size: 0.7rem; line-height: 1; border: 0; color: #fff; background: rgba(0, 0, 0, 0.55); }
 .note-photo-add { cursor: pointer; margin: 0; }
 .note-photo-pick { font-size: 0.9rem; }
+
+.backup-warn { margin: 0 0 0.75rem; padding: 0.4rem 0.75rem; border-radius: 6px; color: var(--dm-text); background: color-mix(in srgb, var(--dm-soon) 18%, transparent); }
+.task-del { margin-left: auto; }

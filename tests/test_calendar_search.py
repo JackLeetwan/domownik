@@ -263,3 +263,18 @@ def test_only_the_current_date_is_draggable(auth_client, db):
 
     nxt = auth_client.get(f"/kalendarz/tydzien?d={(due + relativedelta(months=1)).isoformat()}").text
     assert "Czynsz" in nxt and "data-drag-task" not in nxt  # a later occurrence is not moved by dragging
+
+
+def test_delete_from_the_task_window(auth_client, db):
+    """The window opened from the calendar has "🗑 Usuń"; deleting there stays on the calendar."""
+    item = _zone(db)
+    t = _task(db, item, "Spotkanie", today() + timedelta(days=5), category="event")
+    tid = t.id
+    window = auth_client.get(f"/tasks/{t.id}", headers={"HX-Request": "true"}).text
+    assert "🗑 Usuń" in window and f'hx-post="/tasks/{t.id}/delete"' in window
+    r = auth_client.post(
+        f"/tasks/{t.id}/delete", headers={"HX-Request": "true", "HX-Current-URL": "http://testserver/kalendarz"}
+    )
+    assert r.headers.get("HX-Refresh") == "true"
+    db.expire_all()
+    assert db.get(Task, tid) is None

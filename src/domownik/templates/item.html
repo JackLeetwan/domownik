@@ -59,7 +59,7 @@
   {% endif %}
 </section>
 {% endif %}
-{% if item.is_member %}{% include "partials/member_health.html" %}{% endif %}
+{% if item.is_member %}{% include "partials/member_health.html" %}{% include "partials/id_documents.html" %}{% endif %}
 {% if item.kind == 'child' %}{% include "partials/child_vaccines.html" %}{% endif %}
 <section id="zadania">
   <h2>Zadania{% if own_rows or sub_rows %} <small class="muted">({{ own_rows|length + sub_rows|length }})</small>{% endif %}</h2>

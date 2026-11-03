@@ -212,6 +212,11 @@ def item_page(request: Request, item_id: int, db: Session = Depends(get_db), use
         if child_birthday:
             titles = {x.lower() for x in db.scalars(select(Task.title).where(Task.item_id == item.id))}
             child_plan = child_health.plan_for(child_birthday, t, titles)
+    from domownik.domain import id_docs
+
+    id_doc_tasks = []
+    if item.is_member:
+        id_doc_tasks = [r for r in own_rows if r.task.category == "document"]
     zone_cost = None
     if item.parent_id is None and not item.archived:
         from domownik import zonecosts
@@ -225,6 +230,8 @@ def item_page(request: Request, item_id: int, db: Session = Depends(get_db), use
             "item": item,
             "zone_cost": zone_cost,
             "child_plan": child_plan,
+            "id_doc_rows": id_doc_tasks,
+            "id_doc_types": id_docs.TYPES,
             "child_birthday": child_birthday,
             "zone_year": t.year,
             "path": tree.path(item_id),
@@ -480,6 +487,42 @@ async def add_child_plan(
         added += 1
     db.commit()
     return _redirect(f"/items/{item.id}#szczepienia")
+
+
+@router.post("/{item_id}/dokumenty", dependencies=[Depends(verify_csrf)])
+async def add_id_document(
+    request: Request, item_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    """ID card / passport / driving licence valid until … → a reminder before it expires (again after renewal)."""
+    from domownik.domain import id_docs
+
+    item = _get_item(db, item_id)
+    if not item.is_member:
+        raise HTTPException(400, "Dokumenty osobiste są dla domowników")
+    form = await request.form()
+    doc = id_docs.BY_KEY.get(str(form.get("doc") or ""))
+    try:
+        expires = _parse_date(form.get("until"))
+    except ValueError:
+        expires = None
+    if doc is None or expires is None:
+        raise HTTPException(400, "Wybierz dokument i datę ważności")
+    birthday = documents.parse_loose_date(str((item.attributes or {}).get("birthday") or ""))
+    task = db.scalar(select(Task).where(Task.item_id == item.id, Task.title == doc.title))
+    if task is None:
+        task = Task(item_id=item.id, title=doc.title, category="document", direction="none")
+        db.add(task)
+    task.active = True
+    task.recurrence = id_docs.recurrence_for(doc, birthday, expires)
+    task.next_due_date = expires
+    task.lead_days = doc.lead_days
+    task.notes = (
+        f"Ważny do {expires.strftime('%d.%m.%Y')}. {doc.how}\n"
+        "Po odebraniu nowego kliknij „Zrobione” – Domownik przypomni przed końcem ważności nowego "
+        "(jeśli data na dokumencie jest inna, popraw ją w edycji zadania)."
+    )
+    db.commit()
+    return _redirect(f"/items/{item.id}#dokumenty-osobiste")
 
 
 @router.post("/{item_id}/issues", dependencies=[Depends(verify_csrf)])

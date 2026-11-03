@@ -56,6 +56,7 @@ CATEGORIES: dict[str, tuple[str, str]] = {
     "occasion": ("Okazja / prezent", "🎁"),
     "shopping": ("Zakupy", "🛒"),
     "warranty": ("Gwarancja / umowa", "📄"),
+    "document": ("Dokument", "🪪"),
     "other": ("Inne", "📌"),
 }
 

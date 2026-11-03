@@ -81,6 +81,7 @@ osoby przypisanej). Punkty ⭐ i „Wymaga zatwierdzenia” – w „Więcej szc
 `/kalendarz` – miesiąc (polskie święta i dni wolne czerwonym numerem) albo `/kalendarz/tydzien` – siedem dni
 jako lista. Filtr „Moje”.
 Dwuklik na dzień (albo „＋” przy wybranym dniu) – „＋ Dodaj” wydarzenie, zadanie lub wydatek na ten dzień.
+W oknie zadania (kliknięcie w kalendarzu) „🗑 Usuń” – cykliczne z całą historią, dlatego obok „Pomiń termin”.
 Przeciągnięcie terminu myszą na inny dzień (miesiąc i tydzień) = „Przełóż” – tylko bieżący termin zadania,
 nie na dzień, który minął; na telefonie „Przełóż” w oknie zadania.
 
@@ -111,6 +112,10 @@ i spiżarni – przy zakupach „i” rozdziela pozycje.
 (lodówka / zamrażarka / spiżarnia, data ważności). Składniki przepisu lub tygodnia → lista zakupów, z
 odznaczonym tym, co jest w spiżarni; „Zakończ zakupy” może wrzucić kupione do spiżarni; rano push o
 kończących się terminach.
+
+Domownicy: „🪪 Dokumenty” – dowód, paszport, prawo jazdy, EKUZ: tylko data ważności (bez numerów), przypomnienie
+30–90 dni wcześniej; po wymianie „Zrobione” liczy następną datę (dowód/paszport 10 lat, dziecko 5, prawo jazdy 15).
+Pulpit ostrzega, gdy ostatnia kopia w `data/backups/auto` jest starsza niż 3 dni.
 
 `/punkty` – punkty za zadania i obowiązki (z zatwierdzaniem przez kogoś innego), nagrody, punkty ręcznie.
 Budżet: 🎯 cele oszczędnościowe – wpłaty to wydatki w kategorii „Oszczędności”, tempo „odkładaj ok. X zł
