@@ -57,6 +57,44 @@ Liczniki (prąd, woda, gaz, ciepło) przy domu/mieszkaniu: odczyty ze zdjęciem,
 średnie, wykres miesięczny (SVG z serwera), koszt z ceny za jednostkę, „nowy licznik / reset”.
 Przebieg auta widać w tym samym układzie – tylko do odczytu, prognozy zadań z przebiegu bez zmian.
 
+## Zadania z godziną, podzadania, zdjęcia
+
+Zadanie może mieć godzinę (i koniec) – „📅 Wydarzenie” w „＋ Dodaj” to wizyta / spotkanie z godziną. Push
+przychodzi przed godziną (o czasie … dzień wcześniej, raz na wystąpienie), godzina jest w kalendarzu, ICS,
+porannym skrócie. W oknie zadania: kroki (checklista, po „Zrobione” zadania cyklicznego odznaczają się na
+następny termin), zdjęcia / pliki z formularza (zostają też w dokumentach elementu) i komentarze (push do
+osoby przypisanej). Punkty ⭐ i „Wymaga zatwierdzenia” – w „Więcej szczegółów”.
+
+## Kalendarz
+
+`/kalendarz` – miesiąc (polskie święta i dni wolne czerwonym numerem) albo `/kalendarz/tydzien` – siedem dni
+jako lista. Filtr „Moje”.
+
+## Notatki, kuchnia, punkty
+
+`/notatki` – tytuł, tekst albo lista do odhaczania na karcie, kolor, kategoria (chipsy filtra), filtr przy
+pisaniu, komentarze. 🎤 dyktowanie (Web Speech API, tylko gdzie przeglądarka to umie) w zakupach, notatkach
+i spiżarni – przy zakupach „i” rozdziela pozycje.
+
+`/kuchnia` – jadłospis tygodnia (przepis albo tekst), przepisy (składniki w liniach, tagi), spiżarnia
+(lodówka / zamrażarka / spiżarnia, data ważności). Składniki przepisu lub tygodnia → lista zakupów, z
+odznaczonym tym, co jest w spiżarni; „Zakończ zakupy” może wrzucić kupione do spiżarni; rano push o
+kończących się terminach.
+
+`/punkty` – punkty za zadania i obowiązki (z zatwierdzaniem przez kogoś innego), nagrody, punkty ręcznie.
+Budżet: 🎯 cele oszczędnościowe – wpłaty to wydatki w kategorii „Oszczędności”, tempo „odkładaj ok. X zł
+miesięcznie”.
+
+## Prywatne
+
+„🔒 Tylko dla mnie” przy zadaniu, notatce i „do zrobienia”. Filtr siedzi w sesji bazy
+(`db._private_filter`: `do_orm_execute` + `with_loader_criteria`) – każde zapytanie zalogowanej osoby
+pomija cudze prywatne wiersze (listy, pulpit, kalendarz, oś czasu, wyszukiwarka, ICS, linki → 404).
+Scheduler / CLI nie mają widza i filtrują same (`notify.py`). Wspólny budżet liczy kwoty wszystkich zadań
+(`execution_options(all_private=True)`), cudze prywatne pokazuje jako „🔒 Prywatne”.
+
+Ustawienia → **Menu**: dwa własne skróty dolnego paska i ukrywanie nieużywanych pozycji menu.
+
 ## Kalendarz w telefonie (ICS)
 
 **Ustawienia → Kalendarz w telefonie** tworzy osobisty link `/ics/<token>.ics` (subskrypcja, bez logowania):

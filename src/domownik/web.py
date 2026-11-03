@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 
+from domownik import menu
 from domownik.config import today
 from domownik.domain import holidays, recurrence
 from domownik.domain.money import format_pln, input_pln
@@ -96,6 +97,8 @@ env.globals.update(
     avatar_class=avatar_class,
     initials=initials,
     holiday=holidays.name,
+    menu_bar=menu.bar,
+    menu_sidebar=menu.sidebar,
     items_text=items_text,
     NOTE_COLORS=NOTE_COLORS,
     MEALS=MEALS,

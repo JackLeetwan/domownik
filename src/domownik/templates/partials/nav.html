@@ -13,18 +13,10 @@
   {# only this middle part scrolls – the brand/search on top and the account footer stay visible #}
   <div class="side-scroll">
   <ul class="side-links">
-    <li><a href="/" {% if p == '/' %}aria-current="page"{% endif %}><span class="ic">🏠</span> Pulpit</a></li>
-    <li><a href="/kalendarz" {% if p.startswith('/kalendarz') %}aria-current="page"{% endif %}><span class="ic">📅</span> Kalendarz</a></li>
-    <li><a href="/grafik" {% if p.startswith('/grafik') %}aria-current="page"{% endif %}><span class="ic">🗓️</span> Grafik</a></li>
-    <li><a href="/obowiazki" {% if p.startswith('/obowiazki') %}aria-current="page"{% endif %}><span class="ic">🧹</span> Obowiązki{% if nav.chores %}<span class="count">{{ nav.chores }}</span>{% endif %}</a></li>
-    <li><a href="/zakupy" {% if p.startswith('/zakupy') %}aria-current="page"{% endif %}><span class="ic">🛒</span> Zakupy{% if nav.shopping %}<span class="count">{{ nav.shopping }}</span>{% endif %}</a></li>
-    <li><a href="/kuchnia" {% if p.startswith('/kuchnia') %}aria-current="page"{% endif %}><span class="ic">🍳</span> Kuchnia</a></li>
-    <li><a href="/notatki" {% if p.startswith('/notatki') %}aria-current="page"{% endif %}><span class="ic">📝</span> Notatki{% if nav.notes %}<span class="count">{{ nav.notes }}</span>{% endif %}</a></li>
-    <li><a href="/do-zrobienia" {% if p.startswith('/do-zrobienia') %}aria-current="page"{% endif %}><span class="ic">☐</span> Do zrobienia{% if nav.todos %}<span class="count">{{ nav.todos }}</span>{% endif %}</a></li>
-    <li><a href="/punkty" {% if p.startswith('/punkty') %}aria-current="page"{% endif %}><span class="ic">⭐</span> Punkty{% if nav.points %}<span class="count">{{ nav.points }}</span>{% endif %}</a></li>
-    <li><a href="/kontakty" {% if p.startswith('/kontakty') %}aria-current="page"{% endif %}><span class="ic">📇</span> Kontakty</a></li>
-    <li><a href="/budzet" {% if p.startswith('/budzet') %}aria-current="page"{% endif %}><span class="ic">💰</span> Budżet</a></li>
-    <li><a href="/ustawienia" {% if p.startswith('/ustawienia') %}aria-current="page"{% endif %}><span class="ic">⚙️</span> Ustawienia</a></li>
+    {% for ln in menu_sidebar(user) %}
+    {% set cnt = nav[ln.count] if ln.count else 0 %}
+    <li><a href="{{ ln.href }}" {% if (p == '/' if ln.href == '/' else p.startswith(ln.href)) %}aria-current="page"{% endif %}><span class="ic">{{ ln.icon }}</span> {{ ln.label }}{% if cnt %}<span class="count">{{ cnt }}</span>{% endif %}</a></li>
+    {% endfor %}
   </ul>
   {% if nav.members %}
   <p class="side-head">Domownicy</p>
@@ -51,9 +43,10 @@
 <div class="nav-backdrop" data-nav-close></div>
 <nav class="bottombar" aria-label="Szybkie menu">
   <a href="/" {% if p == '/' %}aria-current="page"{% endif %}><span>🏠</span>Pulpit</a>
-  <a href="/zakupy" {% if p.startswith('/zakupy') %}aria-current="page"{% endif %}><span>🛒{% if nav.shopping %}<b class="count">{{ nav.shopping }}</b>{% endif %}</span>Zakupy</a>
+  {% set bb = menu_bar(user) %}
+  {% with ln = bb[0] %}{% set cnt = nav[ln.count] if ln.count else 0 %}<a href="{{ ln.href }}" {% if p.startswith(ln.href) %}aria-current="page"{% endif %}><span>{{ ln.icon }}{% if cnt %}<b class="count">{{ cnt }}</b>{% endif %}</span>{{ ln.label }}</a>{% endwith %}
   {# quick add – in the bar itself, so it never covers the ✓ buttons of the lists #}
   <button type="button" class="bb-add" hx-get="/dodaj" hx-target="#modal-body" aria-label="Dodaj: zadanie, zakup, notatkę…" title="Dodaj"><span>＋</span>Dodaj</button>
-  <a href="/notatki" {% if p.startswith('/notatki') %}aria-current="page"{% endif %}><span>📝{% if nav.notes %}<b class="count">{{ nav.notes }}</b>{% endif %}</span>Notatki</a>
+  {% with ln = bb[1] %}{% set cnt = nav[ln.count] if ln.count else 0 %}<a href="{{ ln.href }}" {% if p.startswith(ln.href) %}aria-current="page"{% endif %}><span>{{ ln.icon }}{% if cnt %}<b class="count">{{ cnt }}</b>{% endif %}</span>{{ ln.label }}</a>{% endwith %}
   <button type="button" data-nav-toggle aria-controls="sidebar"><span>☰</span>Więcej</button>
 </nav>

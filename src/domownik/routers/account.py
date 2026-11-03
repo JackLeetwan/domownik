@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import ics, notify, services, webpush
+from domownik import ics, menu, notify, services, webpush
 from domownik.config import get_settings, now, today
 from domownik.db import get_db
 from domownik.models import PushSubscription, Task, User
@@ -85,8 +85,18 @@ def settings_page(request: Request, db: Session = Depends(get_db), user: User = 
             "any_assigned": services.any_assigned(db),
             "ics_url": flash.get("ics_url"),
             "ics_scopes": ics.SCOPES,
+            "menu_choices": menu.BAR_CHOICES,
+            "menu_links": menu.LINKS,
         },
     )
+
+
+@router.post("/ustawienia/menu", dependencies=[Depends(verify_csrf)])
+async def save_menu(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    menu.save(user, await request.form())
+    db.commit()
+    request.session["flash"] = {"message": "Zapisano menu."}
+    return RedirectResponse("/ustawienia#menu", status_code=303)
 
 
 @router.post("/ustawienia", dependencies=[Depends(verify_csrf)])

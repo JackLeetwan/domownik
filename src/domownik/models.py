@@ -77,6 +77,8 @@ class User(Base):
     # calendar subscription (/ics/<token>.ics): only the SHA-256 of the random token is kept
     ics_token_hash: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
     ics_scope: Mapped[str] = mapped_column(String(10), default="all", server_default="all")  # all | mine
+    # own menu: {"bar": [two shortcuts of the phone's bottom bar], "hidden": [menu links not used]}
+    menu: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

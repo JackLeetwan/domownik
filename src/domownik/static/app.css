@@ -499,6 +499,9 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .cal-week-day.is-today { border-color: var(--pico-primary); }
 .cal-week-day h2 { font-size: 1rem; margin: 0 0 0.3rem; }
 .cal-week-day .muted:only-of-type { margin: 0; }
+.menu-show { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.2rem 1rem; border: 0; padding: 0; margin: 0.5rem 0 0.75rem; }
+.menu-show legend { grid-column: 1 / -1; margin-bottom: 0.25rem; }
+.menu-show label { margin: 0; }
 /* ---------------------------------------------------------------- comments */
 .comments { margin: 0.5rem 0 0.75rem; }
 .comment-list { list-style: none; padding: 0; margin: 0 0 0.4rem; }

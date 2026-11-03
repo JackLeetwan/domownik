@@ -100,6 +100,30 @@
   </details>
 </section>
 
+<section id="menu">
+  <h2>Menu</h2>
+  <form method="post" action="/ustawienia/menu" class="menu-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% set bb = menu_bar(user) %}
+    <p class="muted"><small>Dwa skróty w dolnym pasku telefonu (obok „Pulpit” i „＋ Dodaj”):</small></p>
+    <div class="grid">
+      {% for n in (1, 2) %}
+      <label>Skrót {{ n }}
+        <select name="bar{{ n }}">{% for ln in menu_choices %}<option value="{{ ln.key }}" {% if ln.key == bb[n - 1].key %}selected{% endif %}>{{ ln.icon }} {{ ln.label }}</option>{% endfor %}</select>
+      </label>
+      {% endfor %}
+    </div>
+    <fieldset class="menu-show">
+      <legend><small class="muted">Pokazuj w menu („Więcej” / pasek boczny):</small></legend>
+      {% set shown = menu_sidebar(user)|map(attribute='key')|list %}
+      {% for ln in menu_links if not ln.fixed %}
+      <label><input type="checkbox" name="show" value="{{ ln.key }}" {% if ln.key in shown %}checked{% endif %}> {{ ln.icon }} {{ ln.label }}</label>
+      {% endfor %}
+    </fieldset>
+    <button type="submit" class="small">Zapisz menu</button>
+  </form>
+</section>
+
 <section>
   <h2>Kto się czym zajmuje</h2>
   <p class="muted">Zadanie przypisane do osoby przypomina się tylko jej; wspólne – wszystkim.{% if not any_assigned %} <strong>Na razie nic nie jest przypisane</strong>, więc każdy dostaje wszystkie przypomnienia.{% endif %}</p>
