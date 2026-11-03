@@ -263,6 +263,13 @@ class Task(Base):
     completions: Mapped[list[Completion]] = relationship(
         back_populates="task", cascade="all, delete-orphan", order_by="Completion.done_on.desc()"
     )
+    steps: Mapped[list[TaskStep]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="TaskStep.sort_order, TaskStep.id"
+    )
+
+    @property
+    def steps_done(self) -> int:
+        return sum(1 for s in self.steps if s.done)
 
     @property
     def category_icon(self) -> str:
@@ -299,6 +306,20 @@ class Task(Base):
         if not self.due_time:
             return None
         return f"{self.due_time}–{self.ends_at}" if self.ends_at else self.due_time
+
+
+class TaskStep(Base):
+    """One point of a task's checklist ("zdjąć filtr", "przepłukać"). Unticked again for the next occurrence."""
+
+    __tablename__ = "task_step"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey("task.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    done: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    task: Mapped[Task] = relationship(back_populates="steps")
 
 
 class Completion(Base):

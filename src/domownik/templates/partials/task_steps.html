@@ -1,0 +1,21 @@
+{# Checklist of a task (inside its window). Needs: task #}
+<section class="task-steps" id="steps-{{ task.id }}">
+  {% if task.steps %}
+  <h4>Kroki <small class="muted">{{ task.steps_done }}/{{ task.steps|length }}</small></h4>
+  <ul class="steps">
+    {% for s in task.steps %}
+    <li class="{% if s.done %}step-done{% endif %}">
+      <button type="button" class="step-check" hx-post="/kroki/{{ s.id }}/toggle" hx-target="#steps-{{ task.id }}" hx-swap="outerHTML"
+              aria-label="{% if s.done %}Odznacz{% else %}Zrobione{% endif %}: {{ s.title }}">{% if s.done %}☑{% else %}☐{% endif %}</button>
+      <span class="step-title">{{ s.title }}</span>
+      <button type="button" class="shop-del" hx-post="/kroki/{{ s.id }}/delete" hx-target="#steps-{{ task.id }}" hx-swap="outerHTML" title="Usuń krok" aria-label="Usuń krok: {{ s.title }}">✕</button>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <form class="step-add" hx-post="/tasks/{{ task.id }}/steps" hx-target="#steps-{{ task.id }}" hx-swap="outerHTML">
+    <input name="title" required maxlength="200" autocomplete="off" enterkeyhint="done" placeholder="＋ Dodaj krok (podzadanie)" aria-label="Nowy krok">
+    <button type="submit" class="small outline">Dodaj</button>
+  </form>
+  {% if task.steps and task.recurrence.mode != 'once' %}<small class="muted">Po „✓ Zrobione” kroki odznaczą się na następny termin.</small>{% endif %}
+</section>

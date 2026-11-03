@@ -16,6 +16,7 @@
 {% if upcoming %}<p class="muted">Kolejne: {% for d in upcoming %}{{ d|d }}{% if not loop.last %}, {% endif %}{% endfor %}{% if left is not none and left > upcoming|length + 1 %} …{% endif %}</p>
 {% elif left == 1 %}<p class="muted">To ostatni termin tej serii.</p>{% endif %}
 {% if task.notes %}<p class="notes">{{ task.notes }}</p>{% endif %}
+{% include "partials/task_steps.html" %}
 
 <form hx-post="/tasks/{{ task.id }}/done" hx-target="#done-error" hx-encoding="multipart/form-data" class="done-form">
   <div id="done-error"></div>

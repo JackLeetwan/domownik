@@ -572,6 +572,17 @@ code.topic { user-select: all; word-break: break-all; }
 .task-form .time-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr); }
 @media (max-width: 575.98px) { .task-form .time-row > label:last-child { grid-column: 1 / -1; } }
 .task-form .time-hint { display: block; margin: -0.5rem 0 0.75rem; }
+.task-steps { margin: 0.5rem 0 1rem; }
+.task-steps h4 { margin: 0 0 0.25rem; font-size: 1rem; }
+.task-steps .steps { list-style: none; padding: 0; margin: 0 0 0.5rem; }
+.task-steps .steps li { display: flex; align-items: center; gap: 0.5rem; padding: 0.1rem 0; list-style: none; }
+.task-steps .step-title { flex: 1; }
+.task-steps .step-done .step-title { text-decoration: line-through; color: var(--pico-muted-color); }
+.step-check { background: none; border: 0; padding: 0.2rem 0.3rem; margin: 0; font-size: 1.25rem; line-height: 1; color: inherit; min-width: 2.4rem; min-height: 2.4rem; }
+.step-add { display: flex; gap: 0.5rem; margin: 0; }
+.step-add input { margin: 0; }
+.step-add button { margin: 0; white-space: nowrap; }
+.badge.steps { font-weight: 500; }
 .qa-time { grid-template-columns: 1.4fr 1fr 1fr; }
 .time-tag { font-variant-numeric: tabular-nums; font-weight: 600; }
 .task-form .form-row > [hidden] { display: none; }

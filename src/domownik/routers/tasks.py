@@ -22,6 +22,7 @@ from domownik.models import (
     BudgetCategory,
     Completion,
     Task,
+    TaskStep,
     User,
 )
 from domownik.routers.contacts import vendor_suggestions
@@ -582,3 +583,52 @@ def delete_task(task_id: int, db: Session = Depends(get_db), user: User = Depend
     db.delete(task)
     db.commit()
     return _redirect(f"/items/{item_id}")
+
+
+# ---------------------------------------------------------------- checklist ("podzadania")
+
+MAX_STEPS = 50
+
+
+def _steps_fragment(request: Request, task: Task) -> HTMLResponse:
+    return render(request, "partials/task_steps.html", {"task": task})
+
+
+@router.post("/tasks/{task_id}/steps", dependencies=[Depends(verify_csrf)])
+async def add_steps(request: Request, task_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """One step per line – a pasted list becomes a checklist at once."""
+    task = _get_task(db, task_id)
+    form = await request.form()
+    titles = [t.strip()[:200] for t in str(form.get("title") or "").splitlines() if t.strip()]
+    order = max((s.sort_order for s in task.steps), default=0)
+    for title in titles[: max(0, MAX_STEPS - len(task.steps))]:
+        order += 1
+        task.steps.append(TaskStep(title=title, sort_order=order))
+    db.commit()
+    db.refresh(task)
+    return _steps_fragment(request, task)
+
+
+def _get_step(db: Session, step_id: int) -> TaskStep:
+    step = db.get(TaskStep, step_id)
+    if step is None:
+        raise HTTPException(404, "Nie ma takiego kroku")
+    return step
+
+
+@router.post("/kroki/{step_id}/toggle", dependencies=[Depends(verify_csrf)])
+def toggle_step(request: Request, step_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    step = _get_step(db, step_id)
+    step.done = not step.done
+    db.commit()
+    return _steps_fragment(request, step.task)
+
+
+@router.post("/kroki/{step_id}/delete", dependencies=[Depends(verify_csrf)])
+def delete_step(request: Request, step_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    step = _get_step(db, step_id)
+    task = step.task
+    db.delete(step)
+    db.commit()
+    db.refresh(task)
+    return _steps_fragment(request, task)

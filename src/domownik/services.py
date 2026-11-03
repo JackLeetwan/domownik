@@ -165,7 +165,7 @@ def active_tasks(db: Session, item_ids: set[int] | None = None) -> list[Task]:
     stmt = (
         select(Task)
         .where(Task.active.is_(True))
-        .options(selectinload(Task.assignee), selectinload(Task.item))
+        .options(selectinload(Task.assignee), selectinload(Task.item), selectinload(Task.steps))
         .order_by(Task.next_due_date)
     )
     if item_ids is not None:
@@ -346,6 +346,9 @@ def complete_task(
         task.next_due_km = base_km + int(rule["km"]) if base_km else None
     if nxt is None:
         task.active = False
+    else:
+        for step in task.steps:  # the checklist starts afresh for the next occurrence
+            step.done = False
     db.commit()
     return comp
 
