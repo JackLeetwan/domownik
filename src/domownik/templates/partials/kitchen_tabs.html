@@ -1,0 +1,7 @@
+{# Header + tabs of /kuchnia. Needs: tab #}
+<header class="item-head"><h1>🍳 Kuchnia</h1></header>
+<nav class="kitchen-tabs" aria-label="Kuchnia">
+  <a href="/kuchnia/jadlospis" {% if tab == 'plan' %}aria-current="page"{% endif %}>📅 Jadłospis</a>
+  <a href="/kuchnia/przepisy" {% if tab == 'recipes' %}aria-current="page"{% endif %}>📖 Przepisy</a>
+  <a href="/kuchnia/spizarnia" {% if tab == 'pantry' %}aria-current="page"{% endif %}>🥫 Spiżarnia</a>
+</nav>

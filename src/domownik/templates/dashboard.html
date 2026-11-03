@@ -56,6 +56,11 @@
   <span class="bar" aria-hidden="true"><i style="width: {{ bm.expense_pct }}%"></i></span>
 </a>
 {% endif %}
+{% if meals_today %}
+<a class="bud-tile meal-tile" href="/kuchnia/jadlospis">
+  <span class="bud-tile-txt"><span aria-hidden="true">🍳</span> <b>Dziś:</b> {% for m in meals_today %}{{ MEALS[m.meal]|default('')|lower }} – {{ m.label }}{% if not loop.last %} · {% endif %}{% endfor %}</span>
+</a>
+{% endif %}
 {% for v in goals[:3] %}
 <a class="bud-tile goal-tile{% if v.reached %} reached{% endif %}" href="/budzet#cele">
   <span class="bud-tile-txt"><span aria-hidden="true">{{ v.goal.icon or '🎯' }}</span> <b>{{ v.goal.name }}:</b> {{ v.saved_gr|pln }} z {{ v.goal.target_gr|pln }} · {{ v.percent }}%{% if v.reached %} 🎉{% endif %}</span>

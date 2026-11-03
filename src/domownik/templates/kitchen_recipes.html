@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Przepisy · Domownik{% endblock %}
+{% block content %}
+{% include "partials/kitchen_tabs.html" %}
+<div class="recipes-head">
+  <a href="/kuchnia/przepisy/nowy" role="button">＋ Nowy przepis</a>
+  {% if total > 5 %}
+  <form method="get" action="/kuchnia/przepisy" class="recipes-search" role="search">
+    <input type="search" name="q" value="{{ q }}" placeholder="Szukaj: nazwa, składnik…" aria-label="Szukaj przepisów">
+  </form>
+  {% endif %}
+</div>
+{% if tags %}
+<nav class="notes-filter" aria-label="Tagi">
+  <a href="/kuchnia/przepisy" role="button" class="{% if tag %}outline {% endif %}secondary">Wszystkie</a>
+  {% for t in tags %}<a href="/kuchnia/przepisy?tag={{ t|urlencode }}" role="button" class="{% if tag != t %}outline {% endif %}secondary">{{ t }}</a>{% endfor %}
+</nav>
+{% endif %}
+{% if recipes %}
+<ul class="recipe-list">
+  {% for r in recipes %}
+  <li><a href="/kuchnia/przepisy/{{ r.id }}">
+    <strong>{{ r.name }}</strong>
+    <small class="muted">{{ r.ingredient_list|length }} skł.{% if r.minutes %} · {{ r.minutes }} min{% endif %}{% if r.servings %} · {{ r.servings }} porcji{% endif %}{% if r.tags %} · {{ r.tags }}{% endif %}</small>
+  </a></li>
+  {% endfor %}
+</ul>
+{% elif total %}
+<p class="muted">Nic nie pasuje.</p>
+{% else %}
+<p class="muted">Brak przepisów. Wpisz ulubione dania – składniki jednym klikiem trafią na listę zakupów.</p>
+{% endif %}
+{% endblock %}

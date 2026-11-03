@@ -36,6 +36,7 @@ MAX_LINES = 12
 
 RANK_SCHEDULE = 4  # one line "🗓️ Grafik: 16:00 Odbiór z przedszkola, 17:00 Basen"
 RANK_CHORES = 5  # one line "🧹 Obowiązki: łazienka, śmieci" (morning only)
+RANK_PANTRY = 6  # one line "🥫 Spiżarnia: mleko (dziś), jogurt (po terminie)" (morning only)
 
 
 @dataclass
@@ -76,6 +77,8 @@ class Digest:
                 return "Domownik: grafik na dziś"
             if RANK_CHORES in ranks:
                 return "Domownik: obowiązki"
+            if RANK_PANTRY in ranks:
+                return "Domownik: spiżarnia"
         return "Domownik: " + " · ".join(parts) if parts else "Domownik"
 
     def message(self) -> str:
@@ -188,11 +191,17 @@ def _add_household_lines(db: Session, digests: list[Digest], slot: str, today: d
     A slot goes to the person taking care of it, a shared one to everyone. The chores line rides along
     with any other line; on its own it is pushed at most every OVERDUE_REPEAT_DAYS days.
     """
-    from domownik import chores, schedule
+    from domownik import chores, kitchen, schedule
 
     day = today if slot == "morning" else today + timedelta(days=1)
     slots = [o for o in schedule.occurrences(db, day, day, cancelled=False) if o.event.notify]
     late = [s for s in chores.states(db, today) if s.overdue] if slot == "morning" else []
+    going, gone = kitchen.expiring_for_push(db, today) if slot == "morning" else ([], [])
+    pantry_text = ""
+    if going or gone:
+        parts = [f"{p.name.lower()} ({'dziś' if p.expires_on == today else 'jutro'})" for p in going]
+        parts += [f"{p.name.lower()} (po terminie)" for p in gone]
+        pantry_text = "🥫 Spiżarnia: " + ", ".join(parts[:8]) + ("…" if len(parts) > 8 else "")
     for d in digests:
         mine = [o for o in slots if o.mine(d.user.id)]
         if mine:
@@ -209,6 +218,13 @@ def _add_household_lines(db: Session, digests: list[Digest], slot: str, today: d
         if d.lines or not _already(db, d.user, "chores", task_id=None, ref=None, since=since):
             names = ", ".join(s.chore.name.lower() for s in my_late)
             d.lines.append(Line(RANK_CHORES, f"🧹 Obowiązki: {names}", [], today))
+    if not pantry_text:
+        return
+    # the pantry is everyone's: rides along with any other line, on its own every OVERDUE_REPEAT_DAYS days
+    since = today - timedelta(days=OVERDUE_REPEAT_DAYS - 1)
+    for d in digests:
+        if d.lines or not _already(db, d.user, "pantry", task_id=None, ref=None, since=since):
+            d.lines.append(Line(RANK_PANTRY, pantry_text, [], today))
 
 
 # ---------------------------------------------------------------- one-tap "done"
@@ -279,8 +295,9 @@ RANK_KIND = {0: "overdue", 1: "today", 2: "task", 3: "tomorrow"}
 
 def record(db: Session, d: Digest, today: date) -> None:
     for ln in d.lines:
-        if ln.rank == RANK_CHORES:  # spaces out a chores-only push (see _add_household_lines)
-            db.add(NotificationLog(user_id=d.user.id, task_id=None, kind="chores", ref_date=today, sent_on=today))
+        if ln.rank in (RANK_CHORES, RANK_PANTRY):  # spaces out a push with only this line (_add_household_lines)
+            kind = "chores" if ln.rank == RANK_CHORES else "pantry"
+            db.add(NotificationLog(user_id=d.user.id, task_id=None, kind=kind, ref_date=today, sent_on=today))
             continue
         kind = RANK_KIND.get(ln.rank)
         for t in ln.tasks:

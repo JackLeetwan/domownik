@@ -15,7 +15,18 @@ from sqlalchemy.orm import Session, selectinload
 from domownik import catalog
 from domownik.domain.text import fold, snippet, terms
 from domownik.domain.tree import Tree
-from domownik.models import Attachment, BoardNote, Completion, Contact, Issue, JournalEntry, Task, Todo, Warranty
+from domownik.models import (
+    Attachment,
+    BoardNote,
+    Completion,
+    Contact,
+    Issue,
+    JournalEntry,
+    Recipe,
+    Task,
+    Todo,
+    Warranty,
+)
 
 # group key → (heading, icon), in display order
 KINDS: dict[str, tuple[str, str]] = {
@@ -27,6 +38,7 @@ KINDS: dict[str, tuple[str, str]] = {
     "issue": ("Usterki i sprawy", "⚠️"),
     "journal": ("Dziennik", "📓"),
     "note": ("Notatki", "📝"),
+    "recipe": ("Przepisy", "📖"),
     "done": ("Historia wykonań", "✅"),
 }
 MIN_QUERY = 2  # shorter queries would match half the house
@@ -235,6 +247,19 @@ def search(db: Session, query: str) -> Results:
         )
         if h:
             groups["note"].append(h)
+
+    for r in db.scalars(select(Recipe)):
+        h = _hit(
+            "recipe",
+            words,
+            r.name,
+            [r.ingredients or "", r.tags or "", r.steps or ""],
+            path="Kuchnia · przepisy",
+            url=f"/kuchnia/przepisy/{r.id}",
+            sort=(r.name.lower(),),
+        )
+        if h:
+            groups["recipe"].append(h)
 
     stmt = (
         select(Completion)

@@ -53,6 +53,35 @@ def _section_for(db: Session, name: str) -> str:
     return last or guess_section(name)
 
 
+def add_entries(
+    db: Session, entries: list[str], *, user: User, note: str | None = None, item_id: int | None = None
+) -> int:
+    """Put entries ('2 mleko', 'masło') on the list; one already there is refreshed, not doubled.
+
+    Returns how many were new. The caller commits. Used by /zakupy and the kitchen (recipes, pantry).
+    """
+    added = 0
+    for part in entries:
+        name, qty = parse_entry(part)
+        if not name:
+            continue
+        existing = db.scalar(
+            select(ShoppingItem).where(ShoppingItem.bought_on.is_(None), func.lower(ShoppingItem.name) == name.lower())
+        )
+        if existing:  # already on the list – just refresh it
+            existing.checked_at = None
+            existing.qty = qty or existing.qty
+            continue
+        db.add(
+            ShoppingItem(
+                name=name, qty=qty, section=_section_for(db, name), note=note, item_id=item_id, added_by_id=user.id
+            )
+        )
+        db.flush()  # the next entry of the same name finds this one
+        added += 1
+    return added
+
+
 def _context(db: Session, user: User) -> dict:
     items = open_items(db)
     return {
@@ -101,27 +130,13 @@ async def add(request: Request, db: Session = Depends(get_db), user: User = Depe
     form = await request.form()
     # several at once: 'mleko, 2 chleb, masło' or one per line
     raw = str(form.get("text") or "").replace("\n", ",")
-    for part in raw.split(","):
-        name, qty = parse_entry(part)
-        if not name:
-            continue
-        existing = db.scalar(
-            select(ShoppingItem).where(ShoppingItem.bought_on.is_(None), func.lower(ShoppingItem.name) == name.lower())
-        )
-        if existing:  # already on the list – just refresh it
-            existing.checked_at = None
-            existing.qty = qty or existing.qty
-            continue
-        db.add(
-            ShoppingItem(
-                name=name,
-                qty=qty,
-                section=_section_for(db, name),
-                note=(str(form.get("note") or "").strip() or None),
-                item_id=int(form["item_id"]) if form.get("item_id") else None,
-                added_by_id=user.id,
-            )
-        )
+    add_entries(
+        db,
+        raw.split(","),
+        user=user,
+        note=str(form.get("note") or "").strip() or None,
+        item_id=int(form["item_id"]) if form.get("item_id") else None,
+    )
     db.commit()
     return _respond(request, db, user)
 
@@ -202,6 +217,10 @@ async def finish(request: Request, db: Session = Depends(get_db), user: User = D
     bought = [i for i in open_items(db) if i.checked_at]
     for i in bought:
         i.bought_on = t
+    if form.get("to_pantry"):
+        from domownik.routers.kitchen import bought_to_pantry
+
+        bought_to_pantry(db, bought, user)
     amount = parse_pln(form.get("amount"))
     if amount:
         cat = services.budget_category_by_name(db, "Jedzenie", "variable")

@@ -438,6 +438,56 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .dictate-group { display: flex; margin: 0; }
 .dictate-group input { margin: 0; }
 .dictate-group .mic { margin: 0; }
+/* ---------------------------------------------------------------- kitchen */
+.kitchen-tabs { display: flex; gap: 0.1rem; border-bottom: 1px solid var(--dm-tile-border); margin: 0 0 1rem; overflow-x: auto; scrollbar-width: none; }
+.kitchen-tabs::-webkit-scrollbar { display: none; }
+.kitchen-tabs a { padding: 0.5rem 0.7rem; text-decoration: none; color: var(--pico-muted-color); border-bottom: 3px solid transparent; white-space: nowrap; }
+.kitchen-tabs a[aria-current=page] { color: var(--pico-color); border-bottom-color: var(--pico-primary); font-weight: 600; }
+.week-nav { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; margin: 0 0 1rem; }
+.week-nav a[role=button] { margin: 0; padding: 0.3rem 0.8rem; }
+.week-title { font-weight: 600; margin: 0 0.3rem; }
+.plan-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; }
+.plan-day { padding: 0.7rem 0.9rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-tile-bg); margin: 0; }
+.plan-day.is-today { border-color: var(--pico-primary); box-shadow: inset 0 0 0 1px var(--pico-primary); }
+.plan-day.past { opacity: 0.7; }
+.plan-day h2 { font-size: 1rem; margin: 0 0 0.4rem; }
+.plan-meals { list-style: none; padding: 0; margin: 0 0 0.3rem; }
+.plan-meals li { list-style: none; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
+.plan-meal-lbl { font-size: 0.75rem; color: var(--pico-muted-color); min-width: 4.6rem; text-transform: uppercase; letter-spacing: 0.02em; }
+.plan-add { margin: 0; }
+.plan-add > summary { font-size: 0.85rem; color: var(--pico-muted-color); }
+.plan-add-form { display: grid; grid-template-columns: 1fr; gap: 0.4rem; margin-top: 0.4rem; }
+.plan-add-form > * { margin: 0; }
+.recipes-head { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.recipes-head > a[role=button] { margin: 0; }
+.recipes-search { flex: 1 1 12rem; margin: 0; }
+.recipes-search input { margin: 0; }
+.recipe-list { list-style: none; padding: 0; margin: 1rem 0; display: grid; gap: 0.5rem; }
+.recipe-list li { list-style: none; margin: 0; }
+.recipe-list a { display: flex; flex-direction: column; padding: 0.6rem 0.9rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-tile-bg); text-decoration: none; color: var(--pico-color); }
+.recipe-list a:hover { border-color: var(--pico-primary); }
+.recipe h2 { margin-bottom: 0.25rem; }
+.recipe .ingredients { margin-bottom: 0.75rem; }
+.recipe-steps { white-space: pre-line; }
+.recipe-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.recipe-actions > *, .recipe-actions button { margin: 0; }
+.badge.have { background: color-mix(in srgb, #2e9d4a 18%, transparent); color: inherit; }
+.kitchen-shop-list { list-style: none; padding: 0; margin: 0 0 0.75rem; max-height: 55vh; overflow-y: auto; }
+.kitchen-shop-list li { list-style: none; margin: 0; }
+.kitchen-shop-list label { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; padding: 0.3rem 0; margin: 0; }
+.kitchen-shop-list label small { display: inline-block; width: auto; margin: 0; }
+.kitchen-shop-list input[type=checkbox] { margin: 0; flex: none; }
+.pantry-add .dictate-group { margin-bottom: 0.4rem; }
+.pantry-opts { margin-bottom: 0; }
+.pantry-alert { padding: 0.5rem 0.8rem; border-radius: 8px; background: color-mix(in srgb, #d98e04 14%, transparent); }
+.pantry-place h2 { font-size: 1.05rem; margin: 1.25rem 0 0.4rem; }
+.pantry-list { list-style: none; padding: 0; margin: 0; }
+.pantry-row { list-style: none; display: flex; align-items: center; gap: 0.4rem; border-bottom: 1px solid var(--dm-tile-border); padding: 0.2rem 0; margin: 0; }
+.pantry-row .pantry-body { flex: 1; margin: 0; }
+.pantry-row .pantry-body > summary { padding: 0.35rem 0; }
+.pantry-row form.inline button.small { margin: 0; padding: 0.25rem 0.6rem; }
+.pantry-row.st-expired .pantry-name { color: var(--dm-overdue); }
+.pantry-edit { margin: 0.4rem 0 0.6rem; }
 .goal-list { list-style: none; padding: 0; margin: 0 0 0.75rem; display: grid; gap: 0.75rem; }
 .goal { list-style: none; padding: 0.75rem 0.9rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-tile-bg); }
 .goal-head { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; align-items: baseline; }

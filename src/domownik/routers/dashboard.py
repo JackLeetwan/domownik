@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from domownik import budget, chores, goals, schedule, services
+from domownik import budget, chores, goals, kitchen, schedule, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
@@ -67,6 +67,7 @@ def dashboard(
             "shopping": [s for s in open_items(db) if s.checked_at is None],
             "notes": services.active_notes(db, t),
             "goals": goals.views(db),
+            "meals_today": kitchen.meals_on(db, t),
             "label": tree.label,
             "stats": stats,
             "buckets": buckets,

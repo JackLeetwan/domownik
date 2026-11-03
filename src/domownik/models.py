@@ -851,3 +851,68 @@ class MeterReading(Base):
 
     meter: Mapped[Meter] = relationship(back_populates="readings")
     attachment: Mapped[Attachment | None] = relationship()
+
+
+# ---------------------------------------------------------------- kitchen: recipes, meal plan, pantry
+
+MEALS: dict[str, str] = {"breakfast": "Śniadanie", "lunch": "Obiad", "dinner": "Kolacja", "other": "Inne"}
+PANTRY_PLACES: dict[str, str] = {"pantry": "Spiżarnia", "fridge": "Lodówka", "freezer": "Zamrażarka"}
+
+
+class Recipe(Base):
+    """A household recipe: ingredients one per line ("200 g mąki"), steps as free text."""
+
+    __tablename__ = "recipe"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    ingredients: Mapped[str | None] = mapped_column(Text)
+    steps: Mapped[str | None] = mapped_column(Text)
+    link: Mapped[str | None] = mapped_column(String(300))
+    servings: Mapped[int | None] = mapped_column(Integer)
+    minutes: Mapped[int | None] = mapped_column(Integer)
+    tags: Mapped[str | None] = mapped_column(String(120))  # "obiad, szybkie, wege"
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    @property
+    def ingredient_list(self) -> list[str]:
+        return [x.strip(" -•*\t") for x in (self.ingredients or "").splitlines() if x.strip(" -•*\t")]
+
+    @property
+    def tag_list(self) -> list[str]:
+        return [t.strip() for t in (self.tags or "").split(",") if t.strip()]
+
+
+class MealPlan(Base):
+    """One meal on one day of the week plan: a recipe or just a few words ("pizza na mieście")."""
+
+    __tablename__ = "meal_plan"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    day: Mapped[date] = mapped_column(Date, index=True)
+    meal: Mapped[str] = mapped_column(String(12), default="lunch")
+    recipe_id: Mapped[int | None] = mapped_column(ForeignKey("recipe.id", ondelete="SET NULL"))
+    text: Mapped[str | None] = mapped_column(String(200))
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    recipe: Mapped[Recipe | None] = relationship()
+
+    @property
+    def label(self) -> str:
+        return self.recipe.name if self.recipe else (self.text or "—")
+
+
+class PantryItem(Base):
+    """Something kept at home, optionally with a best-before date (mleko, mąka, mrożone pierogi)."""
+
+    __tablename__ = "pantry_item"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    qty: Mapped[str | None] = mapped_column(String(30))
+    place: Mapped[str] = mapped_column(String(12), default="pantry")
+    expires_on: Mapped[date | None] = mapped_column(Date, index=True)
+    added_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

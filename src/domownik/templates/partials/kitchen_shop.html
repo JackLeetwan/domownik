@@ -1,0 +1,20 @@
+{# Window: ingredients → shopping list. Needs: needs, title, many #}
+<header>
+  <button class="close" aria-label="Zamknij" data-close>✕</button>
+  <h3 id="modal-title">🛒 {{ title }}</h3>
+</header>
+{% if needs %}
+<form hx-post="/kuchnia/do-zakupow" hx-swap="none" class="kitchen-shop">
+  <p class="muted"><small>Odznacz to, co masz. „✓ w domu” – znalezione w spiżarni.</small></p>
+  <ul class="kitchen-shop-list">
+    {% for n in needs %}
+    <li><label><input type="checkbox" name="entry" value="{{ n.entry }}" {% if not n.have %}checked{% endif %}> {{ n.entry }}
+      {% if n.have %}<small class="badge have">✓ w domu</small>{% endif %}
+      {% if many %}<small class="muted"> · {{ n.sources|join(', ') }}</small>{% endif %}</label></li>
+    {% endfor %}
+  </ul>
+  <footer class="modal-actions"><button type="submit">Dopisz zaznaczone</button></footer>
+</form>
+{% else %}
+<p class="muted">Brak składników do dopisania – w przepisach nie ma jeszcze listy składników.</p>
+{% endif %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Jadłospis · Domownik{% endblock %}
+{% block content %}
+{% include "partials/kitchen_tabs.html" %}
+<nav class="week-nav" aria-label="Tydzień">
+  <a role="button" class="outline secondary" href="/kuchnia/jadlospis?t={{ prev.isoformat() }}" aria-label="Poprzedni tydzień">‹</a>
+  <span class="week-title">{{ monday|d }} – {{ (days[-1].day)|d }}</span>
+  <a role="button" class="outline secondary" href="/kuchnia/jadlospis?t={{ next.isoformat() }}" aria-label="Następny tydzień">›</a>
+  <a role="button" class="outline secondary" href="/kuchnia/jadlospis">Ten tydzień</a>
+</nav>
+{% if has_recipes_in_week %}
+<p><button type="button" class="outline" hx-get="/kuchnia/jadlospis/zakupy?t={{ monday.isoformat() }}" hx-target="#modal-body">🛒 Składniki z tego tygodnia na listę zakupów</button></p>
+{% endif %}
+<datalist id="recipe-names">{% for r in recipes %}<option value="{{ r.name }}">{% endfor %}</datalist>
+<div class="plan-days">
+  {% for d in days %}
+  <section class="plan-day{% if d.day == today_d %} is-today{% endif %}{% if d.day < today_d %} past{% endif %}" id="d{{ d.day.isoformat() }}">
+    <h2>{{ day_title(d.day)|capitalize }}{% if d.day == today_d %} <small class="badge today">dziś</small>{% endif %}</h2>
+    {% if not d.empty %}
+    <ul class="plan-meals">
+      {% for key, label in MEALS.items() %}{% for m in d.meals.get(key, []) %}
+      <li>
+        <span class="plan-meal-lbl">{{ label }}</span>
+        {% if m.recipe %}<a href="/kuchnia/przepisy/{{ m.recipe.id }}">📖 {{ m.recipe.name }}</a>{% else %}<span>{{ m.text }}</span>{% endif %}
+        <form method="post" action="/kuchnia/jadlospis/{{ m.id }}/usun" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="shop-del" title="Usuń z jadłospisu" aria-label="Usuń: {{ m.label }}">✕</button></form>
+      </li>
+      {% endfor %}{% endfor %}
+    </ul>
+    {% endif %}
+    <details class="plan-add" {% if d.empty and d.day == today_d %}open{% endif %}>
+      <summary>＋ Dodaj posiłek</summary>
+      <form method="post" action="/kuchnia/jadlospis" class="plan-add-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="day" value="{{ d.day.isoformat() }}">
+        <select name="meal" aria-label="Posiłek">{% for k, l in MEALS.items() %}<option value="{{ k }}" {% if k == 'lunch' %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        <input name="what" list="recipe-names" maxlength="200" autocomplete="off" required placeholder="Przepis albo np. pizza na mieście" aria-label="Co do jedzenia">
+        <button type="submit" class="small">Dodaj</button>
+      </form>
+    </details>
+  </section>
+  {% endfor %}
+</div>
+{% if not recipes %}<p class="muted"><small>Wskazówka: dodaj <a href="/kuchnia/przepisy/nowy">przepisy</a> – wtedy w jadłospisie podpowiedzą się same, a ich składniki trafią na listę zakupów jednym kliknięciem.</small></p>{% endif %}
+{% endblock %}

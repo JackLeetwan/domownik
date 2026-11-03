@@ -1,0 +1,376 @@
+"""/kuchnia: week meal plan (jadłospis), recipes (przepisy), pantry (spiżarnia)."""
+
+from __future__ import annotations
+
+from datetime import date, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from domownik import kitchen
+from domownik.config import today
+from domownik.db import get_db
+from domownik.domain.shopping import guess_section, parse_entry
+from domownik.models import MEALS, PANTRY_PLACES, MealPlan, PantryItem, Recipe, User
+from domownik.routers.calendar import day_title
+from domownik.routers.shopping import add_entries
+from domownik.security import current_user, verify_csrf
+from domownik.web import quick_saved, render
+
+router = APIRouter(prefix="/kuchnia")
+
+
+def _redirect(url: str) -> RedirectResponse:
+    resp = RedirectResponse(url, status_code=303)
+    resp.headers["HX-Redirect"] = url
+    return resp
+
+
+def _error(msg: str) -> HTMLResponse:
+    return HTMLResponse(msg, status_code=400, headers={"HX-Reswap": "none"})
+
+
+def _date(raw, default: date | None = None) -> date | None:
+    raw = str(raw or "").strip()
+    try:
+        return date.fromisoformat(raw) if raw else default
+    except ValueError:
+        raise HTTPException(400, "Data w formacie RRRR-MM-DD") from None
+
+
+def _int(raw) -> int | None:
+    raw = str(raw or "").strip()
+    return int(raw) if raw.isdigit() else None
+
+
+@router.get("")
+def kitchen_home():
+    return RedirectResponse("/kuchnia/jadlospis", status_code=303)
+
+
+# ---------------------------------------------------------------- meal plan
+
+
+@router.get("/jadlospis")
+def plan_page(
+    request: Request, t: str | None = None, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    now = today()
+    monday = kitchen.week_start(_date(t, now))
+    days = kitchen.week_plan(db, monday)
+    return render(
+        request,
+        "kitchen_plan.html",
+        {
+            "user": user,
+            "tab": "plan",
+            "days": days,
+            "monday": monday,
+            "prev": monday - timedelta(days=7),
+            "next": monday + timedelta(days=7),
+            "today_d": now,
+            "MEALS": MEALS,
+            "recipes": list(db.scalars(select(Recipe).order_by(Recipe.name))),
+            "day_title": day_title,
+            "has_recipes_in_week": any(m.recipe_id for d in days for ms in d.meals.values() for m in ms),
+        },
+    )
+
+
+@router.post("/jadlospis", dependencies=[Depends(verify_csrf)])
+async def plan_add(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    form = await request.form()
+    day = _date(form.get("day"))
+    if day is None:
+        return _error("Wybierz dzień")
+    meal = form.get("meal") if form.get("meal") in MEALS else "lunch"
+    text = " ".join(str(form.get("what") or "").split())[:200]
+    recipe = db.get(Recipe, _int(form.get("recipe_id"))) if _int(form.get("recipe_id")) else None
+    recipe = recipe or kitchen.find_recipe(db, text)
+    if not recipe and not text:
+        return _error("Wpisz, co będzie do jedzenia, albo wybierz przepis")
+    db.add(
+        MealPlan(
+            day=day,
+            meal=meal,
+            recipe_id=recipe.id if recipe else None,
+            text=None if recipe else text,
+            created_by_id=user.id,
+        )
+    )
+    db.commit()
+    return _redirect(f"/kuchnia/jadlospis?t={kitchen.week_start(day).isoformat()}#d{day.isoformat()}")
+
+
+@router.post("/jadlospis/{plan_id}/usun", dependencies=[Depends(verify_csrf)])
+def plan_delete(plan_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    row = db.get(MealPlan, plan_id)
+    if row is None:
+        raise HTTPException(404, "Nie ma takiej pozycji")
+    week = kitchen.week_start(row.day)
+    db.delete(row)
+    db.commit()
+    return _redirect(f"/kuchnia/jadlospis?t={week.isoformat()}")
+
+
+# ---------------------------------------------------------------- ingredients → shopping list
+
+
+def _shop_modal(request: Request, db: Session, user: User, recipes: list[Recipe], title: str) -> HTMLResponse:
+    pantry = kitchen.pantry_items(db)
+    return render(
+        request,
+        "partials/kitchen_shop.html",
+        {"user": user, "needs": kitchen.needs(recipes, pantry), "title": title, "many": len(recipes) > 1},
+    )
+
+
+@router.get("/jadlospis/zakupy")
+def plan_shopping(
+    request: Request, t: str | None = None, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    monday = kitchen.week_start(_date(t, today()))
+    recipes, seen = [], set()
+    for d in kitchen.week_plan(db, monday):
+        for ms in d.meals.values():
+            for m in ms:
+                if m.recipe and m.recipe.id not in seen:
+                    seen.add(m.recipe.id)
+                    recipes.append(m.recipe)
+    return _shop_modal(request, db, user, recipes, f"Składniki na tydzień od {monday.day}.{monday.month:02d}")
+
+
+@router.post("/do-zakupow", dependencies=[Depends(verify_csrf)])
+async def to_shopping(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    form = await request.form()
+    entries = [str(e) for e in form.getlist("entry") if str(e).strip()]
+    if not entries:
+        return _error("Zaznacz, co dopisać do zakupów")
+    added = add_entries(db, entries, user=user)
+    db.commit()
+    already = len(entries) - added
+    msg = f"Dopisano do zakupów: {added}" + (f" (już na liście: {already})" if already else "")
+    return quick_saved(msg)
+
+
+# ---------------------------------------------------------------- recipes
+
+
+def _fill_recipe(r: Recipe, form) -> None:
+    name = " ".join(str(form.get("name") or "").split())[:120]
+    if not name:
+        raise ValueError("Podaj nazwę przepisu")
+    r.name = name
+    r.ingredients = str(form.get("ingredients") or "").strip() or None
+    r.steps = str(form.get("steps") or "").strip() or None
+    link = str(form.get("link") or "").strip()[:300]
+    if link and not link.startswith(("http://", "https://")):
+        link = "https://" + link
+    r.link = link or None
+    r.servings = _int(form.get("servings"))
+    r.minutes = _int(form.get("minutes"))
+    r.tags = ", ".join(t.strip() for t in str(form.get("tags") or "").split(",") if t.strip())[:120] or None
+
+
+@router.get("/przepisy")
+def recipes_page(
+    request: Request,
+    q: str | None = None,
+    tag: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    allr = list(db.scalars(select(Recipe).order_by(Recipe.name)))
+    tags = sorted({t for r in allr for t in r.tag_list}, key=str.lower)
+    shown = allr
+    if q:
+        ql = q.lower()
+        shown = [
+            r
+            for r in shown
+            if ql in r.name.lower() or ql in (r.ingredients or "").lower() or ql in (r.tags or "").lower()
+        ]
+    if tag:
+        shown = [r for r in shown if tag in r.tag_list]
+    return render(
+        request,
+        "kitchen_recipes.html",
+        {"user": user, "tab": "recipes", "recipes": shown, "total": len(allr), "tags": tags, "q": q or "", "tag": tag},
+    )
+
+
+@router.get("/przepisy/nowy")
+def recipe_new(request: Request, user: User = Depends(current_user)):
+    return render(request, "kitchen_recipe_form.html", {"user": user, "tab": "recipes", "r": None})
+
+
+@router.post("/przepisy", dependencies=[Depends(verify_csrf)])
+async def recipe_create(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    form = await request.form()
+    r = Recipe(created_by_id=user.id)
+    try:
+        _fill_recipe(r, form)
+    except ValueError as exc:
+        return _error(str(exc))
+    db.add(r)
+    db.commit()
+    return _redirect(f"/kuchnia/przepisy/{r.id}")
+
+
+def _recipe(db: Session, rid: int) -> Recipe:
+    r = db.get(Recipe, rid)
+    if r is None:
+        raise HTTPException(404, "Nie ma takiego przepisu")
+    return r
+
+
+@router.get("/przepisy/{rid}")
+def recipe_page(request: Request, rid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    r = _recipe(db, rid)
+    pantry = kitchen.pantry_items(db)
+    upcoming = list(
+        db.scalars(select(MealPlan).where(MealPlan.recipe_id == r.id, MealPlan.day >= today()).order_by(MealPlan.day))
+    )
+    return render(
+        request,
+        "kitchen_recipe.html",
+        {
+            "user": user,
+            "tab": "recipes",
+            "r": r,
+            "needs": kitchen.needs([r], pantry),
+            "upcoming": upcoming,
+            "MEALS": MEALS,
+            "today_d": today(),
+        },
+    )
+
+
+@router.get("/przepisy/{rid}/zakupy")
+def recipe_shopping(request: Request, rid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    r = _recipe(db, rid)
+    return _shop_modal(request, db, user, [r], f"Składniki: {r.name}")
+
+
+@router.get("/przepisy/{rid}/edycja")
+def recipe_edit_form(request: Request, rid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    return render(request, "kitchen_recipe_form.html", {"user": user, "tab": "recipes", "r": _recipe(db, rid)})
+
+
+@router.post("/przepisy/{rid}/edycja", dependencies=[Depends(verify_csrf)])
+async def recipe_update(request: Request, rid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    r = _recipe(db, rid)
+    form = await request.form()
+    try:
+        _fill_recipe(r, form)
+    except ValueError as exc:
+        db.rollback()
+        return _error(str(exc))
+    db.commit()
+    return _redirect(f"/kuchnia/przepisy/{r.id}")
+
+
+@router.post("/przepisy/{rid}/usun", dependencies=[Depends(verify_csrf)])
+def recipe_delete(rid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Days in the plan that used it keep its name as plain text."""
+    r = _recipe(db, rid)
+    for m in db.scalars(select(MealPlan).where(MealPlan.recipe_id == r.id)):
+        m.text, m.recipe_id = r.name, None
+    db.delete(r)
+    db.commit()
+    return _redirect("/kuchnia/przepisy")
+
+
+# ---------------------------------------------------------------- pantry
+
+
+@router.get("/spizarnia")
+def pantry_page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    t = today()
+    items = kitchen.pantry_sorted(kitchen.pantry_items(db))
+    places = [
+        (k, lbl, [p for p in items if (p.place if p.place in PANTRY_PLACES else "pantry") == k])
+        for k, lbl in PANTRY_PLACES.items()
+    ]
+    return render(
+        request,
+        "kitchen_pantry.html",
+        {
+            "user": user,
+            "tab": "pantry",
+            "places": places,
+            "total": len(items),
+            "alerts": [p for p in items if kitchen.pantry_status(p, t) in ("expired", "soon")],
+            "status": lambda p: kitchen.pantry_status(p, t),
+            "PANTRY_PLACES": PANTRY_PLACES,
+            "today_d": t,
+        },
+    )
+
+
+@router.post("/spizarnia", dependencies=[Depends(verify_csrf)])
+async def pantry_add(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Several at once like the shopping list: 'mleko, 2 jogurty, mąka 1 kg'."""
+    form = await request.form()
+    place = form.get("place") if form.get("place") in PANTRY_PLACES else "pantry"
+    expires = _date(form.get("expires_on"))
+    added = 0
+    for part in str(form.get("text") or "").replace("\n", ",").split(","):
+        name, qty = parse_entry(part)
+        if name:
+            db.add(PantryItem(name=name[:120], qty=qty, place=place, expires_on=expires, added_by_id=user.id))
+            added += 1
+    if not added:
+        return _error("Wpisz, co jest w domu, np. „mleko, 2 jogurty”")
+    db.commit()
+    if request.headers.get("x-quick-add") == "1":
+        return quick_saved("Dodano do spiżarni")
+    return _redirect("/kuchnia/spizarnia")
+
+
+def _pantry(db: Session, pid: int) -> PantryItem:
+    p = db.get(PantryItem, pid)
+    if p is None:
+        raise HTTPException(404, "Nie ma takiej pozycji")
+    return p
+
+
+@router.post("/spizarnia/{pid}/edycja", dependencies=[Depends(verify_csrf)])
+async def pantry_edit(request: Request, pid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    p = _pantry(db, pid)
+    form = await request.form()
+    p.name = " ".join(str(form.get("name") or "").split())[:120] or p.name
+    p.qty = str(form.get("qty") or "").strip()[:30] or None
+    p.place = form.get("place") if form.get("place") in PANTRY_PLACES else p.place
+    p.expires_on = _date(form.get("expires_on"))
+    db.commit()
+    return _redirect("/kuchnia/spizarnia")
+
+
+@router.post("/spizarnia/{pid}/usun", dependencies=[Depends(verify_csrf)])
+def pantry_used(pid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    db.delete(_pantry(db, pid))
+    db.commit()
+    return _redirect("/kuchnia/spizarnia")
+
+
+@router.post("/spizarnia/{pid}/kup", dependencies=[Depends(verify_csrf)])
+def pantry_rebuy(pid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Used up → on the shopping list, gone from the pantry."""
+    p = _pantry(db, pid)
+    add_entries(db, [p.name], user=user)
+    db.delete(p)
+    db.commit()
+    return _redirect("/kuchnia/spizarnia")
+
+
+def bought_to_pantry(db: Session, items, user: User) -> int:
+    """'Zakończ zakupy' with 'do spiżarni': each bought thing lands at home, fridge / freezer guessed."""
+    n = 0
+    for i in items:
+        place = kitchen.PLACE_BY_SECTION.get(i.section or guess_section(i.name), "pantry")
+        db.add(PantryItem(name=i.name, qty=i.qty, place=place, added_by_id=user.id))
+        n += 1
+    return n

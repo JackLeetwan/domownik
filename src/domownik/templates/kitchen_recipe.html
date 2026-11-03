@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ r.name }} · Domownik{% endblock %}
+{% block content %}
+{% include "partials/kitchen_tabs.html" %}
+<article class="recipe">
+  <header>
+    <h2>📖 {{ r.name }}</h2>
+    <p class="muted">{% if r.minutes %}⏱️ {{ r.minutes }} min{% endif %}{% if r.servings %} · 🍽️ {{ r.servings }} porcji{% endif %}{% if r.tags %} · {{ r.tags }}{% endif %}{% if r.link %} · <a href="{{ r.link }}" target="_blank" rel="noopener noreferrer">źródło ↗</a>{% endif %}</p>
+  </header>
+  {% if needs %}
+  <h3>Składniki</h3>
+  <ul class="ingredients">
+    {% for n in needs %}<li>{{ n.entry }}{% if n.have %} <small class="badge have" title="W spiżarni: {{ n.have.name }}">✓ w domu</small>{% endif %}</li>{% endfor %}
+  </ul>
+  <button type="button" class="outline" hx-get="/kuchnia/przepisy/{{ r.id }}/zakupy" hx-target="#modal-body">🛒 Dodaj składniki do zakupów</button>
+  {% endif %}
+  {% if r.steps %}<h3>Przygotowanie</h3><div class="recipe-steps">{{ r.steps }}</div>{% endif %}
+  {% if upcoming %}<p class="muted">W jadłospisie: {% for m in upcoming %}<a href="/kuchnia/jadlospis?t={{ m.day.isoformat() }}#d{{ m.day.isoformat() }}">{{ m.day|d(weekday=True) }} ({{ MEALS.get(m.meal, '')|lower }})</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+  <footer class="recipe-actions">
+    <a href="/kuchnia/przepisy/{{ r.id }}/edycja" role="button" class="outline secondary">Edytuj</a>
+    <form method="post" action="/kuchnia/przepisy/{{ r.id }}/usun" class="inline" hx-confirm="Usunąć przepis „{{ r.name }}”? W jadłospisie zostanie sama nazwa."><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="outline secondary">Usuń</button></form>
+  </footer>
+</article>
+{% endblock %}

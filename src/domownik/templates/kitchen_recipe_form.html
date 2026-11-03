@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{% if r %}Edytuj przepis{% else %}Nowy przepis{% endif %} · Domownik{% endblock %}
+{% block content %}
+{% include "partials/kitchen_tabs.html" %}
+<h2>{% if r %}Edytuj: {{ r.name }}{% else %}Nowy przepis{% endif %}</h2>
+<form method="post" action="{% if r %}/kuchnia/przepisy/{{ r.id }}/edycja{% else %}/kuchnia/przepisy{% endif %}" class="recipe-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Nazwa <input name="name" required maxlength="120" value="{{ r.name if r else '' }}" placeholder="np. Spaghetti bolognese"></label>
+  <label>Składniki <small class="muted">– jeden w linii, np. „500 g mięsa mielonego”</small>
+    <textarea name="ingredients" rows="8">{{ r.ingredients if r and r.ingredients else '' }}</textarea></label>
+  <button type="button" class="mic secondary outline" data-dictate="textarea[name=ingredients]" hidden aria-label="Dyktuj składniki">🎤</button>
+  <label>Przygotowanie <textarea name="steps" rows="6">{{ r.steps if r and r.steps else '' }}</textarea></label>
+  <div class="grid">
+    <label>Czas [min] <input type="number" name="minutes" min="1" value="{{ r.minutes if r and r.minutes else '' }}"></label>
+    <label>Porcje <input type="number" name="servings" min="1" value="{{ r.servings if r and r.servings else '' }}"></label>
+  </div>
+  <label>Tagi <small class="muted">po przecinku</small> <input name="tags" maxlength="120" value="{{ r.tags if r and r.tags else '' }}" placeholder="obiad, szybkie, wege"></label>
+  <label>Link do źródła <input name="link" maxlength="300" inputmode="url" value="{{ r.link if r and r.link else '' }}" placeholder="opcjonalnie"></label>
+  <div class="form-actions">
+    <button type="submit">Zapisz</button>
+    <a href="{% if r %}/kuchnia/przepisy/{{ r.id }}{% else %}/kuchnia/przepisy{% endif %}" role="button" class="secondary outline">Anuluj</a>
+  </div>
+</form>
+{% endblock %}

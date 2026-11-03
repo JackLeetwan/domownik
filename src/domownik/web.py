@@ -15,7 +15,7 @@ from domownik.config import today
 from domownik.domain import holidays, recurrence
 from domownik.domain.money import format_pln, input_pln
 from domownik.domain.status import BUCKETS, STATUS_LABELS, humanize_days
-from domownik.models import CATEGORIES, DIRECTIONS, ITEM_KINDS, NOTE_COLORS
+from domownik.models import CATEGORIES, DIRECTIONS, ITEM_KINDS, MEALS, NOTE_COLORS
 from domownik.security import csrf_token
 
 HERE = Path(__file__).parent
@@ -98,6 +98,7 @@ env.globals.update(
     holiday=holidays.name,
     items_text=items_text,
     NOTE_COLORS=NOTE_COLORS,
+    MEALS=MEALS,
 )
 
 

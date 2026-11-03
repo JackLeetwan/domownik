@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Spiżarnia · Domownik{% endblock %}
+{% block content %}
+{% include "partials/kitchen_tabs.html" %}
+{% set ST = {"expired": "przeterminowane", "soon": "kończy się termin"} %}
+<form method="post" action="/kuchnia/spizarnia" class="pantry-add">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div role="group" class="dictate-group">
+    <input name="text" required autocomplete="off" placeholder="np. mleko, 2 jogurty, mąka 1 kg" aria-label="Co jest w domu">
+    <button type="button" class="mic secondary outline" data-dictate="input[name=text]" data-dictate-list="1" hidden aria-label="Dyktuj">🎤</button>
+    <button type="submit">Dodaj</button>
+  </div>
+  <div class="grid pantry-opts">
+    <label>Gdzie <select name="place">{% for k, l in PANTRY_PLACES.items() %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></label>
+    <label>Ważne do <input type="date" name="expires_on"></label>
+  </div>
+  <small class="muted">Rano przypomnimy o tym, czemu kończy się termin. Przepisy pokażą, czego nie trzeba kupować.</small>
+</form>
+
+{% if alerts %}
+<p class="pantry-alert">⚠️ {% for p in alerts %}<b>{{ p.name }}</b> <small>({{ ST[status(p)] }}{% if p.expires_on %}, {{ p.expires_on|d }}{% endif %})</small>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+{% endif %}
+
+{% if not total %}<p class="muted">Spiżarnia jest pusta. Dopisuj rzeczy z datą ważności albo zaznacz „do spiżarni” przy „Zakończ zakupy”.</p>{% endif %}
+{% for key, label, items in places %}{% if items %}
+<section class="pantry-place">
+  <h2>{{ label }} <small class="muted">({{ items|length }})</small></h2>
+  <ul class="pantry-list">
+    {% for p in items %}{% set st = status(p) %}
+    <li class="pantry-row st-{{ st }}">
+      <details class="pantry-body">
+        <summary><span class="pantry-name">{{ p.name }}</span>{% if p.qty %} <small class="muted">{{ p.qty }}</small>{% endif %}
+          {% if p.expires_on %}<small class="badge {{ 'overdue' if st == 'expired' else 'soon' if st == 'soon' else '' }}">{{ ST.get(st, 'do') }} {{ p.expires_on|d }}</small>{% endif %}</summary>
+        <form method="post" action="/kuchnia/spizarnia/{{ p.id }}/edycja" class="pantry-edit">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <div class="grid">
+            <label>Nazwa <input name="name" required value="{{ p.name }}"></label>
+            <label>Ilość <input name="qty" value="{{ p.qty or '' }}"></label>
+          </div>
+          <div class="grid">
+            <label>Gdzie <select name="place">{% for k, l in PANTRY_PLACES.items() %}<option value="{{ k }}" {% if k == p.place %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+            <label>Ważne do <input type="date" name="expires_on" value="{{ p.expires_on.isoformat() if p.expires_on else '' }}"></label>
+          </div>
+          <button type="submit" class="small">Zapisz</button>
+        </form>
+      </details>
+      <form method="post" action="/kuchnia/spizarnia/{{ p.id }}/kup" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline" title="Skończyło się – dopisz do zakupów">🛒 Kup</button></form>
+      <form method="post" action="/kuchnia/spizarnia/{{ p.id }}/usun" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="shop-del" title="Zużyte – usuń" aria-label="Zużyte: {{ p.name }}">✕</button></form>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}{% endfor %}
+{% endblock %}
