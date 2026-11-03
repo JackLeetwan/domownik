@@ -372,7 +372,8 @@ button.danger { color: var(--pico-del-color, #c62828); }
 @media (max-width: 480px) { .topnav { font-size: 0.9rem; } .brand { font-size: 1rem; } }
 
 /* ---------------------------------------------------------------- app shell: sidebar / bottom bar */
-:root { --dm-side-w: 232px; }
+/* in rem: Pico grows the root font on wide screens – the menu has to grow with its text */
+:root { --dm-side-w: 15rem; }
 .has-nav .page { min-width: 0; }
 .has-nav main.container { max-width: 1280px; width: 100%; margin-inline: auto; padding-top: 1rem; }
 .sidebar { background: var(--dm-tile-bg); border-right: 1px solid var(--dm-tile-border); padding: 1rem 0.75rem 0; display: flex; flex-direction: column; gap: 0.15rem; overflow: hidden; }
@@ -380,18 +381,19 @@ button.danger { color: var(--pico-del-color, #c62828); }
 .sidebar-brand { display: block; padding: 0.25rem 0.6rem 0.75rem; }
 .side-links { list-style: none; margin: 0; padding: 0; }
 .side-links li { list-style: none; margin: 0; }
-.side-links a, .side-soon { display: flex; align-items: center; gap: 0.55rem; padding: 0.42rem 0.6rem; border-radius: 8px; text-decoration: none; color: var(--pico-color); font-size: 0.95rem; }
+.side-links a, .side-soon { display: flex; align-items: center; gap: 0.45rem; padding: 0.42rem 0.5rem; border-radius: 8px; text-decoration: none; color: var(--pico-color); font-size: 0.95rem; }
 .side-links a:hover { background: color-mix(in srgb, var(--pico-primary) 10%, transparent); }
 .side-links a[aria-current] { background: color-mix(in srgb, var(--pico-primary) 18%, transparent); font-weight: 700; color: var(--pico-color); }
 .side-links .ic { width: 1.4rem; text-align: center; }
 .side-soon { color: var(--pico-muted-color); cursor: default; }
 .side-soon small { margin-left: auto; font-size: 0.7rem; }
-.side-links .count, .bottombar .count { margin-left: auto; min-width: 1.4rem; padding: 0 0.4rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-align: center; background: var(--pico-primary-background); color: #fff; }
+.side-links .count, .bottombar .count { flex: none; margin-left: auto; min-width: 1.4rem; padding: 0 0.4rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-align: center; background: var(--pico-primary-background); color: #fff; }
 .side-head { margin: 0.9rem 0 0.2rem; padding: 0 0.6rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pico-muted-color); }
 .side-foot { flex: 0 0 auto; padding: 0.75rem 0.6rem 1rem; display: flex; align-items: center; gap: 0.8rem; font-size: 0.9rem; border-top: 1px solid var(--dm-tile-border); }
-.side-foot .muted { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-foot .muted { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-foot .theme-toggle { font-size: 1.15rem; }
-.side-foot form { margin-left: auto; }
+.side-foot form { margin-left: auto; flex: none; }
+.side-foot .theme-toggle { flex: none; }
 .bottombar, .nav-backdrop { display: none; }
 
 @media (min-width: 1024px) {
@@ -464,7 +466,9 @@ button.danger { color: var(--pico-del-color, #c62828); }
 .sidebar .side-links a, .sidebar .side-soon { margin: 0; color: var(--pico-color); white-space: nowrap; line-height: 1.3; }
 .sidebar .side-soon { color: var(--pico-muted-color); opacity: 0.6; cursor: not-allowed; user-select: none; }
 .sidebar .side-links a[aria-current] { color: var(--pico-color); }
-.sidebar .side-links a span:not(.ic):not(.count) { overflow: hidden; text-overflow: ellipsis; }
+.sidebar .side-links a { min-width: 0; }
+.sidebar .side-links a .ic { flex: none; }
+.sidebar .side-links a span:not(.ic):not(.count) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sidebar .sidebar-brand { color: var(--pico-primary); }
 
 /* payments due the same day, collapsed into one row (dashboard) */
