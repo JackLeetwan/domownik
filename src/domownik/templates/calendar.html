@@ -25,16 +25,17 @@
   {% for week in cal.weeks %}
   <div class="cal-week" role="row">
     {% for day in week %}
-    {% set iso = day.date.isoformat() %}
+    {% set iso = day.date.isoformat() %}{% set hol = holiday(day.date) %}
     <div role="gridcell" tabindex="0"
-         class="cal-cell{% if not day.in_month %} out{% endif %}{% if day.weekend %} we{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.date == sel %} sel{% endif %}"
+         class="cal-cell{% if not day.in_month %} out{% endif %}{% if day.weekend %} we{% endif %}{% if hol %} hol{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.date == sel %} sel{% endif %}"
          aria-selected="{{ 'true' if day.date == sel else 'false' }}"
-         aria-label="{{ day.date.day }}{% if day.count %}: {{ day.count }} {{ 'termin' if day.count == 1 else ('terminy' if day.count % 10 in (2, 3, 4) and day.count % 100 not in (12, 13, 14) else 'terminów') }}{% endif %}"
+         aria-label="{{ day.date.day }}{% if hol %} ({{ hol }}){% endif %}{% if day.count %}: {{ day.count }} {{ 'termin' if day.count == 1 else ('terminy' if day.count % 10 in (2, 3, 4) and day.count % 100 not in (12, 13, 14) else 'terminów') }}{% endif %}"
          data-cal-day="{{ iso }}"
          hx-get="/kalendarz/dzien?d={{ iso }}{{ wq }}" hx-target="#cal-day" hx-swap="outerHTML"
          hx-trigger="click, keyup[key=='Enter']"
          hx-replace-url="/kalendarz?m={{ mkey }}&d={{ iso }}{{ wq }}">
       <span class="cal-num">{{ day.date.day }}</span>
+      {% if hol %}<span class="cal-hol" title="{{ hol }} – dzień wolny">{{ hol }}</span>{% endif %}
       {% if day.entries %}
       <span class="cal-dots" aria-hidden="true">{% for s in day.dots[:3] %}<i class="dot {{ s }}"></i>{% endfor %}<b>{{ day.count }}</b></span>
       <ul class="cal-chips">

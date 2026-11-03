@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 
 from domownik.config import today
-from domownik.domain import recurrence
+from domownik.domain import holidays, recurrence
 from domownik.domain.money import format_pln, input_pln
 from domownik.domain.status import BUCKETS, STATUS_LABELS, humanize_days
 from domownik.models import CATEGORIES, DIRECTIONS, ITEM_KINDS
@@ -90,6 +90,7 @@ env.globals.update(
     other_avatar=other_avatar,
     avatar_class=avatar_class,
     initials=initials,
+    holiday=holidays.name,
 )
 
 

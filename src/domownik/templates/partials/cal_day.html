@@ -2,6 +2,7 @@
 {% import "partials/cal_macros.html" as cm with context %}
 <section id="cal-day" class="cal-day" data-sel="{{ sel.isoformat() }}" aria-live="polite">
   <h2>{{ sel_title }}</h2>
+  {% if holiday(sel) %}<p class="cal-hol-line">🇵🇱 {{ holiday(sel) }} – dzień wolny od pracy</p>{% endif %}
   {% if not entries %}
   {% if not slots %}<p class="muted">Nic na ten dzień.</p>{% endif %}
   {% else %}

@@ -638,6 +638,9 @@ code.topic { user-select: all; word-break: break-all; }
 .cal-cell.we { background: color-mix(in srgb, var(--dm-tile-bg) 70%, transparent); }
 .cal-cell.we .cal-num { color: var(--pico-muted-color); }
 .cal-cell.out { background: var(--dm-tile-bg); }
+.cal-cell.hol .cal-num { color: var(--pico-del-color, #c62828); font-weight: 700; }
+.cal-hol { font-size: 0.68rem; line-height: 1.15; color: var(--pico-del-color, #c62828); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-hol-line { margin: -0.4rem 0 0.6rem; color: var(--pico-del-color, #c62828); font-size: 0.9rem; }
 .cal-cell.out > * { opacity: 0.45; }
 .cal-cell.sel { box-shadow: inset 0 0 0 2px var(--pico-primary); }
 .cal-num { font-size: 0.85rem; font-weight: 600; line-height: 1.6rem; width: 1.6rem; height: 1.6rem; text-align: center; border-radius: 50%; }
