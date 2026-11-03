@@ -8,11 +8,13 @@
 {% if the_item %}
 <p class="muted">Kontakty przy: <a href="/items/{{ the_item.id }}">{{ the_item.display_icon }} {{ the_item.name }}</a> · <a href="/kontakty">pokaż wszystkie</a></p>
 {% endif %}
+{% if total %}
 <form method="get" action="/kontakty" class="contact-search" role="search">
   {% if the_item %}<input type="hidden" name="item" value="{{ the_item.id }}">{% endif %}
   <input type="search" name="q" value="{{ q }}" placeholder="Szukaj: nazwa, firma, telefon, auto…" aria-label="Szukaj w kontaktach" autocomplete="off"
          hx-get="/kontakty" hx-trigger="input changed delay:300ms, search" hx-target="#contact-groups" hx-select="#contact-groups" hx-swap="outerHTML" hx-push-url="true">
 </form>
+{% endif %}
 <div id="contact-groups">
 {% for role, icon, rows in groups %}
 <h2 class="todo-group">{{ icon }} {{ role }} <small>({{ rows|length }})</small></h2>

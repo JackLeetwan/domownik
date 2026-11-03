@@ -62,6 +62,14 @@ def avatar(user, *, size: str = "") -> Markup:
     )
 
 
+def other_avatar(assignee, me) -> Markup:
+    """Initials only when someone else takes care of it – your own tasks (and shared ones) stay unmarked,
+    the same split as the "Moje" filter, so lists are not a column of identical circles."""
+    if assignee is None or (me is not None and getattr(me, "id", None) == assignee.id):
+        return Markup("")
+    return avatar(assignee)
+
+
 env = templates.env
 env.filters["pln"] = format_pln
 env.filters["pln_input"] = input_pln
@@ -79,6 +87,7 @@ env.globals.update(
     MONTH_GENITIVE=recurrence.MONTH_GENITIVE,
     today=today,
     avatar=avatar,
+    other_avatar=other_avatar,
     avatar_class=avatar_class,
     initials=initials,
 )

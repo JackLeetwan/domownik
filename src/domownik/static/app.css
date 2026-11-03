@@ -305,7 +305,7 @@ dialog > article > header .close:focus-visible { outline: 2px solid var(--pico-p
 .issue-head form { margin: 0 0 0 auto; }
 .issue-closed { opacity: 0.7; }
 .issue .notes { white-space: pre-line; margin: 0.4rem 0 0; }
-button.small { padding: 0.15rem 0.6rem; font-size: 0.8rem; margin: 0; }
+button.small { padding: 0.35rem 0.9rem; font-size: 0.9rem; margin: 0; }
 button.danger { color: var(--pico-del-color, #c62828); }
 
 /* theme switch */
@@ -404,17 +404,19 @@ button.danger { color: var(--pico-del-color, #c62828); }
   .has-nav .sidebar { position: fixed; z-index: 50; top: 0; bottom: 0; left: 0; width: min(80vw, 300px); transform: translateX(-105%); transition: transform 0.18s ease; box-shadow: 0 0 24px rgba(0,0,0,0.25); background: var(--pico-background-color); }
   .nav-open .has-nav .sidebar { transform: none; }
   .nav-open .nav-backdrop { display: block; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.35); }
-  /* room for the bottom bar and the "＋" above it – the last row (its ✓) can scroll clear of the button */
-  .has-nav main.container { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
-  .bottombar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; padding-bottom: env(safe-area-inset-bottom); background: var(--dm-tile-bg); border-top: 1px solid var(--dm-tile-border); }
-  .bottombar a, .bottombar button { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; padding: 0.45rem 0 0.4rem; margin: 0; border: 0; border-radius: 0; background: none; color: var(--pico-muted-color); font-size: 0.72rem; text-decoration: none; width: auto; }
+  /* room for the bottom bar */
+  .has-nav main.container { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+  .bottombar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; padding-bottom: env(safe-area-inset-bottom); background: var(--dm-tile-bg); border-top: 1px solid var(--dm-tile-border); }
+  .bottombar a, .bottombar button { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; padding: 0.45rem 0 0.4rem; margin: 0; border: 0; border-radius: 0; background: none; color: var(--pico-muted-color); font-size: 0.8rem; text-decoration: none; width: auto; min-height: 3.2rem; }
   .bottombar span { position: relative; font-size: 1.3rem; line-height: 1.2; }
   .bottombar .count { position: absolute; top: -0.2rem; left: 1.1rem; font-size: 0.62rem; min-width: 1.1rem; padding: 0 0.25rem; line-height: 1.1rem; }
   .bottombar [aria-current] { color: var(--pico-primary); font-weight: 700; }
 }
 
 /* ---------------------------------------------------------------- dashboard tool tiles */
-.tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; margin-block: 0 1.5rem; }
+.tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin-block: 0 1.25rem; }
+.tool-empty .tool-head .count { background: var(--dm-tile-border); color: var(--pico-muted-color); }
+.tool-empty .tool-preview { font-style: italic; }
 .tool { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.9rem 1rem; border-radius: 12px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); text-decoration: none; color: var(--pico-color); min-height: 112px; transition: transform 0.08s ease, border-color 0.08s ease; }
 .tool:hover { transform: translateY(-1px); border-color: var(--pico-primary); }
 .tool-head { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.05rem; }
@@ -422,10 +424,6 @@ button.danger { color: var(--pico-del-color, #c62828); }
 .tool-preview { font-size: 0.85rem; color: var(--pico-muted-color); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
 @media (max-width: 480px) { .tools { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; } .tool { min-height: 0; padding: 0.6rem; align-items: center; text-align: center; } .tool-head { flex-direction: column; gap: 0.1rem; font-size: 0.85rem; } .tool-head .count { margin: 0; } .tool-preview { display: none; } }
 .section-title { font-size: 1.1rem; margin: 0 0 0.5rem; }
-.tools-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0; margin: 0 0 1.25rem; font-size: 0.9rem; }
-.tools-compact a { text-decoration: none; color: var(--pico-color); white-space: nowrap; }
-.tools-compact a + a::before { content: "·"; margin: 0 0.6rem; color: var(--pico-muted-color); }
-.tools + .tools-compact { margin-top: -0.75rem; }
 
 /* ---------------------------------------------------------------- notes board */
 .note-add textarea { margin-bottom: 0.5rem; }
@@ -528,7 +526,7 @@ code.topic { user-select: all; word-break: break-all; }
 }
 
 /* who takes care of a task: coloured initials, "Wspólne / person" switches, /przypisania */
-.avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 1.35rem; height: 1.35rem; margin-right: 0.35rem; border-radius: 50%; font-size: 0.66rem; font-weight: 700; line-height: 1; letter-spacing: 0; color: #fff; vertical-align: -0.25em; }
+.avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 1.35rem; height: 1.35rem; margin-right: 0.35rem; border-radius: 50%; font-size: 0.72rem; font-weight: 700; line-height: 1; letter-spacing: 0; color: #fff; vertical-align: -0.25em; }
 .av-0 { background: #1d4ed8; } .av-1 { background: #b45309; } .av-2 { background: #047857; }
 .av-3 { background: #7e22ce; } .av-4 { background: #be123c; } .av-5 { background: #0e7490; }
 [data-theme="dark"] .avatar { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); }
@@ -851,7 +849,6 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 .bud-tile { display: flex; flex-direction: column; gap: 0.35rem; margin: 0 0 1.25rem; padding: 0.6rem 0.9rem; border-radius: 12px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); text-decoration: none; color: var(--pico-color); font-size: 0.92rem; }
 .bud-tile:hover { border-color: var(--pico-primary); }
 .bud-tile-txt { font-variant-numeric: tabular-nums; }
-.tools-compact + .bud-tile { margin-top: -0.5rem; }
 
 /* documents & warranties on the item page */
 .docs .warranty-list, .docs .doc-list { list-style: none; padding: 0; margin: 0 0 0.75rem; }
@@ -1018,12 +1015,13 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 .rota legend { font-size: 0.9rem; }
 
 /* ---------------------------------------------------------------- quick add ("＋") */
-.fab { display: none; }
+.bb-add { display: none; }
 .side-add { display: none; }
 @media (max-width: 1023.98px) {
-  .fab { display: flex; align-items: center; justify-content: center; position: fixed; z-index: 35; right: 1rem; bottom: calc(4.4rem + env(safe-area-inset-bottom)); width: 3.4rem; height: 3.4rem; margin: 0; padding: 0; border: 0; border-radius: 50%; background: var(--pico-primary-background); color: #fff; font-size: 1.9rem; line-height: 1; box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
-  .fab:focus-visible { outline: 3px solid var(--pico-primary-focus); outline-offset: 2px; }
-  .nav-open .fab { display: none; }
+  /* "＋ Dodaj" in the middle of the bottom bar: a raised round button */
+  .bottombar .bb-add { display: flex; color: var(--pico-primary); font-weight: 700; }
+  .bottombar .bb-add span { display: flex; align-items: center; justify-content: center; width: 2.6rem; height: 2.6rem; margin-top: -1.1rem; border-radius: 50%; background: var(--pico-primary-background); color: #fff; font-size: 1.7rem; line-height: 1; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
+  .bottombar .bb-add:focus-visible span { outline: 3px solid var(--pico-primary-focus); outline-offset: 2px; }
 }
 @media (min-width: 1024px) {
   .side-add { display: block; width: 100%; margin: 0 0 0.5rem; padding: 0.45rem 0.6rem; font-size: 0.95rem; font-weight: 700; text-align: left; }
@@ -1101,3 +1099,20 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 .ics-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
 .ics-scope fieldset { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
 .ics-scope legend { width: 100%; }
+
+/* ---------------------------------------------------------------- touch targets (phones, tablets) */
+@media (max-width: 1023.98px), (pointer: coarse) {
+  /* ~40 px for everything a finger has to hit */
+  button.small, .todo-check, .theme-toggle { min-height: 2.5rem; min-width: 2.5rem; }
+  .todo-check { display: inline-flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+  .theme-toggle { display: inline-flex; align-items: center; justify-content: center; }
+  .timeline-toolbar button { min-height: 2.4rem; }
+  details:not(.bud-cat):not(.todo-body):not(.bud-edit):not(.task-group > details) > summary:not([role=button]) { padding-block: 0.55rem; }
+  .side-foot button.link { min-height: 2.5rem; }
+  .timeline-legend { font-size: 0.82rem; }
+}
+/* desktop: the whole menu (tools, people, zones) fits on a 900 px laptop screen without scrolling */
+@media (min-width: 1024px) {
+  .sidebar .side-links a { padding-block: 0.12rem; font-size: 0.9rem; line-height: 1.25; }
+  .sidebar .side-head { margin: 0.55rem 0 0.1rem; }
+}

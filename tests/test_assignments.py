@@ -187,17 +187,23 @@ def test_initials_on_dashboard_rows_and_switch_in_task_window(auth_client, db, u
     page = auth_client.get("/").text
     assert 'class="avatar' not in page.split("<main", 1)[1]
 
+    # own tasks stay unmarked (like shared ones) – only someone else's get initials
+    ola = User(email="ola@example.com", name="Ola", password_hash="x")
+    db.add(ola)
+    db.flush()
     tasks[0].assignee_id = user.id
+    tasks[2].assignee_id = ola.id
     db.commit()
     page = auth_client.get("/").text
-    assert f'data-task="{tasks[0].id}"><span class="avatar av-0"' in page
+    assert f'data-task="{tasks[0].id}"></span>' in page
+    assert f'data-task="{tasks[2].id}"><span class="avatar av-1"' in page
 
     modal = auth_client.get(f"/tasks/{tasks[1].id}").text
     assert 'id="assign-' in modal and "Kto:" in modal and 'aria-pressed="true"' in modal
-    r = auth_client.post(f"/przypisania/{tasks[1].id}?ctx=modal", data={"assignee_id": str(user.id)})
+    r = auth_client.post(f"/przypisania/{tasks[1].id}?ctx=modal", data={"assignee_id": str(ola.id)})
     assert f'id="assign-{tasks[1].id}"' in r.text
     assert f"hx-swap-oob=\"outerHTML:.who-slot[data-task='{tasks[1].id}']\"" in r.text
-    assert 'class="avatar av-0"' in r.text
+    assert 'class="avatar av-1"' in r.text
 
 
 def test_payment_group_shows_assignees(db, user):
@@ -308,3 +314,17 @@ def test_migration_links_member_only_on_unique_name(tmp_path):
         conn.commit()
         assert [conn.execute(sa.text(f"SELECT count(*) FROM {t}")).scalar() for t in ("item", "task")] == [6, 1]
     eng.dispose()
+
+
+def test_person_timeline_shows_tasks_assigned_to_the_account(auth_client, db, user):
+    zone, _, member, tasks = _setup(db)
+    member.user_id = user.id
+    tasks[0].assignee_id = user.id  # lives under Dom › Pralka, assigned to the person
+    db.commit()
+    start, end = today(), today() + timedelta(days=60)
+    r = auth_client.get(f"/api/timeline?start={start}&end={end}&item={member.id}")
+    titles = {p["title"] for p in r.json()["points"]}
+    assert "Odkamienianie" in titles and "Czynsz" not in titles
+    # a zone timeline is unchanged
+    r = auth_client.get(f"/api/timeline?start={start}&end={end}&item={zone.id}")
+    assert {"Odkamienianie", "Czynsz"} <= {p["title"] for p in r.json()["points"]}

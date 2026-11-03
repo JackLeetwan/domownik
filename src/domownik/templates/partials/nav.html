@@ -24,16 +24,16 @@
     <li><a href="/budzet" {% if p.startswith('/budzet') %}aria-current="page"{% endif %}><span class="ic">💰</span> Budżet</a></li>
     <li><a href="/ustawienia" {% if p.startswith('/ustawienia') %}aria-current="page"{% endif %}><span class="ic">⚙️</span> Ustawienia</a></li>
   </ul>
-  {% if nav.zones %}
-  <p class="side-head">Strefy</p>
-  <ul class="side-links">
-    {% for z in nav.zones %}<li><a href="/items/{{ z.id }}" title="{{ z.name }}" {% if p == '/items/' ~ z.id %}aria-current="page"{% endif %}><span class="ic">{{ z.display_icon }}</span> <span class="lbl">{{ z.name }}</span></a></li>{% endfor %}
-  </ul>
-  {% endif %}
   {% if nav.members %}
   <p class="side-head">Domownicy</p>
   <ul class="side-links">
     {% for m in nav.members %}<li><a href="/items/{{ m.id }}" title="{{ m.name }}" {% if p == '/items/' ~ m.id %}aria-current="page"{% endif %}><span class="ic">{{ m.display_icon }}</span> <span class="lbl">{{ m.name }}</span></a></li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% if nav.zones %}
+  <p class="side-head">Strefy</p>
+  <ul class="side-links">
+    {% for z in nav.zones %}<li><a href="/items/{{ z.id }}" title="{{ z.name }}" {% if p == '/items/' ~ z.id %}aria-current="page"{% endif %}><span class="ic">{{ z.display_icon }}</span> <span class="lbl">{{ z.name }}</span></a></li>{% endfor %}
   </ul>
   {% endif %}
   </div>
@@ -50,6 +50,8 @@
 <nav class="bottombar" aria-label="Szybkie menu">
   <a href="/" {% if p == '/' %}aria-current="page"{% endif %}><span>🏠</span>Pulpit</a>
   <a href="/zakupy" {% if p.startswith('/zakupy') %}aria-current="page"{% endif %}><span>🛒{% if nav.shopping %}<b class="count">{{ nav.shopping }}</b>{% endif %}</span>Zakupy</a>
+  {# quick add – in the bar itself, so it never covers the ✓ buttons of the lists #}
+  <button type="button" class="bb-add" hx-get="/dodaj" hx-target="#modal-body" aria-label="Dodaj: zadanie, zakup, notatkę…" title="Dodaj"><span>＋</span>Dodaj</button>
   <a href="/notatki" {% if p.startswith('/notatki') %}aria-current="page"{% endif %}><span>📝{% if nav.notes %}<b class="count">{{ nav.notes }}</b>{% endif %}</span>Notatki</a>
   <button type="button" data-nav-toggle aria-controls="sidebar"><span>☰</span>Więcej</button>
 </nav>

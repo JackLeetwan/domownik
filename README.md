@@ -45,8 +45,8 @@ obowiązki danej osoby to jedna linia porannego powiadomienia – nie trafiają 
 
 ## Szybkie dodawanie, kontakty, liczniki
 
-„＋” (telefon: przycisk nad dolnym paskiem, desktop: „＋ Dodaj” w menu) – zadanie, zakup, notatka,
-„do zrobienia”, wydatek albo odczyt licznika z dowolnego ekranu; formularze korzystają z tych samych tras
+„＋ Dodaj” (telefon: środkowy przycisk dolnego paska, desktop: w menu bocznym) – zadanie, zakup, notatka,
+„do zrobienia”, wydatek albo odczyt licznika (gdy jest już jakiś licznik) z dowolnego ekranu; formularze korzystają z tych samych tras
 co strony (nagłówek `X-Quick-Add`), po zapisie strona odświeża się w miejscu.
 
 `/kontakty` – fachowcy, serwis auta, przedszkole, ubezpieczyciel, lekarz: telefony, e-mail, www, adres,

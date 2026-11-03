@@ -38,7 +38,7 @@ def test_todo_add_toggle_and_dashboard(auth_client, db, user):
     assert r.headers["location"] == "/"
     db.refresh(td)
     assert td.done_on == today() and td.done_by_id == user.id
-    assert '☐ Do zrobienia <small class="muted">0</small>' in auth_client.get("/").text  # empty list → compact shortcut
+    assert 'tool tool-empty" href="/do-zrobienia"' in auth_client.get("/").text  # empty list → muted tile
     assert "Zrobione (1)" in auth_client.get(f"/items/{fiat.id}").text
 
 

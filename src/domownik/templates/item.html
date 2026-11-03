@@ -49,22 +49,19 @@
   {% if not item.user_id %}
   <p class="muted">Powiąż tę osobę z kontem w Domowniku – <a href="/items/{{ item.id }}/edit">Edytuj</a> → „Konto w Domowniku”. Wtedy zobaczysz tu wszystkie zadania przypisane do niej.</p>
   {% elif care_rows %}
-  <ul class="task-list">{% set show_zone = True %}{% for row in care_rows %}{% include "partials/task_row.html" %}{% endfor %}</ul>
+  <ul class="task-list">{% set show_zone = True %}{% for entry in care_entries %}{% if entry.rows is defined %}{% set g = entry %}{% include "partials/payment_group.html" %}{% else %}{% set row = entry %}{% include "partials/task_row.html" %}{% endif %}{% endfor %}</ul>
   {% else %}
   <p class="muted">Nic nie jest przypisane do {{ item.user.name }} – wszystkie zadania są wspólne. <a href="/przypisania">Przypisz zadania</a></p>
   {% endif %}
 </section>
 {% endif %}
 {% if item.is_member %}{% include "partials/member_health.html" %}{% endif %}
-{% include "partials/todos.html" %}
-{% include "partials/issues.html" %}
-
-<section>
-  <h2>Zadania</h2>
-  {% if own_rows %}
-  <ul class="task-list">{% set show_zone = False %}{% for row in own_rows %}{% include "partials/task_row.html" %}{% endfor %}</ul>
+<section id="zadania">
+  <h2>Zadania{% if own_rows or sub_rows %} <small class="muted">({{ own_rows|length + sub_rows|length }})</small>{% endif %}</h2>
+  {% if task_entries %}
+  <ul class="task-list">{% set show_zone = True %}{% set hide_zone_of = item.id %}{% for entry in task_entries %}{% if entry.rows is defined %}{% set g = entry %}{% include "partials/payment_group.html" %}{% else %}{% set row = entry %}{% include "partials/task_row.html" %}{% endif %}{% endfor %}</ul>
   {% else %}
-  <p class="muted">Brak zadań.</p>
+  <p class="muted">{% if item.kind == 'member' %}Nic nie dotyczy bezpośrednio {{ item.name }} (np. wymiana dokumentów, przegląd). Wyżej – czym ta osoba się zajmuje.{% else %}Brak zadań.{% endif %}</p>
   {% endif %}
   <details class="template-pick">
     <summary>Dodaj zadania z szablonu</summary>
@@ -76,12 +73,8 @@
   </details>
 </section>
 
-{% if sub_rows %}
-<section>
-  <h2>Zadania w tej strefie</h2>
-  <ul class="task-list">{% set show_zone = True %}{% for row in sub_rows %}{% include "partials/task_row.html" %}{% endfor %}</ul>
-</section>
-{% endif %}
+{% include "partials/todos.html" %}
+{% include "partials/issues.html" %}
 
 {% include "partials/meters.html" %}
 

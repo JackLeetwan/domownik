@@ -246,7 +246,7 @@ def test_zone_tree_and_breadcrumbs(auth_client, db):
         },
     )
     page = auth_client.get(f"/items/{dom.id}")
-    assert "Ekspres" in page.text and "Zadania w tej strefie" in page.text and "Odkamienianie ekspresu" in page.text
+    assert "Ekspres" in page.text and 'id="zadania"' in page.text and "Odkamienianie ekspresu" in page.text
     dash = auth_client.get("/")
     assert "1 zaległe" in dash.text
     stats = services.zone_stats(db, Tree.load(db), [dom], today())

@@ -3,4 +3,4 @@
   <span class="assign-label">Kto:</span>
   {% set ctx = 'modal' %}{% include "partials/assign_seg.html" %}
 </div>
-{% if oob %}<span class="who-slot" data-task="{{ task.id }}" hx-swap-oob="outerHTML:.who-slot[data-task='{{ task.id }}']">{{ avatar(task.assignee) }}</span>{% endif %}
+{% if oob %}<span class="who-slot" data-task="{{ task.id }}" hx-swap-oob="outerHTML:.who-slot[data-task='{{ task.id }}']">{{ other_avatar(task.assignee, user|default(none)) }}</span>{% endif %}

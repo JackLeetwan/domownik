@@ -31,37 +31,22 @@
 </section>
 {% endif %}
 
-{# full tiles only for lists with content; empty ones collapse into one line of shortcuts #}
-{% if shopping or notes or todos %}
+{# the three household tools – always the same three tiles, empty ones just say so #}
 <section class="tools" aria-label="Narzędzia">
-  {% if shopping %}
-  <a class="tool" href="/zakupy">
+  <a class="tool{% if not shopping %} tool-empty{% endif %}" href="/zakupy">
     <span class="tool-head">🛒 Zakupy<span class="count">{{ shopping|length }}</span></span>
-    <span class="tool-preview">{% for s in shopping[:8] %}{{ s.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% if shopping|length > 8 %}…{% endif %}</span>
+    <span class="tool-preview">{% if shopping %}{% for s in shopping[:8] %}{{ s.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% if shopping|length > 8 %}…{% endif %}{% else %}Lista jest pusta.{% endif %}</span>
   </a>
-  {% endif %}
-  {% if notes %}
-  <a class="tool" href="/notatki">
+  <a class="tool{% if not notes %} tool-empty{% endif %}" href="/notatki">
     <span class="tool-head">📝 Notatki<span class="count">{{ notes|length }}</span></span>
-    <span class="tool-preview">{% for n in notes[:2] %}{% if n.pinned %}📌 {% endif %}{{ n.body|truncate(70) }}{% if not loop.last %}
-{% endif %}{% endfor %}</span>
+    <span class="tool-preview">{% if notes %}{% for n in notes[:2] %}{% if n.pinned %}📌 {% endif %}{{ n.body|truncate(70) }}{% if not loop.last %}
+{% endif %}{% endfor %}{% else %}Brak karteczek.{% endif %}</span>
   </a>
-  {% endif %}
-  {% if todos %}
-  <a class="tool" href="/do-zrobienia">
+  <a class="tool{% if not todos %} tool-empty{% endif %}" href="/do-zrobienia">
     <span class="tool-head">☐ Do zrobienia<span class="count">{{ todos|length }}</span></span>
-    <span class="tool-preview">{% for td in todos[:3] %}{{ td.title }}{% if not loop.last %}, {% endif %}{% endfor %}{% if todos|length > 3 %}…{% endif %}</span>
+    <span class="tool-preview">{% if todos %}{% for td in todos[:3] %}{{ td.title }}{% if not loop.last %}, {% endif %}{% endfor %}{% if todos|length > 3 %}…{% endif %}{% else %}Nic nie czeka.{% endif %}</span>
   </a>
-  {% endif %}
 </section>
-{% endif %}
-{% if not (shopping and notes and todos) %}
-<p class="tools-compact">
-  {% if not shopping %}<a href="/zakupy">🛒 Zakupy <small class="muted">0</small></a>{% endif %}
-  {% if not notes %}<a href="/notatki">📝 Notatki <small class="muted">0</small></a>{% endif %}
-  {% if not todos %}<a href="/do-zrobienia">☐ Do zrobienia <small class="muted">0</small></a>{% endif %}
-</p>
-{% endif %}
 
 {# budget of the current month – below the timeline and shortcuts, never above the timeline #}
 {% if budget_month and (budget_month.expense_plan_gr or budget_month.expense_actual_gr) %}

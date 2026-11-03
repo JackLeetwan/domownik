@@ -3,13 +3,29 @@
 {% set crumbs_link_last = True %}{% include "partials/breadcrumbs.html" %}
 <h1>{% if parent %}Dodaj do: {{ parent.display_icon }} {{ parent.name }}{% else %}Nowa strefa{% endif %}</h1>
 <p class="muted">Wybierz szablon – na następnym kroku zaznaczysz, które zadania dodać, i poprawisz kwoty oraz terminy.</p>
-<section class="tiles">
-  {% for key, tpl in templates.items() %}
+{% macro tpl_tile(key, tpl) %}
   <a class="tile" href="/items/new/{{ key }}{% if parent %}?parent={{ parent.id }}{% endif %}">
     <span class="tile-icon" aria-hidden="true">{{ tpl.icon }}</span>
     <span class="tile-name">{{ tpl.name }}</span>
     <span class="tile-next muted">{% if tpl.tasks %}{{ tpl.tasks|length }} propozycji zadań{% else %}bez zadań{% endif %}</span>
   </a>
-  {% endfor %}
+{% endmacro %}
+{% if parent %}
+<section class="tiles">
+  {% for key, tpl in templates.items() %}{{ tpl_tile(key, tpl) }}{% endfor %}
 </section>
+{% else %}
+{# top level: zones first; single things (a car, an appliance) normally live inside a zone #}
+{% set ZONE_KINDS = ('group', 'house', 'apartment', 'rental') %}
+<section class="tiles">
+  {% for key, tpl in templates.items() if tpl.kind in ZONE_KINDS %}{{ tpl_tile(key, tpl) }}{% endfor %}
+</section>
+<details class="more-tpls">
+  <summary>Pojedynczy element jako osobna strefa (auto, urządzenie, osoba)</summary>
+  <p class="muted"><small>Zwykle lepiej dodać go w środku strefy – np. auto w „Samochody”, pralkę w „Dom”.</small></p>
+  <section class="tiles">
+    {% for key, tpl in templates.items() if tpl.kind not in ZONE_KINDS %}{{ tpl_tile(key, tpl) }}{% endfor %}
+  </section>
+</details>
+{% endif %}
 {% endblock %}

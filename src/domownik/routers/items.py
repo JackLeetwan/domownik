@@ -225,6 +225,11 @@ def item_page(request: Request, item_id: int, db: Session = Depends(get_db), use
             "is_container": item.kind in ("group", "house", "apartment", "rental", "child"),
             "health_rows": health_rows,
             "care_rows": care_rows,
+            "care_entries": services.group_payments(care_rows),
+            # one list for the item and everything inside it, by date; same-day payments collapsed
+            "task_entries": services.group_payments(
+                sorted(own_rows + sub_rows, key=lambda r: (r.due.date or date.max, r.task.title))
+            ),
             "open_issues": [i for i in issues if i.resolved_on is None],
             "closed_issues": [i for i in issues if i.resolved_on is not None],
             "todos": services.open_todos(db, vis, vis.subtree_ids(item_id)),

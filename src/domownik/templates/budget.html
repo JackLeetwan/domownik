@@ -150,13 +150,18 @@
     <small class="muted">wydano z {{ b.expense_plan_gr|pln }}</small>
   </div>
   <div class="bud-stat">
-    <span class="bud-stat-lbl">Zostaje</span>
+    <span class="bud-stat-lbl">Bilans miesiąca</span>
+    {% if b.income_plan_gr or b.income_actual_gr %}
     <b class="{% if b.remaining_gr < 0 %}neg{% endif %}">{{ b.remaining_gr|pln(sign=True) }}</b>
-    <small class="muted" title="Dochody minus wydatki – w każdej kategorii liczy się większa kwota: plan albo to, co już zaksięgowane">prognoza na koniec miesiąca</small>
+    <small class="muted" title="Dochody minus wydatki – w każdej kategorii liczy się większa kwota: plan albo to, co już zaksięgowane">dochody − wydatki, prognoza na koniec miesiąca</small>
+    {% else %}
+    <b class="muted">—</b>
+    <small><a href="/budzet/kategorie#dochody" title="Bez dochodów bilansu nie da się policzyć">Wpisz dochody →</a></small>
+    {% endif %}
   </div>
   <div class="bud-progress lvl-{{ b.expense_level }}">
     <span class="bar"><i style="width: {{ b.expense_pct }}%"></i></span>
-    <small class="muted">Wydano {{ b.expense_pct }}% planu{% if b.expense_left_gr >= 0 %} · zostało {{ b.expense_left_gr|pln }}{% else %} · ponad plan o {{ (-b.expense_left_gr)|pln }}{% endif %}</small>
+    <small class="muted">Wydano {{ b.expense_pct }}% planu wydatków{% if b.expense_left_gr >= 0 %} · do wydania zostało {{ b.expense_left_gr|pln }}{% else %} · ponad plan o {{ (-b.expense_left_gr)|pln }}{% endif %}</small>
   </div>
 </section>
 

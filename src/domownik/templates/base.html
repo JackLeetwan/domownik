@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="/static/vendor/pico.min.css">
   <link rel="stylesheet" href="/static/vendor/vis-timeline-graph2d.min.css">
   {% block head %}{% endblock %}
-  <link rel="stylesheet" href="/static/app.css?v=30">
+  <link rel="stylesheet" href="/static/app.css?v=33">
   {# in <head>, deferred: run once per full page load – hx-boost swaps only <body>,
      scripts inside <body> would re-run (and stack listeners) on every navigation #}
   <script src="/static/vendor/htmx.min.js" defer></script>
@@ -40,11 +40,6 @@
     </main>
   </div>
 </div>
-  {% set fp = request.url.path %}
-  {% if nav and not (fp.endswith('/edit') or '/new' in fp or '/now' in fp or fp.startswith('/grafik/')) %}
-  {# quick add from any page (phones; the sidebar has its own "＋ Dodaj"); hidden over the big forms #}
-  <button type="button" class="fab" hx-get="/dodaj" hx-target="#modal-body" aria-label="Dodaj: zadanie, zakup, notatkę…" title="Dodaj">＋</button>
-  {% endif %}
   {% if nav %}
   {# asks once per device for notifications; shown by app.js only when this browser has not decided yet #}
   <dialog id="push-ask" aria-labelledby="push-ask-title">

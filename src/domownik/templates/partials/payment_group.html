@@ -5,8 +5,8 @@
       <span class="task-main">
         <span class="task-icon" aria-hidden="true">💳</span>
         <span class="task-text">
-          <strong>{% for u in g.assignees %}{{ avatar(u) }}{% endfor %}Opłaty – {{ g.date|d }}</strong>
-          <small class="muted">{{ g.rows|length }} pozycji{% if g.auto_count %} · {{ g.auto_count }} płatne automatycznie{% endif %} · kliknij, żeby rozwinąć</small>
+          <strong>{% for u in g.assignees %}{{ other_avatar(u, user|default(none)) }}{% endfor %}Opłaty – {{ g.date|d }}</strong>
+          <small class="muted">{{ g.rows|length }} pozycji{% if g.auto_count %} · {{ g.auto_count }} płatne automatycznie{% endif %}</small>
         </span>
       </span>
       <span class="task-due">

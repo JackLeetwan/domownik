@@ -108,7 +108,10 @@ def api_timeline(
     services.settle_autopay(db, today())
     tree = Tree.load(db)
     ids = tree.subtree_ids(item) if item else None
-    data = services.timeline(db, tree, today(), start, end, ids)
+    # a person's page: also everything assigned to the linked account
+    node = db.get(Item, item) if item else None
+    assignee = node.user_id if node is not None and node.kind == "member" else None
+    data = services.timeline(db, tree, today(), start, end, ids, assignee_id=assignee)
     if bin:
         data["points"] = services.bundle_points(data["points"], bin, by_group=lanes)
     data["today"] = today().isoformat()

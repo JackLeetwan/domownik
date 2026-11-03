@@ -107,7 +107,8 @@
 </section>
 
 <section>
-  <h2>Co przyszłoby teraz</h2>
+  <h2>Podgląd powiadomień</h2>
+  <p class="muted"><small>Tak wyglądałby poranny i wieczorny skrót, gdyby wysłać go teraz.</small></p>
   {% for d, empty in [(morning, 'Rano nie byłoby nic nowego – powiadomienie się nie wyśle.'), (evening, 'Na jutro nie ma nic.')] %}
   <article class="push-preview">
     {% if d and d.lines %}

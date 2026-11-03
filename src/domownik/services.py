@@ -542,9 +542,27 @@ MAX_POINTS_PER_TASK = 400
 
 
 def timeline(
-    db: Session, tree: Tree, today: date, start: date, end: date, item_ids: set[int] | None = None
+    db: Session,
+    tree: Tree,
+    today: date,
+    start: date,
+    end: date,
+    item_ids: set[int] | None = None,
+    assignee_id: int | None = None,
 ) -> dict[str, Any]:
+    """Points of tasks on `item_ids` (default: everything visible); with `assignee_id` also every task
+    assigned to that account, wherever it lives (a person's page shows what the person takes care of)."""
     ids = item_ids if item_ids is not None else tree.visible()
+    task_ids: set[int] | None = None
+    if assignee_id is not None:
+        visible = tree.visible()
+        assigned = [
+            (tid, iid)
+            for tid, iid in db.execute(select(Task.id, Task.item_id).where(Task.assignee_id == assignee_id))
+            if iid in visible
+        ]
+        task_ids = {tid for tid, _ in assigned}
+        ids = set(ids) | {iid for _, iid in assigned}
     readings = km_readings(db, ids)
     points: list[dict[str, Any]] = []
     groups: dict[int, dict[str, Any]] = {}
@@ -560,7 +578,14 @@ def timeline(
             }
         return gid
 
+    own_ids = item_ids if item_ids is not None else ids
+
+    def wanted(task: Task) -> bool:
+        return task_ids is None or task.item_id in own_ids or task.id in task_ids
+
     for task in active_tasks(db, ids):
+        if not wanted(task):
+            continue
         due = task_due(task, today, readings)
         label = tree.label(task.item_id)
         gid = group_for(task.item_id)
@@ -598,6 +623,8 @@ def timeline(
     )
     for comp in db.scalars(stmt):
         t = comp.task
+        if not wanted(t):
+            continue
         points.append(
             {
                 "task_id": t.id,

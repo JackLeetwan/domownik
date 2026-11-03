@@ -113,12 +113,12 @@ def test_ordinary_forms_still_redirect(auth_client):
     assert r.status_code == 303 and r.headers["HX-Redirect"] == "/notatki"
 
 
-def test_fab_on_pages_but_not_over_big_forms(auth_client, db):
+def test_quick_add_in_bottom_bar_and_sidebar(auth_client, db):
     car = Item(name="Auto 1", kind="car")
     db.add(car)
     db.commit()
-    assert 'class="fab"' in auth_client.get("/").text
-    assert 'class="side-add"' in auth_client.get("/").text
-    assert 'class="fab"' in auth_client.get(f"/items/{car.id}").text
-    assert 'class="fab"' not in auth_client.get(f"/items/{car.id}/edit").text
-    assert 'class="fab"' not in auth_client.get(f"/tasks/new?item={car.id}").text
+    for url in ("/", f"/items/{car.id}", f"/items/{car.id}/edit"):
+        page = auth_client.get(url).text
+        assert 'class="bb-add"' in page
+        assert 'class="side-add"' in page
+    assert 'class="fab"' not in auth_client.get("/").text
