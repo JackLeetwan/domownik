@@ -438,6 +438,23 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .dictate-group { display: flex; margin: 0; }
 .dictate-group input { margin: 0; }
 .dictate-group .mic { margin: 0; }
+.goal-list { list-style: none; padding: 0; margin: 0 0 0.75rem; display: grid; gap: 0.75rem; }
+.goal { list-style: none; padding: 0.75rem 0.9rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-tile-bg); }
+.goal-head { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; align-items: baseline; }
+.goal .bar { display: block; height: 0.6rem; border-radius: 999px; background: color-mix(in srgb, var(--pico-muted-color) 20%, transparent); overflow: hidden; margin: 0.4rem 0 0.25rem; }
+.goal .bar i { display: block; height: 100%; background: var(--pico-primary); border-radius: 999px; }
+.goal.reached .bar i { background: #2e9d4a; }
+.goal.late .bar i { background: #d98e04; }
+.goal-sub { display: block; }
+.goal-move { display: flex; gap: 0.4rem; margin: 0.5rem 0 0; flex-wrap: wrap; }
+.goal-move input { flex: 1 1 6rem; margin: 0; min-width: 0; }
+.goal-move button { margin: 0; }
+.goal-edit { margin: 0.4rem 0 0; font-size: 0.9rem; }
+.goal-edit > summary { color: var(--pico-muted-color); }
+.goal-actions { display: flex; gap: 1rem; }
+.goal-fields { display: grid; grid-template-columns: 5rem 1fr; gap: 0 0.75rem; }
+.goal-new > summary[role=button] { display: inline-block; width: auto; }
+.goal-done { margin-top: 0.5rem; }
 .note-add-box { margin: 0.5rem 0 0; }
 .note-add-box > summary[role=button] { display: inline-block; width: auto; margin-bottom: 0.75rem; }
 .note-add-box[open] > summary[role=button] { margin-bottom: 0.75rem; }

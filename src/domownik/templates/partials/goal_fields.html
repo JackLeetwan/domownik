@@ -1,0 +1,9 @@
+{# Fields of a savings goal. Needs: goal (or none) #}
+<div class="goal-fields">
+  <label class="goal-icon">Ikona <input name="icon" maxlength="4" value="{{ goal.icon if goal and goal.icon else '' }}" placeholder="🏖️"></label>
+  <label class="goal-name">Na co <input name="name" required maxlength="120" value="{{ goal.name if goal else '' }}" placeholder="np. Wakacje 2027"></label>
+</div>
+<div class="grid">
+  <label>Kwota celu [zł] <input name="target" required inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 6000" value="{{ goal.target_gr|pln_input if goal else '' }}"></label>
+  <label>Do kiedy <input type="date" name="due_on" value="{{ goal.due_on.isoformat() if goal and goal.due_on else '' }}"></label>
+</div>

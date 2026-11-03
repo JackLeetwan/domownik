@@ -1,0 +1,62 @@
+{# Savings goals on /budzet. Needs: goals, goals_done, goal_today, mkey #}
+<section class="bud-section goals" id="cele">
+  <h2 class="bud-section-head"><span>🎯 Cele oszczędnościowe</span>{% if goals %}<small class="muted">odłożone {{ goals|sum(attribute='saved_gr')|pln }}</small>{% endif %}</h2>
+  {% if goals %}
+  <ul class="goal-list">
+    {% for v in goals %}{% set g = v.goal %}{% set monthly = v.monthly_gr(goal_today) %}
+    <li class="goal{% if v.reached %} reached{% elif v.late(goal_today) %} late{% endif %}">
+      <div class="goal-head">
+        <strong>{{ g.icon or '🎯' }} {{ g.name }}</strong>
+        <span class="goal-amt"><b>{{ v.saved_gr|pln }}</b> <small class="muted">z {{ g.target_gr|pln }}</small></span>
+      </div>
+      <span class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ v.percent }}" aria-label="{{ g.name }}: {{ v.percent }}%"><i style="width: {{ v.percent }}%"></i></span>
+      <small class="muted goal-sub">
+        {% if v.reached %}🎉 Cel osiągnięty!
+        {% else %}{{ v.percent }}% · brakuje {{ v.left_gr|pln }}{% if g.due_on %} · do {{ g.due_on|d }}{% if monthly %} – odkładaj ok. <b>{{ monthly|pln }}</b> miesięcznie{% elif v.late(goal_today) %} – termin minął{% endif %}{% endif %}{% endif %}
+      </small>
+      <form method="post" action="/budzet/cele/{{ g.id }}/wplata" class="goal-move">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="m" value="{{ mkey }}">
+        <input name="amount" inputmode="decimal" required pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 200" placeholder="{{ (monthly or 10000)|pln_input }}" aria-label="Kwota dla celu {{ g.name }}">
+        <button type="submit" name="kind" value="in" class="small">＋ Odłóż</button>
+        <button type="submit" name="kind" value="out" class="small outline secondary" title="Zabierz część odłożonych pieniędzy">Wypłać</button>
+      </form>
+      <details class="goal-edit">
+        <summary>Edytuj</summary>
+        <form method="post" action="/budzet/cele/{{ g.id }}/edycja">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="m" value="{{ mkey }}">
+          {% with goal = g %}{% include "partials/goal_fields.html" %}{% endwith %}
+          <button type="submit" class="small">Zapisz</button>
+        </form>
+        <div class="goal-actions">
+          <form method="post" action="/budzet/cele/{{ g.id }}/zakoncz" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="m" value="{{ mkey }}"><button type="submit" class="link">✓ Zakończ cel</button></form>
+          <form method="post" action="/budzet/cele/{{ g.id }}/usun" class="inline" hx-confirm="Usunąć cel „{{ g.name }}”? Wpłaty zostaną w budżecie jako „Oszczędności”."><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="m" value="{{ mkey }}"><button type="submit" class="link danger">Usuń</button></form>
+        </div>
+      </details>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Na co odkładacie? Wakacje, auto, fundusz awaryjny – cel pokaże postęp i ile odkładać co miesiąc.</p>
+  {% endif %}
+  <details class="goal-new" {% if not goals and not goals_done %}{% endif %}>
+    <summary role="button" class="outline">＋ Nowy cel</summary>
+    <form method="post" action="/budzet/cele">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="m" value="{{ mkey }}">
+      {% with goal = none %}{% include "partials/goal_fields.html" %}{% endwith %}
+      <label>Już odłożone [zł] <input name="start" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych" placeholder="opcjonalnie"></label>
+      <button type="submit" class="small">Dodaj cel</button>
+      <small class="muted">Wpłata na cel to wydatek miesiąca w kategorii „Oszczędności” – pieniądze znikają z puli do wydania.</small>
+    </form>
+  </details>
+  {% if goals_done %}
+  <details class="goal-done">
+    <summary>Zrealizowane ({{ goals_done|length }})</summary>
+    <ul class="goal-list">
+      {% for v in goals_done %}
+      <li class="goal reached"><strong>{{ v.goal.icon or '🎯' }} {{ v.goal.name }}</strong> <small class="muted">{{ v.saved_gr|pln }} z {{ v.goal.target_gr|pln }} · {{ v.goal.done_on|d }}</small>
+        <form method="post" action="/budzet/cele/{{ v.goal.id }}/zakoncz" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="m" value="{{ mkey }}"><button type="submit" class="link">↶ Przywróć</button></form></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</section>

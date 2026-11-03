@@ -371,6 +371,8 @@ class Transaction(Base):
     completion_id: Mapped[int | None] = mapped_column(ForeignKey("completion.id", ondelete="CASCADE"))
     # confirmation of a monthly income ("✓ Wpłynęło")
     income_id: Mapped[int | None] = mapped_column(ForeignKey("recurring_income.id", ondelete="SET NULL"))
+    # money put into (−) or taken back out of (+) a savings goal
+    goal_id: Mapped[int | None] = mapped_column(ForeignKey("savings_goal.id", ondelete="SET NULL"), index=True)
     note: Mapped[str | None] = mapped_column(String(300))
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -380,6 +382,22 @@ class Transaction(Base):
     task: Mapped[Task | None] = relationship()
     completion: Mapped[Completion | None] = relationship()
     created_by: Mapped[User | None] = relationship()
+
+
+class SavingsGoal(Base):
+    """Money put aside for something ("Wakacje 2027: 6000 zł"). Deposits are budget transactions with goal_id."""
+
+    __tablename__ = "savings_goal"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    icon: Mapped[str | None] = mapped_column(String(16))
+    target_gr: Mapped[int] = mapped_column(Integer)
+    due_on: Mapped[date | None] = mapped_column(Date)
+    done_on: Mapped[date | None] = mapped_column(Date)  # reached / closed – moves to "Zrealizowane"
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class Issue(Base):

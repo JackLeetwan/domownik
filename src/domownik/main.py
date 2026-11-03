@@ -22,6 +22,7 @@ from domownik.routers import (
     contacts,
     dashboard,
     documents,
+    goals,
     items,
     meters,
     quick,
@@ -89,6 +90,7 @@ def create_app() -> FastAPI:
     app.include_router(assignments.router)
     app.include_router(calendar.router)
     app.include_router(budget.router)
+    app.include_router(goals.router)
     app.include_router(documents.router)
     app.include_router(schedule.router)
     app.include_router(chores.router)

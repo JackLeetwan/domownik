@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from domownik import budget, services
+from domownik import budget, goals, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
@@ -109,6 +109,9 @@ def budget_page(
             "items": sorted(live.items.values(), key=lambda i: live.label(i.id)),
             "label": live.label,
             "has_incomes": db.scalar(select(func.count(RecurringIncome.id))) > 0,
+            "goals": goals.views(db),
+            "goals_done": goals.views(db, done=True),
+            "goal_today": t,
         },
     )
 
@@ -250,7 +253,7 @@ def categories_page(request: Request, db: Session = Depends(get_db), user: User 
             "usage": usage,
             "incomes": incomes,
             "income_categories": [c for c in cats if c.is_income and not c.archived],
-            "today": t,
+            "goal_today": t,
         },
     )
 
