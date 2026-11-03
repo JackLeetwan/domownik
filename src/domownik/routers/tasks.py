@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import services
+from domownik import budget, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain import recurrence
@@ -150,7 +150,11 @@ def _form_context(db: Session, tree: Tree, **extra) -> dict:
         "is_car": is_car,
         "categories": CATEGORIES,
         "directions": DIRECTIONS,
-        "budget_categories": list(db.scalars(select(BudgetCategory).order_by(BudgetCategory.sort_order))),
+        "budget_categories": [
+            c
+            for c in db.scalars(select(BudgetCategory).order_by(BudgetCategory.sort_order, BudgetCategory.id))
+            if not c.archived or (task is not None and c.id == task.budget_category_id)
+        ],
         "users": list(db.scalars(select(User).where(User.is_active.is_(True)))),
         "items": sorted(tree.items.values(), key=lambda i: tree.label(i.id)),
         "label": tree.label,
@@ -252,6 +256,8 @@ def new_task_form(request: Request, item: int, db: Session = Depends(get_db), us
         lead_days=DEFAULT_LEAD_DAYS,
         direction="expense",
     )
+    # a guess, so that a task with an amount lands in the right place of the budget
+    task.budget_category_id = budget.suggest_category(db, tree, item, task.category)
     return render(
         request,
         "task_form.html",

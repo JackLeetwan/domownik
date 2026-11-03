@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}Budżet · Domownik{% endblock %}
+{% block content %}
+{% macro amount_form(tx) %}
+<details class="bud-edit">
+  <summary>zmień</summary>
+  <form method="post" action="/budzet/transakcje/{{ tx.id }}/kwota" class="bud-inline">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="m" value="{{ mkey }}">
+    <input name="amount" inputmode="decimal" value="{{ tx.amount_gr|abs|pln_input }}" aria-label="Kwota [zł]" required>
+    <button type="submit" class="small">Zapisz</button>
+  </form>
+  <div id="tx-error-{{ tx.id }}"></div>
+</details>
+{% endmacro %}
+
+{% macro entry_row(e, ln) %}
+<li class="bud-entry st-{{ e.status }}">
+  <span class="bud-entry-date">{{ e.date|d }}</span>
+  <span class="bud-entry-txt">
+    {% if e.task %}
+    <a href="/tasks/{{ e.task.id }}" hx-get="/tasks/{{ e.task.id }}" hx-target="#modal-body" hx-push-url="false"><strong>{{ e.title }}</strong></a>
+    {% else %}<strong>{{ e.title }}</strong>{% endif %}
+    <small class="muted">
+      {% if e.status == 'paid' %}zapłacone {{ e.completion.done_on|d }}{% if e.completion.performed_by_id is none %} automatycznie{% endif %}
+      {% elif e.status == 'received' %}{% if e.task %}wpłynęło {{ e.completion.done_on|d }}{% else %}wpłynęło {{ e.tx.booked_on|d }}{% endif %}
+      {% elif e.status == 'done' %}zrobione {{ e.completion.done_on|d }}, bez kwoty
+      {% elif e.status == 'overdue' %}<span class="badge overdue">po terminie</span>
+      {% elif e.status == 'auto' %}zapłaci się automatycznie
+      {% elif e.status == 'expected' %}oczekiwany
+      {% else %}{{ 'do otrzymania' if e.income else 'do zapłaty' }}{% endif %}
+      {% if e.zone %} · {{ e.zone }}{% endif %}
+    </small>
+  </span>
+  <span class="bud-entry-amt">
+    {% if e.actual_gr is not none %}
+      <b>{{ (e.actual_gr if e.income else -e.actual_gr)|pln }}</b>
+      {% if e.actual_gr != e.planned_gr and e.planned_gr %}<small class="muted">plan {{ e.planned_gr|pln }}</small>{% endif %}
+    {% else %}
+      <span class="{% if e.settled %}muted{% endif %}">{{ (e.planned_gr if e.income else -e.planned_gr)|pln }}</span>
+    {% endif %}
+  </span>
+  {% if e.source and e.tx is none %}
+  <form method="post" action="/budzet/dochody/{{ e.source.id }}/wplynelo" class="bud-inline bud-confirm">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="m" value="{{ mkey }}">
+    <input name="amount" inputmode="decimal" value="{{ e.planned_gr|pln_input }}" aria-label="Kwota, która wpłynęła [zł]">
+    <button type="submit" class="small">✓ Wpłynęło</button>
+    <div id="inc-error-{{ e.source.id }}"></div>
+  </form>
+  {% elif e.tx %}
+  <span class="bud-entry-act">
+    {{ amount_form(e.tx) }}
+    {% if e.source %}
+    <form method="post" action="/budzet/transakcje/{{ e.tx.id }}/usun" class="inline" hx-confirm="Cofnąć potwierdzenie wpływu „{{ e.title }}”?">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="m" value="{{ mkey }}">
+      <button type="submit" class="link">cofnij</button>
+    </form>
+    {% endif %}
+  </span>
+  {% endif %}
+</li>
+{% endmacro %}
+
+{% macro tx_row(tx) %}
+<li class="bud-entry st-tx">
+  <span class="bud-entry-date">{{ tx.booked_on|d }}</span>
+  <span class="bud-entry-txt">
+    <strong>{{ tx.note or ('Wpływ' if tx.amount_gr > 0 else 'Wydatek') }}</strong>
+    <small class="muted">{% if tx.created_by %}{{ tx.created_by.name }}{% else %}automatycznie{% endif %}{% if tx.item_id and label(tx.item_id) %} · {{ label(tx.item_id) }}{% endif %}</small>
+  </span>
+  <span class="bud-entry-amt"><b>{{ tx.amount_gr|pln(sign=True) }}</b></span>
+  <span class="bud-entry-act">
+    {% if tx.completion_id %}
+      {% if tx.task_id %}<a href="/tasks/{{ tx.task_id }}" hx-get="/tasks/{{ tx.task_id }}" hx-target="#modal-body" hx-push-url="false" class="small-link">zadanie</a>{% endif %}
+    {% else %}
+    {{ amount_form(tx) }}
+    <form method="post" action="/budzet/transakcje/{{ tx.id }}/usun" class="inline" hx-confirm="Usunąć wpis „{{ tx.note or tx.amount_gr|pln }}”?">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="m" value="{{ mkey }}">
+      <button type="submit" class="link danger">usuń</button>
+    </form>
+    {% endif %}
+  </span>
+</li>
+{% endmacro %}
+
+{% macro cat_line(ln) %}
+{% set c = ln.category %}
+<details class="bud-cat lvl-{{ ln.level }}" id="k{{ ln.key }}" {% if open == ln.key %}open{% endif %}>
+  <summary>
+    <span class="bud-cat-name"><span class="ic" aria-hidden="true">{{ (c.icon if c else '') or ('💰' if ln.income else '❔') }}</span> <span class="lbl">{{ c.name if c else 'Bez kategorii' }}</span>{% if c and c.archived %} <small class="muted">(archiwum)</small>{% endif %}</span>
+    <span class="bud-cat-nums">
+      <b>{{ ln.actual_gr|pln }}</b> <small class="muted">z {{ ln.plan_gr|pln }}</small>
+    </span>
+    <span class="bar" aria-hidden="true"><i style="width: {{ ln.pct }}%"></i></span>
+    <small class="bud-cat-left {% if ln.left_gr < 0 and not ln.income %}over{% endif %}">
+      {% if ln.income %}{% if ln.left_gr > 0 %}czeka {{ ln.left_gr|pln }}{% elif ln.plan_gr %}wpłynęło ✓{% endif %}
+      {% elif ln.left_gr < 0 %}ponad plan o {{ (-ln.left_gr)|pln }}
+      {% elif ln.plan_gr %}zostało {{ ln.left_gr|pln }}{% endif %}
+    </small>
+  </summary>
+  <div class="bud-cat-body">
+    {% if c and not ln.income %}
+    <div class="bud-limit"><small class="muted">
+      {% if ln.limit_gr %}Koperta {{ ln.limit_gr|pln }} / mies.{% if ln.planned_entries_gr %} + terminy {{ ln.planned_entries_gr|pln }}{% endif %}{% elif ln.planned_entries_gr %}Plan z terminów zadań: {{ ln.planned_entries_gr|pln }}{% else %}Bez planu.{% endif %}
+    </small>
+    <details class="bud-edit"><summary>{{ 'zmień kopertę' if ln.limit_gr else 'ustaw kopertę' }}</summary>
+      <form method="post" action="/budzet/kategorie/{{ c.id }}" class="bud-inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="back" value="budget"><input type="hidden" name="m" value="{{ mkey }}">
+        <input type="hidden" name="name" value="{{ c.name }}"><input type="hidden" name="kind" value="{{ c.kind }}"><input type="hidden" name="icon" value="{{ c.icon or '' }}">
+        <input name="limit" inputmode="decimal" value="{{ c.monthly_limit_gr|pln_input }}" placeholder="np. 1500" aria-label="Miesięczny limit [zł]">
+        <button type="submit" class="small">Zapisz</button>
+      </form>
+      <div id="cat-error-{{ c.id }}"></div>
+    </details></div>
+    {% endif %}
+    {% if ln.entries %}
+    <h4 class="bud-sub">{{ 'Oczekiwane' if ln.income else 'Zaplanowane' }}</h4>
+    <ul class="bud-entries">{% for e in ln.entries %}{{ entry_row(e, ln) }}{% endfor %}</ul>
+    {% endif %}
+    {% set loose = ln.loose_txs %}
+    {% if loose %}
+    <h4 class="bud-sub">Wpisy</h4>
+    <ul class="bud-entries">{% for tx in loose %}{{ tx_row(tx) }}{% endfor %}</ul>
+    {% endif %}
+    {% if not ln.entries and not loose %}<p class="muted"><small>Nic w tym miesiącu.</small></p>{% endif %}
+  </div>
+</details>
+{% endmacro %}
+
+<header class="cal-head bud-head">
+  <h1 class="cal-title">💰 Budżet · {{ title }}</h1>
+  <nav class="cal-nav" aria-label="Miesiące">
+    <a role="button" class="outline secondary" href="/budzet?m={{ prev_key }}" aria-label="Poprzedni miesiąc" title="Poprzedni miesiąc">‹</a>
+    <a role="button" class="outline secondary" href="/budzet">Bieżący</a>
+    <a role="button" class="outline secondary" href="/budzet?m={{ next_key }}" aria-label="Następny miesiąc" title="Następny miesiąc">›</a>
+  </nav>
+  <a href="/budzet/kategorie" class="bud-settings">⚙️ Kategorie i limity</a>
+</header>
+
+<section class="bud-summary" aria-label="Bilans miesiąca">
+  <div class="bud-stat">
+    <span class="bud-stat-lbl">Dochody</span>
+    <b>{{ b.income_actual_gr|pln }}</b>
+    <small class="muted">wpłynęło z {{ b.income_plan_gr|pln }}</small>
+  </div>
+  <div class="bud-stat">
+    <span class="bud-stat-lbl">Wydatki</span>
+    <b>{{ b.expense_actual_gr|pln }}</b>
+    <small class="muted">wydano z {{ b.expense_plan_gr|pln }}</small>
+  </div>
+  <div class="bud-stat">
+    <span class="bud-stat-lbl">Zostaje</span>
+    <b class="{% if b.remaining_gr < 0 %}neg{% endif %}">{{ b.remaining_gr|pln(sign=True) }}</b>
+    <small class="muted" title="Dochody minus wydatki – w każdej kategorii liczy się większa kwota: plan albo to, co już zaksięgowane">prognoza na koniec miesiąca</small>
+  </div>
+  <div class="bud-progress lvl-{{ b.expense_level }}">
+    <span class="bar"><i style="width: {{ b.expense_pct }}%"></i></span>
+    <small class="muted">Wydano {{ b.expense_pct }}% planu{% if b.expense_left_gr >= 0 %} · zostało {{ b.expense_left_gr|pln }}{% else %} · ponad plan o {{ (-b.expense_left_gr)|pln }}{% endif %}</small>
+  </div>
+</section>
+
+{% if b.overdue_before %}
+<details class="bud-overdue">
+  <summary><span class="badge overdue">zaległe</span> {{ b.overdue_before|length }} {{ 'pozycja' if b.overdue_before|length == 1 else 'pozycje' if b.overdue_before|length % 10 in (2, 3, 4) and b.overdue_before|length % 100 not in (12, 13, 14) else 'pozycji' }} z poprzednich miesięcy – {{ b.overdue_before|sum(attribute='planned_gr')|pln }}</summary>
+  <p class="muted"><small>Liczą się w miesiącu, w którym był termin. Po zapłaceniu znikną stąd.</small></p>
+  <ul class="bud-entries">{% for e in b.overdue_before %}{{ entry_row(e, none) }}{% endfor %}</ul>
+</details>
+{% endif %}
+
+<details class="bud-quick" {% if not b.expense_actual_gr %}open{% endif %}>
+  <summary role="button" class="outline">＋ Dodaj wydatek lub wpływ</summary>
+  <form method="post" action="/budzet/wpis" class="bud-quick-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div id="bud-error"></div>
+    <div class="bud-quick-row">
+      <label>Kwota [zł] <input name="amount" inputmode="decimal" required placeholder="np. 54,90" autocomplete="off"></label>
+      <label>Kategoria
+        <select name="budget_category_id" required>
+          {% for kind, klabel in kinds.items() if kind != 'income' %}
+          <optgroup label="{{ klabel }}">{% for c in categories if c.kind == kind %}<option value="{{ c.id }}" {% if c.id == default_cat %}selected{% endif %}>{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}</optgroup>
+          {% endfor %}
+          <optgroup label="Wpływy (poza planem)">{% for c in categories if c.kind == 'income' %}<option value="{{ c.id }}">{{ c.icon or '' }} {{ c.name }} (+)</option>{% endfor %}</optgroup>
+        </select>
+      </label>
+      <label>Data <input type="date" name="booked_on" value="{{ default_day.isoformat() }}"></label>
+    </div>
+    <div class="bud-quick-row bud-quick-row-2">
+      <label>Notatka <input name="note" placeholder="np. apteka" maxlength="300"></label>
+      <label>Dotyczy
+        <select name="item_id"><option value="">—</option>{% for i in items %}<option value="{{ i.id }}">{{ label(i.id) }}</option>{% endfor %}</select>
+      </label>
+    </div>
+    <button type="submit">Dodaj</button>
+    <small class="muted">Wybierz kategorię z grupy „Wpływy”, żeby dopisać pieniądze, które przyszły poza planem.</small>
+  </form>
+</details>
+
+{% if b.unassigned_tasks %}
+<section class="bud-section bud-unassigned" id="bez-kategorii">
+  <h2>❔ Zadania z kwotą bez kategorii <small class="muted">({{ b.unassigned_tasks|length }})</small></h2>
+  <p class="muted"><small>Są w planie tego miesiąca w „Bez kategorii”. Przypisz kategorię – zostanie zapamiętana w zadaniu.</small></p>
+  <ul class="bud-entries">
+    {% for task in b.unassigned_tasks %}
+    <li class="bud-entry bud-assign">
+      <span class="bud-entry-txt">
+        <a href="/tasks/{{ task.id }}" hx-get="/tasks/{{ task.id }}" hx-target="#modal-body" hx-push-url="false"><strong>{{ task.title }}</strong></a>
+        <small class="muted">{{ label(task.item_id) }} · {{ task.amount_gr|pln }}</small>
+      </span>
+      <form method="post" action="/budzet/zadania/{{ task.id }}/kategoria" class="bud-inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="m" value="{{ mkey }}">
+        <select name="budget_category_id" aria-label="Kategoria dla: {{ task.title }}" required>
+          <option value="">— wybierz —</option>
+          {% for kind, klabel in kinds.items() %}
+          <optgroup label="{{ klabel }}">{% for c in categories if c.kind == kind %}<option value="{{ c.id }}" {% if c.id == suggestions.get(task.id) %}selected{% endif %}>{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}</optgroup>
+          {% endfor %}
+        </select>
+        <button type="submit" class="small">Przypisz</button>
+      </form>
+      <div id="task-error-{{ task.id }}"></div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% for s in b.sections %}
+{% set extra = b.uncategorized_income if s.income else none %}
+<section class="bud-section">
+  <h2 class="bud-section-head"><span>{{ s.label }}</span>
+    <small class="muted">{% if s.income %}wpłynęło {{ (s.actual_gr + b.uncategorized_income.actual_gr)|pln }} z {{ (s.plan_gr + b.uncategorized_income.plan_gr)|pln }}{% else %}wydano {{ s.actual_gr|pln }} z {{ s.plan_gr|pln }}{% endif %}</small>
+  </h2>
+  {% set busy = s.lines|rejectattr('empty')|list %}
+  {% set idle = s.lines|selectattr('empty')|list %}
+  {% for ln in busy %}{{ cat_line(ln) }}{% endfor %}
+  {% if extra and not extra.empty %}{{ cat_line(extra) }}{% endif %}
+  {% if s.income and not has_incomes %}
+  <p class="muted"><small>Pensje, czynsz od najemcy i inne stałe wpływy wpisz raz w <a href="/budzet/kategorie#dochody">Kategorie i limity → Dochody co miesiąc</a>; tu co miesiąc tylko potwierdzisz „✓ Wpłynęło”.</small></p>
+  {% endif %}
+  {% if idle %}
+  <details class="bud-idle" {% if open in idle|map(attribute='key')|list %}open{% endif %}>
+    <summary><small>Bez planu i wydatków: {{ idle|map(attribute='category.name')|join(', ') }}</small></summary>
+    {% for ln in idle %}{{ cat_line(ln) }}{% endfor %}
+  </details>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if not b.uncategorized.empty %}
+<section class="bud-section">
+  <h2 class="bud-section-head"><span>Bez kategorii</span><small class="muted">wydano {{ b.uncategorized.actual_gr|pln }} z {{ b.uncategorized.plan_gr|pln }}</small></h2>
+  {{ cat_line(b.uncategorized) }}
+</section>
+{% endif %}
+{% endblock %}

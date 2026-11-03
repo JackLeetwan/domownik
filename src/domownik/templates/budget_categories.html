@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Kategorie i limity · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/budzet">💰 Budżet</a></li><li>Kategorie i limity</li></ul></nav>
+<h1>Kategorie i limity</h1>
+<p class="muted"><small>Koperta to miesięczny limit kategorii – plan kategorii to koperta plus terminy zadań z kwotą przypisanych do niej. Archiwalne kategorie znikają z list wyboru, ale ich historia zostaje.</small></p>
+
+<section class="bud-section" id="dochody">
+  <h2>Dochody co miesiąc</h2>
+  <p class="muted"><small>Wpisz raz – co miesiąc w budżecie potwierdzasz jednym kliknięciem „✓ Wpłynęło” (albo poprawiasz kwotę). Bez przypomnień i bez osi czasu.</small></p>
+  {% if incomes %}
+  <ul class="bud-cat-list">
+    {% for inc in incomes %}
+    {% set ended = inc.ends_on is not none and inc.ends_on < today %}
+    <li class="bud-cat-edit{% if ended %} archived{% endif %}">
+      <form method="post" action="/budzet/dochody/{{ inc.id }}" class="bud-inc-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <label>Nazwa <input name="name" value="{{ inc.name }}" required maxlength="120"></label>
+        <label>Kwota [zł] <input name="amount" inputmode="decimal" value="{{ inc.amount_gr|pln_input }}" required></label>
+        <label>Dzień <input type="number" name="day" min="1" max="31" value="{{ inc.day }}"></label>
+        <label>Kategoria
+          <select name="budget_category_id"><option value="">—</option>{% for c in income_categories %}<option value="{{ c.id }}" {% if c.id == inc.budget_category_id %}selected{% endif %}>{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}</select>
+        </label>
+        <button type="submit" class="small">Zapisz</button>
+      </form>
+      <div class="bud-cat-meta">
+        <small class="muted">od {{ inc.starts_on|d }}{% if inc.ends_on %} do {{ inc.ends_on|d }}{% endif %}</small>
+        {% if inc.ends_on %}
+        <form method="post" action="/budzet/dochody/{{ inc.id }}/wznow" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">wznów</button></form>
+        {% else %}
+        <form method="post" action="/budzet/dochody/{{ inc.id }}/zakoncz" class="inline" hx-confirm="Przestać oczekiwać „{{ inc.name }}”? Potwierdzone miesiące zostają w historii."><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link danger">zakończ</button></form>
+        {% endif %}
+      </div>
+      <div id="inc-error-{{ inc.id }}"></div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <details class="bud-add" {% if not incomes %}open{% endif %}>
+    <summary>＋ Nowy stały dochód</summary>
+    <form method="post" action="/budzet/dochody" class="bud-inc-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>Nazwa <input name="name" required maxlength="120" placeholder="np. Pensja"></label>
+      <label>Kwota [zł] <input name="amount" inputmode="decimal" required placeholder="np. 6500"></label>
+      <label>Dzień <input type="number" name="day" min="1" max="31" value="10"></label>
+      <label>Kategoria
+        <select name="budget_category_id"><option value="">—</option>{% for c in income_categories %}<option value="{{ c.id }}">{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}</select>
+      </label>
+      <button type="submit" class="small">Dodaj</button>
+    </form>
+    <div id="inc-error-new"></div>
+  </details>
+</section>
+
+{% for kind, klabel in kinds.items() %}
+<section class="bud-section">
+  <h2>{{ klabel }}</h2>
+  <ul class="bud-cat-list">
+    {% for c in by_kind[kind] %}
+    <li class="bud-cat-edit{% if c.archived %} archived{% endif %}" id="c{{ c.id }}">
+      <form method="post" action="/budzet/kategorie/{{ c.id }}" class="bud-cat-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <label class="bud-icon">Ikona <input name="icon" value="{{ c.icon or '' }}" maxlength="16"></label>
+        <label>Nazwa <input name="name" value="{{ c.name }}" required maxlength="80"></label>
+        <label>Rodzaj
+          <select name="kind">{% for k, l in kinds.items() %}<option value="{{ k }}" {% if k == c.kind %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        </label>
+        {% if kind != 'income' %}
+        <label>Koperta [zł/mies.] <input name="limit" inputmode="decimal" value="{{ c.monthly_limit_gr|pln_input }}" placeholder="bez limitu"></label>
+        {% else %}<input type="hidden" name="limit" value="{{ c.monthly_limit_gr|pln_input }}"><span class="spacer"></span>{% endif %}
+        <button type="submit" class="small">Zapisz</button>
+      </form>
+      <div class="bud-cat-meta">
+        <small class="muted">{% if usage.get(c.id) %}{{ usage[c.id] }} {{ 'zadanie' if usage[c.id] == 1 else 'zadania' if usage[c.id] % 10 in (2, 3, 4) and usage[c.id] % 100 not in (12, 13, 14) else 'zadań' }}{% else %}bez zadań{% endif %}{% if c.archived %} · w archiwum{% endif %}</small>
+        <form method="post" action="/budzet/kategorie/{{ c.id }}/archiwum" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link{% if not c.archived %} danger{% endif %}">{{ 'przywróć' if c.archived else 'archiwizuj' }}</button></form>
+      </div>
+      <div id="cat-error-{{ c.id }}"></div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+
+<section class="bud-section">
+  <h2>Nowa kategoria</h2>
+  <form method="post" action="/budzet/kategorie" class="bud-cat-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="bud-icon">Ikona <input name="icon" maxlength="16" placeholder="🐶"></label>
+    <label>Nazwa <input name="name" required maxlength="80" placeholder="np. Zwierzęta"></label>
+    <label>Rodzaj
+      <select name="kind">{% for k, l in kinds.items() %}<option value="{{ k }}" {% if k == 'variable' %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    </label>
+    <label>Koperta [zł/mies.] <input name="limit" inputmode="decimal" placeholder="bez limitu"></label>
+    <button type="submit" class="small">Dodaj</button>
+  </form>
+  <div id="cat-error-new"></div>
+</section>
+{% endblock %}

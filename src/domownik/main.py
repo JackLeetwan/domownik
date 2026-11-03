@@ -10,7 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from domownik.config import get_settings, now
-from domownik.routers import account, assignments, auth, board, calendar, dashboard, items, shopping, tasks
+from domownik.routers import account, assignments, auth, board, budget, calendar, dashboard, items, shopping, tasks
 from domownik.security import LoginRequired
 from domownik.web import HERE, is_htmx, render
 
@@ -67,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(account.router)
     app.include_router(assignments.router)
     app.include_router(calendar.router)
+    app.include_router(budget.router)
 
     @app.exception_handler(LoginRequired)
     async def _login_required(request: Request, _exc: LoginRequired):

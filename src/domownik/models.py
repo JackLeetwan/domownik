@@ -167,6 +167,46 @@ class BudgetCategory(Base):
     kind: Mapped[str] = mapped_column(String(20))
     icon: Mapped[str | None] = mapped_column(String(16))
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    # envelope: how much may go out of this category in a month (on top of the planned task dates)
+    monthly_limit_gr: Mapped[int | None] = mapped_column(Integer)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+
+    @property
+    def is_income(self) -> bool:
+        return self.kind == "income"
+
+
+BUDGET_KINDS: dict[str, str] = {
+    "income": "Dochody",
+    "fixed": "Stałe opłaty",
+    "planned": "Zaplanowane",
+    "variable": "Codzienne (koperty)",
+}
+
+
+class RecurringIncome(Base):
+    """Money that comes every month (salary, rent from a tenant), confirmed month by month in /budzet.
+
+    Not a Task on purpose: no reminders, not on the timeline, and each month is confirmed on its own
+    (a late salary does not hold the next month back).
+    """
+
+    __tablename__ = "recurring_income"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    amount_gr: Mapped[int] = mapped_column(Integer)  # planned, positive
+    day: Mapped[int] = mapped_column(Integer, default=10)  # expected day of the month (31 = last day)
+    budget_category_id: Mapped[int | None] = mapped_column(ForeignKey("budget_category.id", ondelete="SET NULL"))
+    starts_on: Mapped[date] = mapped_column(Date)  # first month it is expected (1st day of that month)
+    ends_on: Mapped[date | None] = mapped_column(Date)  # last day it is expected; None = open-ended
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    budget_category: Mapped[BudgetCategory | None] = relationship()
+
+    def expected_in(self, first: date, last: date) -> bool:
+        return self.starts_on <= last and (self.ends_on is None or self.ends_on >= first)
 
 
 class Task(Base):
@@ -269,9 +309,17 @@ class Transaction(Base):
     item_id: Mapped[int | None] = mapped_column(ForeignKey("item.id", ondelete="SET NULL"), index=True)
     task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id", ondelete="SET NULL"))
     completion_id: Mapped[int | None] = mapped_column(ForeignKey("completion.id", ondelete="CASCADE"))
+    # confirmation of a monthly income ("✓ Wpłynęło")
+    income_id: Mapped[int | None] = mapped_column(ForeignKey("recurring_income.id", ondelete="SET NULL"))
     note: Mapped[str | None] = mapped_column(String(300))
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    budget_category: Mapped[BudgetCategory | None] = relationship()
+    item: Mapped[Item | None] = relationship()
+    task: Mapped[Task | None] = relationship()
+    completion: Mapped[Completion | None] = relationship()
+    created_by: Mapped[User | None] = relationship()
 
 
 class Issue(Base):

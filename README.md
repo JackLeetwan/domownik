@@ -1,7 +1,7 @@
 # Domownik
 
 Rodzinny panel: strefy (Samochody, Dom, Mieszkanie wynajęte, Dzieci, Okazje…), zadania cykliczne,
-oś czasu, historia z kosztami, a w kolejnych etapach budżet i powiadomienia.
+oś czasu, historia z kosztami, powiadomienia i budżet domowy.
 
 Plan: `~/.claude/plans/glowing-beaming-catmull.md`.
 
@@ -21,6 +21,15 @@ sudo tailscale serve --bg 8000      # → https://<host>.<tailnet>.ts.net
 
 Po włączeniu HTTPS ustaw w `.env`: `DOMOWNIK_HTTPS_ONLY=true` i `DOMOWNIK_BASE_URL=https://…`,
 potem `docker compose up -d`.
+
+## Budżet
+
+`/budzet` – jeden wspólny budżet domu, miesiąc po miesiącu. Plan kategorii = koperta (miesięczny limit,
+jeśli ustawiony) + terminy zadań z kwotą przypisanych do kategorii (serie rat, przełożone i pominięte
+terminy liczone jak na osi czasu). Wykonanie to transakcje: zapłacone zadania (także automatycznie),
+„Zakończ zakupy” z kwotą (Jedzenie) i ręczne wpisy. Płatność zadania liczy się w miesiącu terminu.
+Stałe dochody (pensje, czynsz od najemcy) wpisuje się raz w **Kategorie i limity**, a co miesiąc
+potwierdza „✓ Wpłynęło” – bez przypomnień i bez osi czasu.
 
 ## Powiadomienia
 

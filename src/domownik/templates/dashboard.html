@@ -45,6 +45,15 @@
 </p>
 {% endif %}
 
+{# budget of the current month – below the timeline and shortcuts, never above the timeline #}
+{% if budget_month and (budget_month.expense_plan_gr or budget_month.expense_actual_gr) %}
+{% set bm = budget_month %}
+<a class="bud-tile lvl-{{ bm.expense_level }}" href="/budzet">
+  <span class="bud-tile-txt"><span aria-hidden="true">💰</span> <b>{{ budget_title }}:</b> wydano {{ bm.expense_actual_gr|pln }} z {{ bm.expense_plan_gr|pln }} · {% if bm.expense_left_gr >= 0 %}zostało {{ bm.expense_left_gr|pln }}{% else %}<span class="over">ponad plan o {{ (-bm.expense_left_gr)|pln }}</span>{% endif %}</span>
+  <span class="bar" aria-hidden="true"><i style="width: {{ bm.expense_pct }}%"></i></span>
+</a>
+{% endif %}
+
 {# phone: one column – timeline, shortcuts, upcoming dates, then tiles; wide screens: dates beside the tiles #}
 <div class="dash-cols">
 <section class="agenda">

@@ -714,3 +714,136 @@ code.topic { user-select: all; word-break: break-all; }
 /* the task window as a page of its own (/tasks/{id} opened directly) */
 .task-page { margin-top: 0.5rem; }
 .task-page h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+
+/* ---------------------------------------------------------------- budget (/budzet) */
+.bar { display: block; height: 0.45rem; border-radius: 999px; background: color-mix(in srgb, var(--pico-muted-color) 18%, transparent); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: inherit; background: var(--dm-later); }
+.lvl-warn .bar > i { background: var(--dm-soon); }
+.lvl-over .bar > i { background: var(--dm-overdue); }
+.bud-head .bud-settings { white-space: nowrap; font-size: 0.9rem; text-decoration: none; }
+.bud-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem 1rem; padding: 0.9rem 1rem; margin-bottom: 1rem; border-radius: 12px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }
+.bud-stat { display: flex; flex-direction: column; min-width: 0; }
+.bud-stat-lbl { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pico-muted-color); }
+.bud-stat b { font-size: 1.25rem; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bud-stat b.neg, .bud-cat-left.over, .bud-tile .over { color: var(--dm-overdue); }
+.bud-stat small { font-size: 0.78rem; }
+.bud-progress { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 0.3rem; }
+.bud-progress .bar { height: 0.6rem; }
+.bud-overdue { margin: 0 0 1rem; padding: 0.5rem 0.75rem; border: 1px solid color-mix(in srgb, var(--dm-overdue) 40%, transparent); border-radius: 10px; }
+.bud-overdue > summary { margin: 0; font-size: 0.92rem; }
+.bud-overdue[open] > summary { margin-bottom: 0.4rem; }
+.bud-quick { margin: 0 0 1.25rem; }
+.bud-quick > summary[role=button] { width: auto; display: inline-block; padding: 0.4rem 0.9rem; font-size: 0.95rem; }
+.bud-quick[open] > summary { margin-bottom: 0.75rem; }
+.bud-quick-form { padding: 0.75rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-surface); }
+.bud-quick-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr); gap: 0 0.75rem; }
+.bud-quick-row-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.bud-quick-form label { margin-bottom: 0.25rem; }
+.bud-quick-form input, .bud-quick-form select { margin-bottom: 0.6rem; }
+.bud-quick-form button[type=submit] { width: auto; margin: 0 0.75rem 0 0; }
+.bud-section { margin-bottom: 1.5rem; }
+.bud-section > h2 { font-size: 1.1rem; margin: 0 0 0.4rem; }
+.bud-section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 1rem; }
+.bud-section-head small { font-size: 0.82rem; font-weight: 400; }
+.bud-cat { margin: 0; border-bottom: 1px solid var(--dm-tile-border); }
+.bud-cat > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name nums" "bar bar" "left left"; gap: 0.2rem 0.75rem; align-items: center; padding: 0.55rem 0.25rem; margin: 0; list-style: none; cursor: pointer; }
+.bud-cat > summary::-webkit-details-marker { display: none; }
+.bud-cat > summary::after { display: none; }
+.bud-cat-name { grid-area: name; display: flex; align-items: center; gap: 0.4rem; min-width: 0; font-weight: 600; }
+.bud-cat-name .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bud-cat-name .ic { flex: none; width: 1.4rem; text-align: center; }
+.bud-cat-nums { grid-area: nums; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.bud-cat > summary .bar { grid-area: bar; }
+.bud-cat-left { grid-area: left; color: var(--pico-muted-color); font-size: 0.78rem; min-height: 0; }
+.bud-cat-left:empty { display: none; }
+@media (min-width: 760px) {
+  .bud-cat > summary { grid-template-columns: minmax(0, 1.3fr) minmax(6rem, 1fr) 12rem 10rem; grid-template-areas: "name bar nums left"; }
+  .bud-cat-left { text-align: right; }
+  .bud-cat-left:empty { display: block; }
+}
+.bud-cat > summary, .bud-cat[open] > summary { color: var(--pico-color); }
+.bud-cat[open] > summary { border-bottom: 1px dashed var(--dm-tile-border); }
+.bud-cat-body { padding: 0.4rem 0.25rem 0.75rem 1.9rem; }
+.bud-limit { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; margin-bottom: 0.25rem; }
+.bud-sub { font-size: 0.8rem; margin: 0.6rem 0 0.2rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.04em; }
+.bud-entries { list-style: none; margin: 0; padding: 0; }
+.bud-entry { list-style: none; display: grid; grid-template-columns: 3.6rem minmax(0, 1fr) auto; grid-template-areas: "date txt amt" "act act act"; gap: 0.15rem 0.6rem; align-items: center; padding: 0.4rem 0 0.4rem 0.5rem; margin: 0; border-bottom: 1px solid var(--dm-tile-border); border-left: 3px solid var(--dm-future); font-size: 0.92rem; }
+.bud-entry:last-child { border-bottom: 0; }
+.bud-entry.st-paid, .bud-entry.st-received, .bud-entry.st-done { border-left-color: var(--dm-done); }
+.bud-entry.st-overdue { border-left-color: var(--dm-overdue); }
+.bud-entry.st-expected { border-left-color: var(--dm-soon); }
+.bud-entry.st-tx { border-left-color: var(--dm-later); }
+.bud-entry-date { grid-area: date; font-size: 0.8rem; color: var(--pico-muted-color); white-space: nowrap; }
+.bud-entry-txt { grid-area: txt; display: flex; flex-direction: column; min-width: 0; }
+.bud-entry-txt strong { font-weight: 600; overflow-wrap: anywhere; }
+.bud-entry-txt a { text-decoration: none; color: inherit; }
+.bud-entry-txt a:hover strong { color: var(--pico-primary); }
+.bud-entry-amt { grid-area: amt; display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bud-entry-amt small { font-size: 0.72rem; }
+.bud-entry-act, .bud-confirm { grid-area: act; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.3rem 0.9rem; font-size: 0.85rem; }
+.bud-entry-act form { margin: 0; }
+.bud-entry-act .link { font-size: 0.85rem; }
+.bud-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0; }
+.bud-inline input, .bud-inline select { width: 8rem; margin: 0; height: auto; padding: 0.25rem 0.5rem; font-size: 0.9rem; }
+.bud-inline select { width: auto; max-width: 100%; padding-right: 2rem; }
+.bud-inline button { margin: 0; }
+.bud-confirm > div { flex-basis: 100%; text-align: right; }
+.bud-edit { margin: 0; display: inline-block; }
+details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; color: var(--pico-primary); margin: 0; list-style: none; }
+.bud-edit > summary::-webkit-details-marker { display: none; }
+.bud-edit > summary::after { display: none; }
+.bud-edit[open] { display: block; flex-basis: 100%; }
+.bud-edit[open] > summary { margin-bottom: 0.3rem; }
+.bud-edit .bud-inline { justify-content: flex-end; }
+.bud-limit .bud-edit .bud-inline { justify-content: flex-start; }
+.bud-idle { margin: 0.25rem 0 0; }
+.bud-idle > summary { color: var(--pico-muted-color); margin: 0.3rem 0; }
+.bud-assign { grid-template-columns: minmax(0, 1fr); grid-template-areas: "txt" "form"; border-left-color: var(--dm-soon); }
+.bud-assign form { grid-area: form; }
+.bud-assign > div { grid-column: 1 / -1; }
+.bud-unassigned { padding: 0.75rem; border: 1px solid color-mix(in srgb, var(--dm-soon) 45%, transparent); border-radius: 10px; }
+@media (min-width: 760px) {
+  .bud-entry { grid-template-columns: 4rem minmax(0, 1fr) auto auto; grid-template-areas: "date txt amt act"; }
+  .bud-assign { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "txt form"; }
+}
+@media (max-width: 639.98px) {
+  .bud-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0.7rem; gap: 0.4rem 0.6rem; }
+  .bud-stat b { font-size: 1rem; }
+  .bud-stat small { font-size: 0.7rem; }
+  .bud-quick-row, .bud-quick-row-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .bud-quick-row label:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .bud-cat-body { padding-left: 0.5rem; }
+  .bud-head .bud-settings { margin-left: auto; }
+}
+/* categories & limits */
+.bud-cat-list { list-style: none; margin: 0; padding: 0; }
+.bud-cat-edit { list-style: none; margin: 0; padding: 0.6rem 0; border-bottom: 1px solid var(--dm-tile-border); }
+.bud-cat-edit.archived { opacity: 0.6; }
+.bud-cat-form, .bud-inc-form { display: grid; grid-template-columns: 4.2rem minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.2fr) auto; gap: 0 0.6rem; align-items: end; margin: 0; }
+.bud-inc-form { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 4.5rem minmax(0, 1.4fr) auto; }
+.bud-cat-form label, .bud-inc-form label { margin: 0; font-size: 0.8rem; color: var(--pico-muted-color); }
+.bud-cat-form input, .bud-cat-form select, .bud-inc-form input, .bud-inc-form select { margin: 0.15rem 0 0; height: auto; padding: 0.3rem 0.5rem; font-size: 0.92rem; color: var(--pico-color); }
+.bud-cat-form select, .bud-inc-form select { padding-right: 2rem; }
+.bud-cat-form button, .bud-inc-form button { margin: 0 0 0.1rem; }
+.bud-icon input { text-align: center; }
+.bud-cat-meta { display: flex; align-items: center; gap: 1rem; margin-top: 0.3rem; font-size: 0.85rem; }
+.bud-cat-meta form { margin: 0; }
+.bud-add { margin: 0.6rem 0 0; }
+.bud-add > summary { color: var(--pico-primary); margin: 0; }
+.bud-add[open] > summary { margin-bottom: 0.5rem; }
+@media (max-width: 639.98px) {
+  .bud-cat-form { grid-template-columns: 3.6rem minmax(0, 1fr) minmax(0, 1fr); gap: 0.4rem 0.5rem; }
+  .bud-cat-form label:nth-of-type(2) { grid-column: 2 / 4; }
+  .bud-cat-form label:nth-of-type(3) { grid-column: 1 / 3; }
+  .bud-cat-form label:nth-of-type(3):last-of-type { grid-column: 1 / -1; }
+  .bud-cat-form .spacer { display: none; }
+  .bud-cat-form button { grid-column: 1 / -1; justify-self: start; }
+  .bud-inc-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.4rem 0.5rem; }
+  .bud-inc-form label:first-of-type { grid-column: 1 / -1; }
+  .bud-inc-form button { grid-column: 1 / -1; justify-self: start; }
+}
+/* dashboard: the month in one line, below the timeline */
+.bud-tile { display: flex; flex-direction: column; gap: 0.35rem; margin: 0 0 1.25rem; padding: 0.6rem 0.9rem; border-radius: 12px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); text-decoration: none; color: var(--pico-color); font-size: 0.92rem; }
+.bud-tile:hover { border-color: var(--pico-primary); }
+.bud-tile-txt { font-variant-numeric: tabular-nums; }
+.tools-compact + .bud-tile { margin-top: -0.5rem; }

@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from domownik import services
+from domownik import budget, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
@@ -51,6 +51,7 @@ def dashboard(
     if who == "me":
         todos = [td for td in todos if td.assignee_id in (None, user.id)]
     has_items = db.scalar(select(func.count(Item.id))) > 0
+    budget_month = budget.compute_month(db, t.year, t.month, t) if has_items else None
     return render(
         request,
         "dashboard.html",
@@ -70,6 +71,8 @@ def dashboard(
             "any_assigned": services.any_assigned(db),
             "timeline_item": None,
             "LATER_SHOWN": LATER_SHOWN,
+            "budget_month": budget_month,
+            "budget_title": services.MONTH_NAMES[t.month].capitalize(),
         },
     )
 
