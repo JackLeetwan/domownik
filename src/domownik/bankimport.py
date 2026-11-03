@@ -103,7 +103,12 @@ def parse_statement(raw: bytes) -> list[Line]:
     text = _decode(raw)
     sample = "\n".join(text.splitlines()[:60])
     delim = ";" if sample.count(";") >= sample.count(",") else ","
-    rows = list(csv.reader(io.StringIO(text), delimiter=delim))
+    if "\x00" in text[:4096]:  # a photo / PDF / Excel file picked by mistake
+        raise StatementError("To nie jest plik CSV. Wyeksportuj historię z banku jako CSV.")
+    try:
+        rows = list(csv.reader(io.StringIO(text, newline=""), delimiter=delim))
+    except csv.Error as exc:
+        raise StatementError("Nie udało się odczytać pliku CSV. Wyeksportuj historię z banku jeszcze raz.") from exc
     head_at = None
     for i, row in enumerate(rows[:80]):
         heads = [_norm_head(c) for c in row]

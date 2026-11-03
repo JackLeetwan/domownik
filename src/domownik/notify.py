@@ -375,6 +375,10 @@ def run_slot(db: Session, slot: str, today: date) -> int:
             except webpush.PushError as exc:
                 log.warning("push: %s – %s", d.user.name, exc)
                 continue  # try again on the next tick
+            except Exception:  # one person's broken digest must not hold back the others
+                db.rollback()
+                log.exception("digest for %s failed", d.user.name)
+                continue
             record(db, d, today)
             sent += 1
         db.add(NotificationLog(user_id=d.user.id, task_id=None, kind=slot, sent_on=today))
@@ -461,26 +465,32 @@ def run_timed(db: Session, now: datetime) -> int:
     return sent
 
 
+def _guarded(db: Session, name: str, fn, *args) -> None:
+    """One step of the tick: if it breaks (a bad row, a bug), log it and go on with the next one – an
+    autopay error must not cost everyone their morning push, every five minutes, until someone notices."""
+    try:
+        fn(db, *args)
+    except Exception:
+        db.rollback()
+        log.exception("scheduler: %s failed", name)
+
+
 def tick(db: Session, now: datetime) -> None:
     """Scheduler entry point (every few minutes): autopay, then any slot whose hour has come.
 
     Catch-up is built in – after a restart at 9:30 the morning digest still goes out.
     """
-    s = get_settings()
-    today = now.date()
-    services.settle_autopay(db, today)
-    if s.morning_hour <= now.hour < s.evening_hour:
-        run_slot(db, "morning", today)
-    if now.hour >= s.evening_hour:
-        run_slot(db, "evening", today)
-    run_timed(db, now)
     from domownik import extcal
 
-    try:
-        extcal.refresh_due(db, now)
-    except Exception:  # never let a calendar server break the reminders
-        db.rollback()
-        log.exception("external calendars refresh failed")
+    s = get_settings()
+    today = now.date()
+    _guarded(db, "autopay", services.settle_autopay, today)
+    if s.morning_hour <= now.hour < s.evening_hour:
+        _guarded(db, "morning digest", run_slot, "morning", today)
+    if now.hour >= s.evening_hour:
+        _guarded(db, "evening digest", run_slot, "evening", today)
+    _guarded(db, "timed reminders", run_timed, now)
+    _guarded(db, "external calendars", extcal.refresh_due, now)  # a calendar server never breaks reminders
 
 
 def send_test(db: Session, user: User, digest: Digest | None) -> int:

@@ -410,6 +410,11 @@
     const doc = new DOMParser().parseFromString(xhr.responseText || "", "text/html");
     const text = (doc.body ? doc.body.textContent : "").trim().slice(0, 200);
     // 400 = the server explains what to fix (e.g. a wrong amount) – show just that
+    if (xhr.status >= 500) {
+      // the server's own fault – its text ("Internal Server Error") says nothing to anyone at home
+      toast(`Coś poszło nie tak po stronie Domownika (błąd ${xhr.status}). Spróbuj ponownie za chwilę.`);
+      return;
+    }
     toast(xhr.status === 400 && text ? text : `Błąd ${xhr.status}: ${text || xhr.statusText}`);
   });
 

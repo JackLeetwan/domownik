@@ -170,6 +170,8 @@ def _validate_core(rule: Rule) -> Rule:
             raise RuleError("n musi być 1–5 albo -1 (ostatni)")
         if weekday not in WEEKDAYS:
             raise RuleError(f"Nieznany dzień tygodnia: {weekday!r}")
+        if month == 2 and n == 5:  # only in a leap February starting on that weekday – once in 28 years
+            raise RuleError("Luty prawie nigdy nie ma piątego takiego dnia – wybierz „ostatni”")
         return {"mode": mode, "month": month, "weekday": weekday, "n": n}
     return {"mode": "once"}
 

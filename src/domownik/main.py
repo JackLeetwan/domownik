@@ -4,6 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from markupsafe import escape
@@ -91,6 +92,15 @@ HSTS = "max-age=31536000"
 BAD_INPUT = "Nieprawidłowe dane w formularzu – odśwież stronę i spróbuj ponownie."
 
 
+UNEXPECTED = "Coś poszło nie tak po stronie Domownika. Spróbuj ponownie za chwilę."
+UNEXPECTED_PAGE = (
+    '<!doctype html><html lang="pl"><meta charset="utf-8">'
+    '<meta name="viewport" content="width=device-width, initial-scale=1"><title>Błąd · Domownik</title>'
+    '<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:3rem auto;padding:0 1rem">'
+    f'<h2>Błąd 500</h2><p>{UNEXPECTED}</p><p><a href="/">← Wróć na pulpit</a></p></body></html>'
+)
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="Domownik", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
@@ -162,6 +172,26 @@ def create_app() -> FastAPI:
         if is_htmx(request) or request.url.path.startswith(("/api/", "/push/")):
             return HTMLResponse(BAD_INPUT, status_code=400, headers={"HX-Reswap": "none"})
         return render(request, "error.html", {"code": 400, "detail": BAD_INPUT}, status_code=400)
+
+    @app.exception_handler(Exception)
+    async def _unexpected(request: Request, exc: Exception):
+        # a bug: the traceback still goes to the log (Starlette re-raises after this answer); the page is
+        # plain HTML on purpose – rendering the usual layout needs the database, which may be what broke
+        log.error("unhandled error on %s %s", request.method, request.url.path, exc_info=exc)
+        if is_htmx(request) or request.url.path.startswith(("/api/", "/push/")):
+            return HTMLResponse(UNEXPECTED, status_code=500, headers={"HX-Reswap": "none"})
+        return HTMLResponse(UNEXPECTED_PAGE, status_code=500)
+
+    @app.exception_handler(RequestValidationError)
+    async def _bad_url(request: Request, exc: RequestValidationError):
+        # a hand-typed / cut-off link: "/items/abc" is a page that does not exist, "/kalendarz?d=abc" a bad
+        # address – a normal error page instead of FastAPI's JSON
+        in_path = any(e.get("loc", ("",))[0] == "path" for e in exc.errors())
+        code = 404 if in_path else 400
+        detail = "Nie ma takiej strony." if in_path else "Nieprawidłowy adres – brakuje czegoś albo coś jest w nim źle."
+        if is_htmx(request) or request.url.path.startswith(("/api/", "/push/")):
+            return HTMLResponse(detail, status_code=code, headers={"HX-Reswap": "none"})
+        return render(request, "error.html", {"code": code, "detail": detail}, status_code=code)
 
     @app.exception_handler(StarletteHTTPException)
     async def _http_error(request: Request, exc: StarletteHTTPException):

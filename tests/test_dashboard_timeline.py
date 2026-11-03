@@ -135,7 +135,7 @@ def test_timeline_api_bins(auth_client, db):
     (soon,) = [p for p in pts if p["kind"] == "due"]
     assert soon["title"] == "Przegląd" and soon["status"] == "soon"
 
-    assert auth_client.get("/api/timeline", params=params | {"bin": "year"}).status_code == 422
+    assert auth_client.get("/api/timeline", params=params | {"bin": "year"}).status_code == 400
 
 
 def test_dashboard_order_empty_week_and_long_later(auth_client, db):
