@@ -17,7 +17,7 @@ from domownik import budget, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
-from domownik.models import BUDGET_KINDS, Meter, User
+from domownik.models import BUDGET_KINDS, Item, Meter, User
 from domownik.routers import shopping
 from domownik.routers.budget import _default_expense_category
 from domownik.security import current_user
@@ -27,6 +27,7 @@ router = APIRouter(prefix="/dodaj")
 
 # kind: (icon, label, hint)
 KINDS: dict[str, tuple[str, str, str]] = {
+    "event": ("📅", "Wydarzenie", "wizyta, spotkanie – z godziną"),
     "task": ("📋", "Zadanie", "termin, przypomnienie"),
     "shopping": ("🛒", "Zakup", "na listę zakupów"),
     "note": ("📝", "Notatka", "karteczka dla wszystkich"),
@@ -82,7 +83,16 @@ def form(request: Request, kind: str, db: Session = Depends(get_db), user: User 
         "users": services.active_users(db),
         "today": today(),
     }
-    if kind == "shopping":
+    if kind == "event":
+        from domownik.routers.tasks import DEFAULT_REMIND, REMIND_CHOICES
+
+        ctx["remind_choices"] = REMIND_CHOICES
+        ctx["default_remind"] = DEFAULT_REMIND
+        if ctx["current_item"] is None:
+            # an appointment is usually someone's: start with the person's own page in the tree
+            own = db.scalar(select(Item.id).where(Item.user_id == user.id, Item.archived.is_(False)))
+            ctx["current_item"] = own if own in tree.items else None
+    elif kind == "shopping":
         ctx["suggestions"] = shopping.suggestions(db)
     elif kind == "expense":
         cats = budget.active_categories(db)

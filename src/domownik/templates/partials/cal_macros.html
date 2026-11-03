@@ -10,7 +10,7 @@
   <a href="/tasks/{{ p.task_id }}" hx-get="/tasks/{{ p.task_id }}" hx-target="#modal-body" hx-push-url="false">
     <span class="cal-row-ic" aria-hidden="true">{{ p.icon }}</span>
     <span class="cal-row-txt">
-      <strong>{{ avatar(p.assignee) }}{{ p.title }}</strong>
+      <strong>{{ avatar(p.assignee) }}{% if p.time %}<span class="time-tag">{{ p.time }}</span> {% endif %}{{ p.title }}</strong>
       <small class="muted">{% if show_zone %}{{ p.zone }} · {% endif %}{{ CAL_STATUS.get(st(p), '') }}</small>
     </span>
     <span class="cal-row-amt">{{ amount(p) }}</span>

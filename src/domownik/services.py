@@ -613,7 +613,16 @@ def timeline(
             else:
                 status = "future"
             # each occurrence of a counted series carries its own number ("rata 4/6")
-            points.append(base | {"title": task.title_at(n), "date": d.isoformat(), "kind": "due", "status": status})
+            points.append(
+                base
+                | {
+                    "title": task.title_at(n),
+                    "date": d.isoformat(),
+                    "kind": "due",
+                    "status": status,
+                    "time": task.time_label,
+                }
+            )
 
     stmt = (
         select(Completion)
@@ -800,12 +809,12 @@ def group_day(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Chips of one day: tasks of one category (and kind: due / done) merge into one bundle.
 
     Unlike the timeline bundles urgent ones merge too – a calendar cell has no room for 17 bills.
-    Km forecasts always stay on their own.
+    Km forecasts and tasks with an hour always stay on their own.
     """
     bins: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     single: list[dict[str, Any]] = []
     for p in points:
-        if p["kind"] == "forecast":
+        if p["kind"] == "forecast" or p.get("time"):  # appointments keep their own line with the hour
             single.append(p)
         else:
             bins[(p["kind"], p.get("category") or "other")].append(p)
@@ -836,7 +845,16 @@ def group_day(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "tasks": ps,
             }
         )
-    out.sort(key=lambda p: (STATUS_RANK.get(p["status"], 9), p["kind"] != "bundle", p.get("title") or p["label"]))
+    # an appointment's hour orders the day: timed ones first, by the hour
+    out.sort(
+        key=lambda p: (
+            STATUS_RANK.get(p["status"], 9),
+            not p.get("time"),
+            p.get("time") or "",
+            p["kind"] != "bundle",
+            p.get("title") or p["label"],
+        )
+    )
     return out
 
 

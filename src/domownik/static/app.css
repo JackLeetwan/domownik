@@ -569,6 +569,11 @@ code.topic { user-select: all; word-break: break-all; }
 .task-form { max-width: 44rem; }
 .task-form .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 0.75rem; align-items: end; }
 .task-form .form-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.task-form .time-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr); }
+@media (max-width: 575.98px) { .task-form .time-row > label:last-child { grid-column: 1 / -1; } }
+.task-form .time-hint { display: block; margin: -0.5rem 0 0.75rem; }
+.qa-time { grid-template-columns: 1.4fr 1fr 1fr; }
+.time-tag { font-variant-numeric: tabular-nums; font-weight: 600; }
 .task-form .form-row > [hidden] { display: none; }
 .task-form label { margin-bottom: 0.25rem; }
 .task-form input:not([type=checkbox], [type=radio]), .task-form select, .task-form textarea { margin-bottom: 0.6rem; }

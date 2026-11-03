@@ -172,6 +172,8 @@ def build_digests(db: Session, slot: str, today: date, *, preview_for: User | No
                 title = ", ".join(r.task.full_title for r in rs)
             else:
                 title = rs[0].task.full_title
+                if rs[0].task.due_time and rank in (1, 3):
+                    title = f"{rs[0].task.time_label} {title}"
             tasks = [r.task for r in rs]
             digests[user.id].lines.append(Line(rank, _line_text(rank, title, due, today, tasks), tasks, due))
     _add_household_lines(db, list(digests.values()), slot, today)
@@ -304,6 +306,85 @@ def run_slot(db: Session, slot: str, today: date) -> int:
     return sent
 
 
+# ---------------------------------------------------------------- a push before the hour of a task
+
+TIMED_GRACE = timedelta(minutes=30)  # a reminder "at the hour" may still go out this long after it
+
+
+def _when_text(due_at: datetime, now: datetime) -> str:
+    mins = round((due_at - now).total_seconds() / 60)
+    if mins <= 0:
+        return "teraz"
+    if due_at.date() != now.date():
+        return (
+            f"jutro o {due_at:%H:%M}" if (due_at.date() - now.date()).days == 1 else f"{due_at:%d.%m} o {due_at:%H:%M}"
+        )
+    if mins < 60:
+        return f"za {mins} min"
+    h, m = divmod(mins, 60)
+    return f"za {h} godz." + (f" {m} min" if m else "") + f" (o {due_at:%H:%M})"
+
+
+def timed_reminders(db: Session, now: datetime) -> list[tuple[Task, datetime]]:
+    """Tasks with an hour whose push time has come: (task, due moment). Naive local time."""
+    out = []
+    stmt = select(Task).where(
+        Task.active.is_(True),
+        Task.due_time.is_not(None),
+        Task.remind_minutes.is_not(None),
+        Task.next_due_date.is_not(None),
+    )
+    for t in db.scalars(stmt):
+        h, m = (int(x) for x in t.due_time.split(":"))
+        due_at = datetime.combine(t.next_due_date, datetime.min.time()).replace(hour=h, minute=m)
+        fire = due_at - timedelta(minutes=t.remind_minutes)
+        if fire <= now <= max(due_at, fire) + TIMED_GRACE:
+            out.append((t, due_at))
+    return out
+
+
+def run_timed(db: Session, now: datetime) -> int:
+    """One push per occurrence to the person taking care of it (nobody assigned: everyone with a device)."""
+    now = now.replace(tzinfo=None)
+    due = timed_reminders(db, now)
+    if not due:
+        return 0
+    with_device = set(db.scalars(select(PushSubscription.user_id)))
+    users = [u for u in services.active_users(db) if u.id in with_device]
+    tree = Tree.load(db)
+    sent = 0
+    for task, due_at in due:
+        if task.item_id not in tree.items:
+            continue
+        for user in users:
+            if task.assignee_id not in (None, user.id):
+                continue
+            if _already(db, user, "at_time", task_id=task.id, ref=task.next_due_date, since=date.min):
+                continue
+            where = tree.label(task.item_id)
+            body = {
+                "title": f"⏰ {task.time_label} {task.full_title}",
+                "body": f"{_when_text(due_at, now).capitalize()} · {where}",
+                "url": "/",
+                "tag": f"domownik-task-{task.id}",
+                "urgent": True,
+                "actions": [{"action": "done-0", "title": "✓ Zrobione", "url": f"/n/done/{done_token(task, user)}"}],
+            }
+            try:
+                send(db, user, body)
+            except webpush.PushError as exc:
+                log.warning("push: %s – %s", user.name, exc)
+                continue
+            db.add(
+                NotificationLog(
+                    user_id=user.id, task_id=task.id, kind="at_time", ref_date=task.next_due_date, sent_on=now.date()
+                )
+            )
+            db.commit()
+            sent += 1
+    return sent
+
+
 def tick(db: Session, now: datetime) -> None:
     """Scheduler entry point (every few minutes): autopay, then any slot whose hour has come.
 
@@ -316,6 +397,7 @@ def tick(db: Session, now: datetime) -> None:
         run_slot(db, "morning", today)
     if now.hour >= s.evening_hour:
         run_slot(db, "evening", today)
+    run_timed(db, now)
 
 
 def send_test(db: Session, user: User, digest: Digest | None) -> int:

@@ -242,6 +242,11 @@ class Task(Base):
     lead_days: Mapped[int] = mapped_column(Integer, default=7)
     next_due_date: Mapped[date | None] = mapped_column(Date, index=True)
     next_due_km: Mapped[int | None] = mapped_column(Integer)
+    # optional hour of the due day ("14:30") – an appointment; ends_at only for a span ("14:30–15:30")
+    due_time: Mapped[str | None] = mapped_column(String(5))
+    ends_at: Mapped[str | None] = mapped_column(String(5))
+    # push N minutes before due_time (None = only the morning / evening digest)
+    remind_minutes: Mapped[int | None] = mapped_column(Integer)
     # Money in grosze (1/100 PLN); amount is the planned value of one occurrence
     amount_gr: Mapped[int | None] = mapped_column(Integer)
     direction: Mapped[str] = mapped_column(String(10), default="expense")
@@ -287,6 +292,13 @@ class Task(Base):
     @property
     def full_title(self) -> str:
         return self.title_at(0)
+
+    @property
+    def time_label(self) -> str | None:
+        """'14:30' or '14:30–15:30' – None for an all-day task."""
+        if not self.due_time:
+            return None
+        return f"{self.due_time}–{self.ends_at}" if self.ends_at else self.due_time
 
 
 class Completion(Base):

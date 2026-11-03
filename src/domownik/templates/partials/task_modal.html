@@ -7,7 +7,7 @@
 <p>
   {% if due.date %}
   <span class="badge {{ due.status }}">{{ due.days_left|days }}</span>
-  termin: <strong>{{ due.date|d(weekday=True) }}</strong>{% if due.by_km %} (prognoza z przebiegu, {{ task.next_due_km }} km){% endif %}
+  termin: <strong>{{ due.date|d(weekday=True) }}{% if task.due_time %}, {{ task.time_label }}{% endif %}</strong>{% if due.by_km %} (prognoza z przebiegu, {{ task.next_due_km }} km){% endif %}
   {% else %}<span class="badge">bez terminu</span>{% endif %}
   {% if task.amount_gr and task.direction != 'none' %} · {{ task.amount_gr|pln }}{% endif %}
 </p>

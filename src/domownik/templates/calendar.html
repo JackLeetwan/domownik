@@ -49,7 +49,7 @@
           <li><button type="button" class="cal-chip st-{{ cm.st(e) }}"
               title="{{ e.icon }} {{ e.title }}&#10;{{ e.zone }}{% if cm.amount(e)|trim %} · {{ cm.amount(e)|trim }}{% endif %}&#10;{{ cm.CAL_STATUS.get(cm.st(e)|trim, '') }}"
               hx-get="/tasks/{{ e.task_id }}" hx-target="#modal-body" hx-swap="innerHTML" hx-replace-url="false" hx-trigger="click consume">
-              <span class="ic">{{ e.icon }}</span><span class="lbl">{{ e.title }}</span></button></li>
+              <span class="ic">{{ e.icon }}</span><span class="lbl">{% if e.time %}{{ e.time.split('–')[0] }} {% endif %}{{ e.title }}</span></button></li>
           {% endif %}
         {% endfor %}
         {% if day.entries|length > MAXC %}<li class="cal-more">+{{ day.entries|length - MAXC }} więcej</li>{% endif %}

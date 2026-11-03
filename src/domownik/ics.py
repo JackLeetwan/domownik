@@ -146,6 +146,29 @@ def _hhmm(value: str) -> tuple[int, int]:
     return int(h), int(m)
 
 
+def _timed(uid: str, d: date, start: str, end: str | None, summary: str, description: str, stamp: str) -> list[str]:
+    """Event at an hour of the day (Europe/Warsaw); without an end it lasts an hour."""
+    h, m = _hhmm(start)
+    begin = datetime(d.year, d.month, d.day, h, m)
+    if end:
+        eh, em = _hhmm(end)
+        finish = datetime(d.year, d.month, d.day, eh, em)
+        if finish <= begin:
+            finish += timedelta(days=1)
+    else:
+        finish = begin + timedelta(hours=1)
+    return [
+        "BEGIN:VEVENT",
+        f"UID:{uid}",
+        f"DTSTAMP:{stamp}",
+        f"DTSTART;TZID={TZID}:{begin.strftime('%Y%m%dT%H%M%S')}",
+        f"DTEND;TZID={TZID}:{finish.strftime('%Y%m%dT%H%M%S')}",
+        f"SUMMARY:{escape(summary)}",
+        *([f"DESCRIPTION:{escape(description)}"] if description else []),
+        "END:VEVENT",
+    ]
+
+
 def build(db: Session, user: User, today: date, now: datetime, *, host: str = "domownik") -> str:
     start, end = today - timedelta(days=PAST_DAYS), today + timedelta(days=FUTURE_DAYS)
     mine = user.id if user.ics_scope == "mine" else None
@@ -170,7 +193,11 @@ def build(db: Session, user: User, today: date, now: datetime, *, host: str = "d
     for p in services.calendar_points(db, tree, today, start, end, user_id=mine):
         d = date.fromisoformat(p["date"])
         icon, title, zone = p["icon"], p["title"], p["zone"]
-        if p["kind"] == "due":
+        if p["kind"] == "due" and p.get("time"):
+            start_t, _, end_t = p["time"].partition("–")
+            uid = f"task-{p['task_id']}-{p['date']}@{host}"
+            lines += _timed(uid, d, start_t, end_t or None, f"{icon} {title}", zone, stamp)
+        elif p["kind"] == "due":
             lines += _all_day(f"task-{p['task_id']}-{p['date']}@{host}", d, f"{icon} {title}", zone, stamp)
         elif p["kind"] == "forecast":
             lines += _all_day(

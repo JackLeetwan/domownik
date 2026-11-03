@@ -8,7 +8,7 @@
   </a>
   <span class="task-due">
     <span class="badge {{ row.due.status }}">{{ row.due.days_left|days }}</span>
-    <small class="muted">{{ row.due.date|d(weekday=True) }}{% if row.due.by_km %} · wg km{% endif %}</small>
+    <small class="muted">{{ row.due.date|d(weekday=True) }}{% if row.task.due_time %} · <span class="time-tag">{{ row.task.time_label }}</span>{% endif %}{% if row.due.by_km %} · wg km{% endif %}</small>
   </span>
   <span class="task-amount">{% if row.task.amount_gr and row.task.direction != 'none' %}{{ (row.task.amount_gr if row.task.direction == 'income' else -row.task.amount_gr)|pln(sign=True) }}{% endif %}</span>
   <button class="done-btn outline" hx-get="/tasks/{{ row.task.id }}" hx-target="#modal-body" hx-push-url="false" title="Oznacz jako zrobione" aria-label="Zrobione: {{ row.task.title }}">✓</button>

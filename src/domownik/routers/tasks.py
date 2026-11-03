@@ -10,7 +10,7 @@ from markupsafe import escape
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import budget, documents, services
+from domownik import budget, documents, schedule, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain import recurrence
@@ -161,6 +161,8 @@ def _form_context(db: Session, tree: Tree, **extra) -> dict:
         "items": sorted(tree.items.values(), key=lambda i: tree.label(i.id)),
         "label": tree.label,
         "FREQ_LABELS": FREQ_LABELS,
+        "REMIND_CHOICES": REMIND_CHOICES,
+        "DEFAULT_REMIND": DEFAULT_REMIND,
         "preset_of": preset_of,
         "end_of": end_of,
         "today": today(),
@@ -190,6 +192,7 @@ def _apply_form(task: Task, form, db: Session) -> None:
     task.recurrence = recurrence.validate(rule)
     if rule.get("until") and task.next_due_date and task.next_due_date > date.fromisoformat(rule["until"]):
         raise ValueError("Koniec serii wypada przed najbliższym terminem")
+    _apply_time(task, form)
     task.lead_days = _int(form.get("lead_days"), 7)
     task.next_due_km = _int(form.get("next_due_km"))
     amount = parse_pln(form.get("amount"))
@@ -206,6 +209,30 @@ def _apply_form(task: Task, form, db: Session) -> None:
     # a counted series that is already used up stays finished until it gets more occurrences
     left = recurrence.remaining(task.recurrence)
     task.active = left is None or left > 0
+
+
+# push before the hour of a task: minutes → label ("" = no separate push, only the digest)
+REMIND_CHOICES: dict[str, str] = {
+    "": "tylko w porannym skrócie",
+    "0": "o tej godzinie",
+    "15": "15 min wcześniej",
+    "30": "30 min wcześniej",
+    "60": "godzinę wcześniej",
+    "120": "2 godziny wcześniej",
+    "1440": "dzień wcześniej",
+}
+DEFAULT_REMIND = "60"
+
+
+def _apply_time(task: Task, form) -> None:
+    """Hour of the due day (optional), its end and the push before it. Raises ValueError with a message."""
+    start = schedule.parse_time(form.get("due_time"))
+    end = schedule.parse_time(form.get("ends_at")) if start else None
+    if end and end <= start:
+        raise ValueError("Godzina końca musi być po godzinie rozpoczęcia")
+    task.due_time, task.ends_at = start, end
+    raw = (form.get("remind_minutes") or "").strip()
+    task.remind_minutes = int(raw) if start and raw in REMIND_CHOICES and raw else None
 
 
 # Pre-selected category of a new task, guessed from the kind of item it belongs to

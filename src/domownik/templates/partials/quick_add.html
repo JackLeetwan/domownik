@@ -42,6 +42,31 @@
   <small class="muted">Powtarzanie, przypomnienie, osoba i kategoria – w „Więcej opcji”, albo później w edycji zadania.</small>
 </form>
 
+{% elif kind == 'event' %}
+<form hx-post="/tasks/new" {{ qa|safe }} class="qa-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="freq" value="once">
+  <input type="hidden" name="category" value="event">
+  <input type="hidden" name="lead_days" value="1">
+  <label>Co <input name="title" required autofocus placeholder="np. Dentysta, zebranie w przedszkolu" maxlength="200"></label>
+  <div class="grid qa-time">
+    <label>Dzień <input type="date" name="next_due_date" required value="{{ today.isoformat() }}"></label>
+    <label>Od <input type="time" name="due_time" required></label>
+    <label>Do <input type="time" name="ends_at"></label>
+  </div>
+  <div class="grid">
+    <label>Kto<select name="assignee_id"><option value="">— wszyscy —</option>{% for u in users %}<option value="{{ u.id }}" {% if u.id == user.id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}</select></label>
+    <label>Powiadom<select name="remind_minutes">{% for k, l in remind_choices.items() %}<option value="{{ k }}" {% if k == default_remind %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+  </div>
+  <label>Dotyczy
+    <select name="item_id" required>
+      {% if not current_item %}<option value="">— wybierz —</option>{% endif %}
+      {% for i in items %}<option value="{{ i.id }}" {% if i.id == current_item %}selected{% endif %}>{{ label(i.id) }}</option>{% endfor %}
+    </select>
+  </label>
+  <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
+</form>
+
 {% elif kind == 'shopping' %}
 <form hx-post="/zakupy" {{ qa|safe }} class="qa-form">
   <input type="hidden" name="csrf" value="{{ csrf }}">

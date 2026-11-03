@@ -19,6 +19,15 @@
         </select>
       </label>
     </div>
+    {% set rsel = (task.remind_minutes|string if task.remind_minutes is not none else '') if task.due_time else DEFAULT_REMIND %}
+    <div class="form-row time-row">
+      <label>Godzina <input type="time" name="due_time" value="{{ task.due_time or '' }}" placeholder="opcjonalnie" data-due-time></label>
+      <label>do <input type="time" name="ends_at" value="{{ task.ends_at or '' }}" placeholder="opcjonalnie"></label>
+      <label>Powiadom
+        <select name="remind_minutes">{% for k, l in REMIND_CHOICES.items() %}<option value="{{ k }}" {% if k == rsel %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+      </label>
+    </div>
+    <small class="muted time-hint">Godzina jest opcjonalna – wizyta, spotkanie, odbiór. Bez niej zadanie jest na cały dzień.</small>
 
     <div class="rule-custom" data-freq-for="custom km">
       <label data-freq-for="custom">Jak
