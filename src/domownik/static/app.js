@@ -485,6 +485,20 @@
     rec.start();
   });
 
+  // ------------------------------------------------------------------ "saving…" on a slow connection
+  // a submit that takes more than a moment shows Pico's spinner on its (labelled) button
+  document.addEventListener("htmx:beforeRequest", (e) => {
+    if (e.defaultPrevented || !e.detail.xhr) return;
+    const cfg = e.detail.requestConfig || {};
+    const elt = e.detail.elt;
+    let btn = cfg.triggeringEvent && cfg.triggeringEvent.submitter;
+    if (!btn && elt && elt.matches && elt.matches("button")) btn = elt;
+    if (!btn && elt && elt.tagName === "FORM") btn = elt.querySelector("button[type=submit], button:not([type])");
+    if (!btn || btn.textContent.trim().length < 3) return; // ✓ / ✕ icons stay as they are
+    const timer = setTimeout(() => btn.setAttribute("aria-busy", "true"), 350);
+    e.detail.xhr.addEventListener("loadend", () => { clearTimeout(timer); btn.removeAttribute("aria-busy"); }, { once: true });
+  });
+
   // ------------------------------------------------------------------ modal
   // look the dialog up at event time – hx-boost replaces the <body> content on every navigation
   const modalEl = () => document.getElementById("modal");

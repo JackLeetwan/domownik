@@ -31,7 +31,7 @@
     <summary>{% if item.notes %}<span class="notes">📌 {{ item.notes }}</span> <small class="muted">✎</small>{% else %}<span class="muted">📌 Przypnij informacje ({{ pin_hints.get(item.kind, 'nr polisy, nr umowy, numer konta…') }})</span>{% endif %}</summary>
     <form method="post" action="/items/{{ item.id }}/notes">
       <input type="hidden" name="csrf" value="{{ csrf }}">
-      <textarea name="notes" rows="4" placeholder="Stałe informacje, które warto mieć pod ręką">{{ item.notes or "" }}</textarea>
+      <textarea name="notes" rows="4" aria-label="Notatki strefy" placeholder="Stałe informacje, które warto mieć pod ręką">{{ item.notes or "" }}</textarea>
       <button type="submit" class="small">Zapisz</button>
     </form>
   </details>

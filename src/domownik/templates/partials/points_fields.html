@@ -1,5 +1,5 @@
 {# "Punkty" + "Wymaga zatwierdzenia" for a task or a chore. Needs: obj (or none) #}
 <div class="grid points-fields">
   <label>⭐ Punkty <input name="points" type="number" min="0" max="10000" value="{{ obj.points if obj and obj.points else '' }}" placeholder="bez punktów"></label>
-  <label class="points-approve"><input type="checkbox" name="needs_approval" value="1" role="switch" {% if obj and obj.needs_approval %}checked{% endif %}> Wymaga zatwierdzenia <small class="muted">– punkty liczą się, gdy potwierdzi je ktoś inny</small></label>
+  <label class="points-approve"><input type="checkbox" name="needs_approval" value="1" role="switch" {% if obj and obj.needs_approval %}checked{% endif %}> Wymaga zatwierdzenia <small class="muted">Punkty liczą się, gdy potwierdzi je ktoś inny.</small></label>
 </div>
