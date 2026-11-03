@@ -18,7 +18,14 @@ def test_plan_dates_and_flags():
     assert by["b2y"].due == date(2027, 1, 15) and not by["b2y"].past
     assert by["b12m"].planned
     assert by["v6y"].due == date(2031, 1, 15)
+    assert by["b12m"].due < date(2026, 11, 3) and not by["b12m"].past  # a check-up is offered until the next one
     assert len({v.key for v in child_health.PLAN}) == len(child_health.PLAN)
+
+
+def test_missed_checkup_still_offered():
+    # born mid-2021: the 5-year check-up was due in June 2026 and can still be done before school
+    by = {o.visit.key: o for o in child_health.plan_for(date(2021, 6, 9), date(2026, 11, 3), set())}
+    assert not by["b5y"].past and by["b4y"].past and by["v6y"].due == date(2027, 6, 9)
 
 
 def test_page_and_adding(auth_client, db):
