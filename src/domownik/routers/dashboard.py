@@ -7,8 +7,8 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from domownik import budget, chores, extcal, goals, kitchen, schedule, services
-from domownik.config import today
+from domownik import budget, chores, emergency, extcal, goals, kitchen, schedule, services
+from domownik.config import now, today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
 from domownik.models import MEMBER_KINDS, Item, User
@@ -84,6 +84,7 @@ def dashboard(
             "late_chores": late_chores,
             "today_ext": today_ext,
             "backup_warning": services.backup_warning(t),
+            "emergency_warning": _emergency_warning(db),
         },
     )
 
@@ -121,6 +122,18 @@ def api_timeline(
         data["points"] = services.bundle_points(data["points"], bin, by_group=lanes)
     data["today"] = today().isoformat()
     return JSONResponse(data)
+
+
+def _emergency_warning(db: Session) -> str | None:
+    """Once the folder has been printed: say when something new is missing from the paper."""
+    fresh = emergency.freshness(db, now())
+    if fresh.printed is None or not fresh.needs_print:
+        return None
+    if fresh.changes:
+        n = len(fresh.changes)
+        word = "zmiana" if n == 1 else "zmiany" if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14) else "zmian"
+        return f"🧰 Od wydruku teczki „Na wypadek”: {n} {word} – wydrukuj nową wersję."
+    return "🧰 Wydruk teczki „Na wypadek” ma ponad rok – przejrzyj ją i wydrukuj nową."
 
 
 @router.get("/healthz")

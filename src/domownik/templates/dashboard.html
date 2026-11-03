@@ -13,6 +13,7 @@
 </article>
 {% else %}
 {% if backup_warning %}<p class="backup-warn" role="status"><small>{{ backup_warning }}</small></p>{% endif %}
+{% if emergency_warning %}<p class="backup-warn" role="status"><small><a href="/na-wypadek#wydruk">{{ emergency_warning }}</a></small></p>{% endif %}
 {% include "partials/timeline.html" %}
 
 {# today's week schedule and overdue chores – a compact card under the timeline, only when there is something #}

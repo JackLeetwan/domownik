@@ -184,7 +184,7 @@ def test_slow_submit_shows_busy_state():
 
 def test_asset_versions_bumped():
     base = (STATIC.parent / "templates" / "base.html").read_text()
-    assert int(re.search(r"app\.css\?v=(\d+)", base).group(1)) >= 52
+    assert int(re.search(r"app\.css\?v=(\d+)", base).group(1)) >= 53
     assert int(re.search(r"app\.js\?v=(\d+)", base).group(1)) >= 30
 
 

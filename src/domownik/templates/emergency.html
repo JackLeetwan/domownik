@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Na wypadek · Domownik{% endblock %}
+{% block content %}
+<header class="item-head"><h1>🧰 Na wypadek</h1></header>
+<p class="muted">Teczka dla rodziny, gdyby nas zabrakło: co jest gdzie, do kogo dzwonić i co zrobić po kolei. Część piszecie sami, resztę Domownik zbiera z tego, co już wie. Do Domownika rodzina nie wejdzie – dlatego liczy się <b>wydruk</b>.</p>
+
+<article class="em-status{% if fresh.needs_print %} em-stale{% endif %}" id="wydruk">
+  {% if not fresh.printed %}
+  <p><b>Teczka nie była jeszcze drukowana.</b> Uzupełnijcie działy poniżej, wydrukujcie i dajcie komuś z rodziny (albo schowajcie z testamentem).</p>
+  {% else %}
+  <p>Ostatni wydruk: <b>{{ printed_local.strftime('%d.%m.%Y') }}</b>{% if fresh.printed.user %} ({{ fresh.printed.user.name }}){% endif %}.
+  {% if fresh.too_old %}<br><b>Wydruk ma ponad rok</b> – przejrzyjcie teczkę i wydrukujcie nową.{% endif %}
+  {% if fresh.changes %}<br><b>Od wydruku nowe lub zmienione:</b> {{ fresh.changes[:6]|join(", ") }}{% if fresh.changes|length > 6 %}…{% endif %} – na kartce tego nie ma.{% endif %}
+  {% if not fresh.needs_print %}<br>Wydruk jest aktualny.{% endif %}</p>
+  {% endif %}
+  <div class="em-actions">
+    <form method="post" action="/na-wypadek/druk" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit">🖨️ Drukuj teczkę</button></form>
+    <a href="/na-wypadek/druk" role="button" class="outline">Podgląd</a>
+    {% if review %}
+    <small class="muted">🔁 Przypomnienie o przeglądzie: <a href="/tasks/{{ review.id }}">{{ review.next_due_date|d }}</a></small>
+    {% else %}
+    <form method="post" action="/na-wypadek/przypomnienie" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="outline secondary">🔁 Przypominaj raz w roku</button></form>
+    {% endif %}
+  </div>
+</article>
+
+<h2>Od was</h2>
+<p class="muted"><small>🔒 Nie wpisujcie haseł, PIN-ów ani numerów kart – napiszcie, <i>gdzie</i> je znaleźć. Domownik nie zapisze czegoś, co wygląda na hasło.</small></p>
+{% for key, (title, icon, hint) in SECTIONS.items() %}
+<section class="em-section" id="{{ key }}">
+  <h3>{{ icon }} {{ title }}</h3>
+  {% set list = entries[key] %}
+  {% if not list %}<p class="muted"><small>{{ hint }}</small></p>{% endif %}
+  {% for e in list %}
+  <div class="em-entry">
+    <p><b>{{ e.title }}</b>{% if e.body %}<br><span class="em-body">{{ e.body }}</span>{% endif %}</p>
+    <details class="em-edit">
+      <summary><small>Zmień{% if e.updated_by %} · ostatnio {{ e.updated_by.name }}{% endif %}</small></summary>
+      <form method="post" action="/na-wypadek/wpisy/{{ e.id }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <label>Czego dotyczy <input name="title" value="{{ e.title }}" required maxlength="200"></label>
+        <label>Szczegóły <textarea name="body" rows="4" maxlength="5000">{{ e.body or "" }}</textarea></label>
+        <button type="submit">Zapisz</button>
+      </form>
+      <form method="post" action="/na-wypadek/wpisy/{{ e.id }}/usun" hx-confirm="Usunąć wpis „{{ e.title }}”?">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link danger">usuń wpis</button>
+      </form>
+    </details>
+  </div>
+  {% endfor %}
+  <details class="em-add">
+    <summary>＋ Dodaj</summary>
+    <form method="post" action="/na-wypadek/wpisy">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="section" value="{{ key }}">
+      <label>Czego dotyczy <input name="title" required maxlength="200" placeholder="{{ {'people': 'np. Opiekun dla dzieci', 'money': 'np. mBank – konto wspólne', 'where': 'np. Testament', 'digital': 'np. Menedżer haseł', 'work': 'np. Pracodawca – umowa o pracę', 'wishes': 'np. Pogrzeb'}[key] }}"></label>
+      <label>Szczegóły <textarea name="body" rows="3" maxlength="5000" placeholder="{{ hint }}"></textarea></label>
+      <button type="submit">Dodaj</button>
+    </form>
+  </details>
+</section>
+{% endfor %}
+
+<h2>Z Domownika <small class="muted">(uzupełnia się samo)</small></h2>
+<p class="muted"><small>Polisy, kredyty i opłaty to zadania w strefach, kontakty – w „Kontaktach”. Zmieniasz je tam, a teczka bierze stamtąd aktualny stan.</small></p>
+{% with print = false %}{% include "partials/emergency_auto.html" %}{% endwith %}
+
+<h2 id="przygotowanie">Do przygotowania przez was</h2>
+<p class="muted"><small>Rzeczy, które warto zrobić teraz, żeby rodzina miała łatwiej. Każdą można wrzucić do „Do zrobienia”.</small></p>
+<ul class="em-prepare">
+  {% for key, (title, why) in PREPARE.items() %}
+  {% set td = prepared.get(key) %}
+  <li>
+    <span class="em-main"><b>{% if td and td.done_on %}✓ {% endif %}{{ title }}</b><br><small class="muted">{{ why }}</small></span>
+    {% if td %}
+    <small class="muted">{{ 'zrobione' if td.done_on else 'w „Do zrobienia”' }}</small>
+    {% else %}
+    <form method="post" action="/na-wypadek/przygotuj/{{ key }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="outline secondary small">＋ Do zrobienia</button></form>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+
+<details class="em-steps-box">
+  <summary><h2>Pierwsze kroki dla rodziny</h2></summary>
+  <p class="muted"><small>Ten tekst jest na początku wydruku.</small></p>
+  {% include "partials/emergency_steps.html" %}
+</details>
+{% endblock %}

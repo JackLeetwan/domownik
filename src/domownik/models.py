@@ -1077,3 +1077,69 @@ class ExternalEvent(Base):
         if not self.starts_at:
             return "cały dzień"
         return f"{self.starts_at}–{self.ends_at}" if self.ends_at and self.ends_at != self.starts_at else self.starts_at
+
+
+# ---------------------------------------------------------------- "Na wypadek": what the family needs to know
+
+EMERGENCY_SECTIONS: dict[str, tuple[str, str, str]] = {
+    # key: (title, icon, what to write – shown as the hint of an empty section)
+    "people": (
+        "Dzieci i najbliżsi",
+        "👨‍👩‍👦",
+        "Kto ma się zająć dziećmi, kogo powiadomić w pierwszej kolejności, co dzieci lubią i czego potrzebują.",
+    ),
+    "money": (
+        "Konta, oszczędności, inwestycje",
+        "🏦",
+        "Banki i konta, lokaty, IKE/IKZE/PPK, fundusze, kryptowaluty – co to jest i czy jest wskazany uposażony "
+        "albo dyspozycja wkładem na wypadek śmierci. Bez numerów kart i haseł.",
+    ),
+    "where": (
+        "Gdzie co leży",
+        "📂",
+        "Testament, akty urodzenia i małżeństwa, akt notarialny domu, polisy, dowody rejestracyjne, zapasowe "
+        "klucze, sejf.",
+    ),
+    "digital": (
+        "Hasła i konta w internecie",
+        "🔑",
+        "Gdzie są hasła (menedżer haseł, dostęp awaryjny, zapieczętowana koperta) i które konta trzeba zamknąć "
+        "lub zachować (zdjęcia!). Samych haseł tu NIE wpisuj.",
+    ),
+    "work": (
+        "Praca i firma",
+        "💼",
+        "Pracodawcy (odprawa, ubezpieczenie grupowe), działalność gospodarcza, księgowa, zawodowe składki.",
+    ),
+    "wishes": ("Nasza wola", "🕊️", "Pogrzeb, przekazanie rzeczy, słowa dla bliskich – cokolwiek chcecie przekazać."),
+}
+
+
+class EmergencyEntry(Base):
+    """One piece of the family's emergency folder, written by hand (the rest is gathered from the app)."""
+
+    __tablename__ = "emergency_entry"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    section: Mapped[str] = mapped_column(String(20))
+    title: Mapped[str] = mapped_column(String(200))
+    body: Mapped[str | None] = mapped_column(Text)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    updated_by: Mapped[User | None] = relationship(foreign_keys=[updated_by_id])
+
+
+class EmergencyPrint(Base):
+    """A printout of the folder – when, and by whom (the page warns once it is out of date)."""
+
+    __tablename__ = "emergency_print"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    printed_at: Mapped[datetime] = mapped_column(DateTime)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+
+    user: Mapped[User | None] = relationship()

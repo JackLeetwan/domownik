@@ -29,6 +29,7 @@ LINKS: tuple[Link, ...] = (
     Link("punkty", "/punkty", "⭐", "Punkty", "points"),
     Link("kontakty", "/kontakty", "📇", "Kontakty"),
     Link("budzet", "/budzet", "💰", "Budżet"),
+    Link("na-wypadek", "/na-wypadek", "🧰", "Na wypadek"),
     Link("ustawienia", "/ustawienia", "⚙️", "Ustawienia", fixed=True),
 )
 BY_KEY = {link.key: link for link in LINKS}

@@ -1,0 +1,43 @@
+{# What the app knows, for the folder (page and printout). Needs: auto (emergency.Overview), print (bool) #}
+{% macro rows(list, empty) %}
+  {% if list %}
+  <ul class="em-rows">
+    {% for r in list %}
+    <li>
+      <span class="em-ic" aria-hidden="true">{{ r.icon }}</span>
+      <span class="em-main"><b>{{ r.title }}</b>{% if r.where %} <small class="muted">· {{ r.where }}</small>{% endif %}
+        {% if r.detail or r.flag %}<br><small>{{ r.detail }}{% if r.flag %}{% if r.detail %} · {% endif %}<b class="em-flag">{{ r.flag }}</b>{% endif %}</small>{% endif %}
+        {% if r.notes %}<br><small class="em-notes">{{ r.notes }}</small>{% endif %}
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="muted"><small>{{ empty }}</small></p>{% endif %}
+{% endmacro %}
+
+<h3 id="ubezpieczenia">🛡️ Ubezpieczenia</h3>
+{{ rows(auto.insurance, "Brak polis w Domowniku – dodaj je jako zadania z kategorią „Ubezpieczenie”.") }}
+<h3>💳 Kredyty, raty, leasing</h3>
+{{ rows(auto.debts, "Brak kredytów ani rat.") }}
+<h3>🔁 Stałe opłaty</h3>
+{{ rows(auto.bills, "Brak stałych opłat.") }}
+<h3>💰 Stałe wpływy</h3>
+{{ rows(auto.income, "Brak stałych wpływów (pensje, najem) – wpisuje się je w Budżet → Kategorie i limity.") }}
+<h3>🏠 Majątek</h3>
+{{ rows(auto.property, "Brak domu, mieszkań ani samochodów w strefach.") }}
+<h3>📁 Dokumenty zapisane w Domowniku</h3>
+{{ rows(auto.documents, "Brak polis, umów ani dowodów rejestracyjnych w dokumentach stref.") }}
+<h3 id="kontakty">📇 Kontakty</h3>
+{% if auto.contacts %}
+<ul class="em-rows">
+  {% for c in auto.contacts %}
+  <li>
+    <span class="em-ic" aria-hidden="true">{{ c.role_icon }}</span>
+    <span class="em-main"><b>{{ c.name }}</b>{% if c.company and c.company != c.name %} <small>({{ c.company }})</small>{% endif %}{% if c.role %} <small class="muted">· {{ c.role }}</small>{% endif %}
+      {% if c.phone_list or c.email %}<br><small>{{ c.phone_list|join(", ") }}{% if c.phone_list and c.email %} · {% endif %}{{ c.email or "" }}</small>{% endif %}
+      {% if c.notes %}<br><small class="em-notes">{{ c.notes }}</small>{% endif %}
+    </span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}<p class="muted"><small>Brak kontaktów – dodaj w „Kontakty” księgową, agenta ubezpieczeniowego, notariusza, pracodawców.</small></p>{% endif %}

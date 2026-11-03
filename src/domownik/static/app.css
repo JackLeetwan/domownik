@@ -1448,3 +1448,32 @@ main .who, .timeline-toolbar .zoom { margin: 0; }
 main .who > [role=button], .timeline-toolbar .zoom > button, .cal-views > a { margin: 0; padding: 0.3rem 0.9rem; border: 0; border-radius: 0; background: transparent; color: var(--dm-label); font-size: 0.85rem; font-weight: 400; box-shadow: none; text-decoration: none; }
 main .who > [role=button]:not(.outline), .timeline-toolbar .zoom > button[aria-pressed=true], .cal-views > a[aria-current=page] { background: var(--pico-primary-background); color: #fff; font-weight: 600; }
 main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-visible, .cal-views > a:focus-visible { outline: 2px solid var(--pico-primary); outline-offset: -2px; }
+
+/* ---------------------------------------------------------------- "Na wypadek" */
+.em-status { padding: 0.9rem 1rem; border-left: 4px solid var(--dm-later); }
+.em-status.em-stale { border-left-color: var(--dm-soon); }
+.em-status p { margin-bottom: 0.6rem; }
+.em-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+.em-actions form, .em-actions [role=button] { margin: 0; }
+.em-actions button, .em-actions [role=button] { width: auto; margin: 0; }
+.em-section { margin-bottom: 1.2rem; }
+.em-section h3, .em-steps-box h3, main > h3 { font-size: 1.05rem; margin: 1rem 0 0.4rem; }
+.em-entry { padding: 0.4rem 0; border-bottom: 1px solid var(--dm-tile-border); }
+.em-entry p { margin: 0 0 0.2rem; }
+.em-body, .em-notes { white-space: pre-line; }
+.em-edit, .em-add { margin: 0.2rem 0 0; }
+.em-edit > summary, .em-add > summary { color: var(--pico-primary); font-size: 0.9rem; }
+.em-edit form, .em-add form { margin-top: 0.5rem; }
+.em-rows { list-style: none; padding: 0; margin: 0 0 0.75rem; }
+.em-rows li { list-style: none; display: flex; gap: 0.5rem; padding: 0.35rem 0; border-bottom: 1px solid var(--dm-tile-border); }
+.em-ic { flex: none; width: 1.5rem; text-align: center; }
+.em-main { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+.em-flag { color: var(--dm-overdue); }
+.em-prepare { list-style: none; padding: 0; }
+.em-prepare li { list-style: none; display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--dm-tile-border); }
+.em-prepare form { margin: 0; flex: none; }
+.em-prepare button { margin: 0; width: auto; white-space: nowrap; }
+.em-steps-box > summary h2 { display: inline; margin: 0; }
+.em-steps h3 { margin-top: 1rem; }
+.em-steps li { margin-bottom: 0.4rem; }
+.em-note { font-size: 0.85rem; color: var(--pico-muted-color); }

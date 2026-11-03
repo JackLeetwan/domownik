@@ -28,6 +28,7 @@ from domownik.routers import (
     contacts,
     dashboard,
     documents,
+    emergency,
     goals,
     items,
     kitchen,
@@ -146,6 +147,7 @@ def create_app() -> FastAPI:
     app.include_router(comments.router)
     app.include_router(quick.router)
     app.include_router(contacts.router)
+    app.include_router(emergency.router)
     app.include_router(meters.router)
 
     @app.exception_handler(LoginRequired)

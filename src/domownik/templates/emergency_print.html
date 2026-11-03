@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Na wypadek – stan na {{ stamp.strftime('%d.%m.%Y') }}</title>
+  <style>
+    @page { size: A4; margin: 16mm 15mm; }
+    body { font-family: system-ui, "Segoe UI", Roboto, sans-serif; font-size: 11pt; line-height: 1.45; color: #111; background: #fff; max-width: 52rem; margin: 0 auto; padding: 1rem; }
+    h1 { font-size: 20pt; margin: 0 0 0.2rem; }
+    h2 { font-size: 14pt; margin: 1.4rem 0 0.4rem; padding-bottom: 0.2rem; border-bottom: 2px solid #111; break-after: avoid; }
+    h3 { font-size: 12pt; margin: 1rem 0 0.3rem; break-after: avoid; }
+    ol, ul { margin: 0.2rem 0 0.6rem; padding-left: 1.4rem; }
+    li { margin: 0.2rem 0; break-inside: avoid; }
+    .stamp { color: #444; margin: 0 0 1rem; }
+    .letter { border: 1px solid #999; border-radius: 6px; padding: 0.6rem 0.9rem; margin: 0.8rem 0; }
+    .em-rows { list-style: none; padding: 0; }
+    .em-rows li { display: flex; gap: 0.5rem; padding: 0.25rem 0; border-bottom: 1px solid #ddd; }
+    .em-ic { flex: none; width: 1.4rem; }
+    .em-notes, .em-body { white-space: pre-line; }
+    .em-flag { color: #8a2c00; }
+    .entry { margin: 0.3rem 0 0.6rem; break-inside: avoid; }
+    .muted { color: #555; }
+    .em-note { font-size: 9.5pt; color: #444; }
+    .bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .bar a, .bar button { font: inherit; padding: 0.45rem 0.9rem; border: 1px solid #2f6f5e; border-radius: 6px; background: #2f6f5e; color: #fff; text-decoration: none; cursor: pointer; }
+    .bar a { background: #fff; color: #2f6f5e; }
+    footer { margin-top: 1.5rem; font-size: 9.5pt; color: #444; border-top: 1px solid #999; padding-top: 0.4rem; }
+    @media print { .bar { display: none; } body { padding: 0; } a { color: inherit; text-decoration: none; } }
+  </style>
+</head>
+<body>
+  <div class="bar"><a href="/na-wypadek">← Wróć</a><button type="button" onclick="window.print()">🖨️ Drukuj / zapisz PDF</button></div>
+
+  <h1>Na wypadek – informacje dla rodziny</h1>
+  <p class="stamp">Stan na <b>{{ stamp.strftime('%d.%m.%Y') }}</b>{% if authors %} · przygotowali: {{ authors|join(", ") }}{% endif %}</p>
+
+  <div class="letter">
+    <p>Jeśli to czytacie, coś się nam stało. Tu jest wszystko, co potrzebne, żeby nie szukać po szufladach: co zrobić po kolei, gdzie co leży, jakie mamy konta, polisy, kredyty i stałe opłaty, i do kogo dzwonić. Nie musicie zrobić wszystkiego naraz – idźcie po kolei.</p>
+  </div>
+
+  <h2>Co zrobić po kolei</h2>
+  {% include "partials/emergency_steps.html" %}
+
+  {% for key, (title, icon, hint) in SECTIONS.items() %}
+  {% if entries[key] %}
+  <h2>{{ icon }} {{ title }}</h2>
+  {% for e in entries[key] %}
+  <div class="entry"><b>{{ e.title }}</b>{% if e.body %}<br><span class="em-body">{{ e.body }}</span>{% endif %}</div>
+  {% endfor %}
+  {% endif %}
+  {% endfor %}
+
+  <h2>Nasze sprawy w liczbach</h2>
+  {% with print = true %}{% include "partials/emergency_auto.html" %}{% endwith %}
+
+  <footer>Wydrukowano z Domownika {{ stamp.strftime('%d.%m.%Y') }}. Jeśli kartka ma ponad rok, część informacji mogła się zmienić. Hasła i PIN-y nie są tu zapisane celowo – gdzie ich szukać, jest w dziale „Hasła i konta w internecie”.</footer>
+  {% if autoprint %}<script>window.addEventListener("load", () => setTimeout(() => window.print(), 300));</script>{% endif %}
+</body>
+</html>
