@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Nowy kontakt' if contact is none else contact.name }} · Kontakty · Domownik{% endblock %}
+{% block content %}
+<div class="crumbs-bar">
+  <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="{{ next }}" class="home-link">← {{ 'Wróć' if next != '/kontakty' else 'Kontakty' }}</a></li></ul></nav>
+</div>
+<h1>{{ 'Nowy kontakt' if contact is none else 'Zmień kontakt' }}</h1>
+<form method="post" action="{{ '/kontakty/nowy' if contact is none else '/kontakty/' ~ contact.id ~ '/edit' }}" class="contact-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="next" value="{{ next }}">
+  <div class="grid">
+    <label>Nazwa / osoba <input name="name" value="{{ contact.name if contact else '' }}" maxlength="120" autofocus placeholder="np. Pan Marek, Przychodnia"></label>
+    <label>Firma <input name="company" value="{{ contact.company or '' if contact else '' }}" maxlength="120" placeholder="opcjonalnie"></label>
+  </div>
+  <label>Rola / branża
+    <input name="role" list="contact-roles" value="{{ contact.role or '' if contact else '' }}" maxlength="60" placeholder="wybierz z listy albo wpisz własną" autocomplete="off">
+  </label>
+  <datalist id="contact-roles">{% for r in roles %}<option value="{{ r }}">{% endfor %}</datalist>
+  <div class="grid">
+    <label>Telefon(y) <small class="muted">– każdy w osobnej linii</small>
+      <textarea name="phones" rows="2" inputmode="tel" placeholder="+48 600 000 000">{{ contact.phones or '' if contact else '' }}</textarea>
+    </label>
+    <label>E-mail <input type="email" name="email" value="{{ contact.email or '' if contact else '' }}" maxlength="200"></label>
+  </div>
+  <div class="grid">
+    <label>Strona www <input name="website" value="{{ contact.website or '' if contact else '' }}" maxlength="300" inputmode="url" placeholder="np. serwis.pl"></label>
+    <label>Adres <input name="address" value="{{ contact.address or '' if contact else '' }}" maxlength="300" placeholder="ulica, miasto"></label>
+  </div>
+  <label>Notatka <textarea name="notes" rows="2" placeholder="np. godziny otwarcia, numer klienta">{{ contact.notes or '' if contact else '' }}</textarea></label>
+  <fieldset class="contact-links">
+    <legend>Dotyczy <small class="muted">(można kilka – np. mechanik obu aut)</small></legend>
+    <div class="contact-link-list">
+      {% for i in items %}
+      <label><input type="checkbox" name="item_id" value="{{ i.id }}" {% if i.id in linked %}checked{% endif %}> {{ i.display_icon }} {{ label(i.id) }}</label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  <button type="submit">Zapisz</button>
+</form>
+{% if contact %}
+<form method="post" action="/kontakty/{{ contact.id }}/delete" class="inline" hx-confirm="Usunąć kontakt „{{ contact.name }}”?">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit" class="link danger"><small>Usuń kontakt</small></button>
+</form>
+{% endif %}
+{% endblock %}

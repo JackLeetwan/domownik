@@ -1,0 +1,24 @@
+{# One contact with big call / mail / map buttons. Needs: c, tel_href, map_href #}
+<li class="contact" id="c{{ c.id }}">
+  <div class="contact-main">
+    <strong class="contact-name">{{ c.name }}</strong>
+    {% if c.company and c.company != c.name %}<span class="muted">· {{ c.company }}</span>{% endif %}
+    {% if c.role %}<span class="badge">{{ c.role_icon }} {{ c.role }}</span>{% endif %}
+    {% if c.items %}<div class="contact-items">{% for i in c.items %}<a href="/items/{{ i.id }}" class="chip">{{ i.display_icon }} {{ i.name }}</a>{% endfor %}</div>{% endif %}
+    {% if c.phone_list or c.email or c.address or c.website %}
+    <p class="contact-facts muted"><small>
+      {% for p in c.phone_list %}<span>{{ p }}</span>{% endfor %}
+      {% if c.email %}<span>{{ c.email }}</span>{% endif %}
+      {% if c.address %}<span>{{ c.address }}</span>{% endif %}
+    </small></p>
+    {% endif %}
+    {% if c.notes %}<p class="notes contact-notes">{{ c.notes }}</p>{% endif %}
+  </div>
+  <div class="contact-actions">
+    {% for p in c.phone_list %}<a href="{{ tel_href(p) }}" role="button" class="contact-btn" hx-boost="false" aria-label="Zadzwoń: {{ p }}">📞 {% if loop.length > 1 %}{{ p }}{% else %}Zadzwoń{% endif %}</a>{% endfor %}
+    {% if c.email %}<a href="mailto:{{ c.email }}" role="button" class="contact-btn outline" hx-boost="false" title="Napisz: {{ c.email }}" aria-label="Napisz e-mail: {{ c.email }}">✉️</a>{% endif %}
+    {% if c.address %}<a href="{{ map_href(c.address) }}" role="button" class="contact-btn outline" target="_blank" rel="noopener noreferrer" hx-boost="false" title="Mapa: {{ c.address }}" aria-label="Pokaż na mapie: {{ c.address }}">🗺️</a>{% endif %}
+    {% if c.website %}<a href="{{ c.website }}" role="button" class="contact-btn outline" target="_blank" rel="noopener noreferrer" hx-boost="false" title="{{ c.website }}" aria-label="Strona www: {{ c.website }}">🌐</a>{% endif %}
+    <a href="/kontakty/{{ c.id }}/edit?next={{ (request.url.path ~ ('?' ~ request.url.query if request.url.query else ''))|urlencode }}" class="contact-edit small-link">Edytuj</a>
+  </div>
+</li>

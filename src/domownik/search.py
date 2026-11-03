@@ -15,13 +15,14 @@ from sqlalchemy.orm import Session, selectinload
 from domownik import catalog
 from domownik.domain.text import fold, snippet, terms
 from domownik.domain.tree import Tree
-from domownik.models import Attachment, BoardNote, Completion, Issue, JournalEntry, Task, Todo, Warranty
+from domownik.models import Attachment, BoardNote, Completion, Contact, Issue, JournalEntry, Task, Todo, Warranty
 
 # group key → (heading, icon), in display order
 KINDS: dict[str, tuple[str, str]] = {
     "item": ("Strefy i elementy", "📦"),
     "task": ("Zadania", "📋"),
     "doc": ("Dokumenty i gwarancje", "📎"),
+    "contact": ("Kontakty", "📇"),
     "todo": ("Do zrobienia", "☐"),
     "issue": ("Usterki i sprawy", "⚠️"),
     "journal": ("Dziennik", "📓"),
@@ -159,6 +160,21 @@ def search(db: Session, query: str) -> Results:
         )
         if h:
             groups["doc"].append(h)
+
+    for ct in db.scalars(select(Contact).options(selectinload(Contact.items))):
+        where = ", ".join(i.name for i in ct.items if i.id in visible)
+        h = _hit(
+            "contact",
+            words,
+            ct.name,
+            [ct.company or "", ct.role or "", ct.phones or "", ct.email or "", ct.address or "", ct.notes or "", where],
+            icon=ct.role_icon,
+            path=" · ".join(p for p in (ct.role, where) if p),
+            url=f"/kontakty#c{ct.id}",
+            sort=ct.name.lower(),
+        )
+        if h:
+            groups["contact"].append(h)
 
     for td in db.scalars(select(Todo)):
         if td.item_id is not None and td.item_id not in visible:

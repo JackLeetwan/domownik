@@ -6,11 +6,13 @@ from typing import Any
 from sqlalchemy import (
     JSON,
     Boolean,
+    Column,
     Date,
     DateTime,
     ForeignKey,
     Integer,
     String,
+    Table,
     Text,
     UniqueConstraint,
     func,
@@ -155,6 +157,9 @@ class Item(Base):
     )
     warranties: Mapped[list[Warranty]] = relationship(
         back_populates="item", cascade="all, delete-orphan", order_by="Warranty.ends_on, Warranty.id"
+    )
+    contacts: Mapped[list[Contact]] = relationship(
+        secondary="contact_item", back_populates="items", order_by="Contact.name"
     )
 
     @property
@@ -620,3 +625,63 @@ class ChoreDone(Base):
 
     chore: Mapped[Chore] = relationship(back_populates="history")
     done_by: Mapped[User | None] = relationship(foreign_keys=[done_by_id])
+
+
+# ---------------------------------------------------------------- contacts: tradespeople, services, doctors…
+
+# proposals for the role field – free text is allowed too
+CONTACT_ROLES: dict[str, str] = {
+    # role: icon
+    "Mechanik / serwis auta": "🔧",
+    "Hydraulik": "🚰",
+    "Elektryk": "💡",
+    "Fachowiec / remonty": "🛠️",
+    "Przedszkole / szkoła": "🏫",
+    "Lekarz / przychodnia": "🩺",
+    "Weterynarz": "🐾",
+    "Ubezpieczyciel / agent": "🛡️",
+    "Administracja / wspólnota": "🏢",
+    "Sklep / dostawca": "🛒",
+}
+
+contact_item = Table(
+    "contact_item",
+    Base.metadata,
+    Column("contact_id", ForeignKey("contact.id", ondelete="CASCADE"), primary_key=True),
+    Column("item_id", ForeignKey("item.id", ondelete="CASCADE"), primary_key=True, index=True),
+)
+
+
+class Contact(Base):
+    """Someone to call: the mechanic (both cars), the kindergarten, the insurance agent, the GP."""
+
+    __tablename__ = "contact"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))  # person or the place itself
+    company: Mapped[str | None] = mapped_column(String(120))
+    role: Mapped[str | None] = mapped_column(String(60))
+    phones: Mapped[str | None] = mapped_column(Text)  # one number per line
+    email: Mapped[str | None] = mapped_column(String(200))
+    website: Mapped[str | None] = mapped_column(String(300))
+    address: Mapped[str | None] = mapped_column(String(300))
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    items: Mapped[list[Item]] = relationship(secondary=contact_item, back_populates="contacts", order_by="Item.name")
+
+    @property
+    def phone_list(self) -> list[str]:
+        return [p.strip() for p in (self.phones or "").splitlines() if p.strip()]
+
+    @property
+    def role_icon(self) -> str:
+        return CONTACT_ROLES.get(self.role or "", "📇")
+
+    @property
+    def label(self) -> str:
+        """'Jan Kowalski (Auto-Serwis)' – for the vendor suggestions."""
+        if self.company and self.company.lower() != self.name.lower():
+            return f"{self.name} ({self.company})"
+        return self.name

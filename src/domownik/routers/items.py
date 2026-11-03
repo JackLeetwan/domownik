@@ -13,6 +13,7 @@ from domownik.db import get_db
 from domownik.domain.money import parse_pln
 from domownik.domain.tree import Tree
 from domownik.models import DOC_KINDS, ITEM_KINDS, Completion, Issue, Item, JournalEntry, Measurement, Task, Todo, User
+from domownik.routers.contacts import all_contacts, tel_href
 from domownik.security import current_user, verify_csrf
 from domownik.web import render
 
@@ -230,6 +231,8 @@ def item_page(request: Request, item_id: int, db: Session = Depends(get_db), use
                 else None
             ),
             "max_upload_mb": get_settings().max_upload_mb,
+            "contacts_all": all_contacts(db),
+            "tel_href": tel_href,
         },
     )
 

@@ -24,6 +24,7 @@ from domownik.models import (
     Task,
     User,
 )
+from domownik.routers.contacts import vendor_suggestions
 from domownik.security import current_user, verify_csrf
 from domownik.web import error_target, is_htmx, is_quick, quick_saved, render
 
@@ -368,6 +369,7 @@ def task_modal(request: Request, task_id: int, db: Session = Depends(get_db), us
             "users": services.active_users(db),
             "postpone_to": _postpone_choices(task.next_due_date, today()),
             "left": recurrence.remaining(task.recurrence),
+            "vendors": vendor_suggestions(db, task.item_id),
         },
     )
 

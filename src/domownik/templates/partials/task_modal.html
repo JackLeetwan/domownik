@@ -30,7 +30,8 @@
   </div>
   <details>
     <summary>Więcej (wykonawca, notatka, faktura)</summary>
-    <label>Wykonawca / sklep <input name="vendor"></label>
+    <label>Wykonawca / sklep <input name="vendor" list="vendor-list-{{ task.id }}" autocomplete="off" maxlength="200"></label>
+    {% if vendors %}<datalist id="vendor-list-{{ task.id }}">{% for v in vendors %}<option value="{{ v }}">{% endfor %}</datalist>{% endif %}
     <label>Notatka <textarea name="notes" rows="2"></textarea></label>
     <label>Faktura / paragon <small class="muted">(zdjęcie lub PDF – trafi do dokumentów)</small><input type="file" name="files" multiple accept="image/*,.heic,application/pdf,.pdf"></label>
   </details>

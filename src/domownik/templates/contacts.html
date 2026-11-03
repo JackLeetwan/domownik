@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Kontakty · Domownik{% endblock %}
+{% block content %}
+<header class="agenda-head">
+  <h1>📇 Kontakty <small class="muted">({{ count }}{% if count != total %} z {{ total }}{% endif %})</small></h1>
+  <a href="/kontakty/nowy{% if the_item %}?item={{ the_item.id }}{% endif %}" role="button">＋ Kontakt</a>
+</header>
+{% if the_item %}
+<p class="muted">Kontakty przy: <a href="/items/{{ the_item.id }}">{{ the_item.display_icon }} {{ the_item.name }}</a> · <a href="/kontakty">pokaż wszystkie</a></p>
+{% endif %}
+<form method="get" action="/kontakty" class="contact-search" role="search">
+  {% if the_item %}<input type="hidden" name="item" value="{{ the_item.id }}">{% endif %}
+  <input type="search" name="q" value="{{ q }}" placeholder="Szukaj: nazwa, firma, telefon, auto…" aria-label="Szukaj w kontaktach" autocomplete="off"
+         hx-get="/kontakty" hx-trigger="input changed delay:300ms, search" hx-target="#contact-groups" hx-select="#contact-groups" hx-swap="outerHTML" hx-push-url="true">
+</form>
+<div id="contact-groups">
+{% for role, icon, rows in groups %}
+<h2 class="todo-group">{{ icon }} {{ role }} <small>({{ rows|length }})</small></h2>
+<ul class="contact-list">{% for c in rows %}{% include "partials/contact_card.html" %}{% endfor %}</ul>
+{% endfor %}
+{% if not groups %}
+<p class="muted">{% if q %}Nic nie pasuje do „{{ q }}”.{% else %}Brak kontaktów. Dodaj mechanika, przedszkole, ubezpieczyciela – numer będzie pod ręką.{% endif %}</p>
+{% endif %}
+</div>
+{% endblock %}
