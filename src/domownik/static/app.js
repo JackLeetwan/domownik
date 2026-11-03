@@ -525,6 +525,60 @@
     const btn = e.target.closest && e.target.closest("[data-cal-add]");
     if (btn) addOnDay(btn.dataset.calAdd);
   });
+  // calendar: drag a task's current date onto another day = "Przełóż" (mouse; on a phone use "Przełóż")
+  let dragged = null;
+  const dropDay = (el) => el && el.closest && el.closest("[data-cal-day], .cal-week-day[data-sel]");
+  const dayOf = (cell) => cell.dataset.calDay || cell.dataset.sel;
+  document.addEventListener("dragstart", (e) => {
+    const src = e.target.closest && e.target.closest("[data-drag-task]");
+    if (!src) return;
+    dragged = { id: src.dataset.dragTask, from: src.dataset.dragFrom };
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", dragged.id);
+    document.body.classList.add("cal-dragging");
+  });
+  document.addEventListener("dragend", () => {
+    dragged = null;
+    document.body.classList.remove("cal-dragging");
+    document.querySelectorAll(".drop-over").forEach((c) => c.classList.remove("drop-over"));
+  });
+  document.addEventListener("dragover", (e) => {
+    const cell = dragged && dropDay(e.target);
+    if (!cell) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    document.querySelectorAll(".drop-over").forEach((c) => c !== cell && c.classList.remove("drop-over"));
+    cell.classList.add("drop-over");
+  });
+  document.addEventListener("drop", async (e) => {
+    const cell = dragged && dropDay(e.target);
+    if (!cell) return;
+    e.preventDefault();
+    const { id, from } = dragged;
+    const to = dayOf(cell);
+    cell.classList.remove("drop-over");
+    if (!to || to === from) return;
+    const headers = JSON.parse(document.body.getAttribute("hx-headers") || "{}");
+    const body = new URLSearchParams({ to });
+    try {
+      const r = await fetch(`/tasks/${id}/postpone`, { method: "POST", headers: { ...headers, "HX-Request": "true" }, body });
+      if (!r.ok) {
+        const msg = (await r.text()).replace(/<[^>]+>/g, "").trim();
+        toast(msg || "Nie udało się przełożyć", false);
+        return;
+      }
+    } catch (err) {
+      toast("Brak połączenia – nie przełożono", false);
+      return;
+    }
+    const [y, m, d] = to.split("-");
+    toast(`Przełożono na ${d}.${m}`, true);
+    if (typeof htmx !== "undefined" && document.querySelector(".shell")) {
+      htmx.ajax("GET", location.pathname + location.search, {
+        target: ".shell", select: ".shell", swap: "outerHTML", headers: { "HX-Boosted": "true" },
+      });
+    } else location.reload();
+  });
   // the app icon's "＋ Dodaj" shortcut (manifest) opens /?dodaj=1 – show the menu, then drop the flag
   window.addEventListener("load", () => {
     const params = new URLSearchParams(location.search);

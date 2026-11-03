@@ -226,15 +226,18 @@ def uploads_in(form) -> list[UploadFile]:
 
 def store_files(
     db: Session,
-    item: Item,
+    item: Item | None,
     uploads: list[tuple[str, BinaryIO]],
     *,
     user: User | None,
     doc_kind: str | None = None,
     description: str | None = None,
     completion_id: int | None = None,
+    note_id: int | None = None,
 ) -> list[Attachment]:
     """Save uploaded files (name, file object) with the item – all of them or, on any error, none.
+
+    item None: a note's photo (note_id), kept in files/0/.
 
     Raises UploadError with a message for the user. The caller commits.
     """
@@ -246,7 +249,8 @@ def store_files(
     if len(uploads) > s.max_upload_files:
         raise UploadError(f"Naraz można dodać najwyżej {s.max_upload_files} plików.")
     kind = doc_kind if doc_kind in DOC_KINDS else None
-    folder = s.files_dir / str(item.id)
+    folder_id = item.id if item is not None else 0
+    folder = s.files_dir / str(folder_id)
     written: list[Path] = []
     created: list[Attachment] = []
     try:
@@ -258,7 +262,7 @@ def store_files(
                 raise UploadError(f"„{name}”: plik jest pusty.")
             ftype = sniff(head, name)
             folder.mkdir(parents=True, exist_ok=True)
-            rel = f"files/{item.id}/{secrets.token_hex(16)}.{ftype.ext}"
+            rel = f"files/{folder_id}/{secrets.token_hex(16)}.{ftype.ext}"
             dest = s.uploads_dir / rel
             size = 0
             fobj.seek(0)
@@ -283,7 +287,8 @@ def store_files(
                 if has_thumb:
                     written.append(thumb)
             att = Attachment(
-                item_id=item.id,
+                item_id=item.id if item is not None else None,
+                note_id=note_id,
                 completion_id=completion_id,
                 storage_path=rel,
                 original_name=name,

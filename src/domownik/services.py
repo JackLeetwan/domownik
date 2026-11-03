@@ -640,6 +640,7 @@ def timeline(
                     "kind": "due",
                     "status": status,
                     "time": task.time_label,
+                    "movable": n == 0 and d == task.next_due_date,  # the current date can be dragged elsewhere
                 }
             )
 

@@ -5,7 +5,7 @@
 
 <details class="note-add-box" {% if not total %}open{% endif %}>
   <summary role="button" class="outline">＋ Nowa notatka</summary>
-  <form class="note-add" method="post" action="/notatki">
+  <form class="note-add" method="post" action="/notatki" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     {% if k and k != NO_LABEL %}<input type="hidden" name="k" value="1">{% endif %}
     {% with n = none, preset_label = (k if k and k != NO_LABEL else ''), fid = 'new' %}{% include "partials/note_fields.html" %}{% endwith %}

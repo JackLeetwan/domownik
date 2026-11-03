@@ -142,7 +142,7 @@ def test_failed_send_is_retried(db, user, monkeypatch):
 def test_evening_is_about_tomorrow(db, user, sent):
     _with_topic(db, user)
     item = _item(db)
-    t = today()
+    t = today() if today().weekday() != 6 else today() - timedelta(days=1)  # Sunday adds the week line
     _task(db, item, "Strój na bal", t + timedelta(days=1), category="event", lead_days=1)
     _task(db, item, "Dziś", t)
     notify.run_slot(db, "evening", t)
@@ -281,3 +281,42 @@ def test_real_encryption_and_vapid(db, user, monkeypatch):
     assert captured["headers"]["Urgency"] == "high"
     assert captured["headers"]["authorization"].startswith("vapid t=")
     assert b"Za" not in captured["data"]  # encrypted
+
+
+def test_sunday_evening_week_line(db, user, sent):
+    from datetime import date
+
+    from domownik.models import ExternalCalendar, ExternalEvent
+
+    _with_topic(db, user)
+    other = User(email="ola@example.com", name="Ola", password_hash=hash_password("tajnehaslo2"))
+    db.add(other)
+    db.commit()
+    item = _item(db)
+    sunday = date(2027, 3, 7)
+    _task(db, item, "Czynsz", sunday + timedelta(days=2), category="payment", amount_gr=150000)
+    _task(db, item, "Przegląd kotła", sunday + timedelta(days=4), amount_gr=None, direction="none")
+    _task(db, item, "Za dwa tygodnie", sunday + timedelta(days=14))
+    _task(db, item, "Prezent", sunday + timedelta(days=3), private_to_id=other.id)
+    cal = ExternalCalendar(name="Szkoła", url="https://example.com/s.ics")
+    db.add(cal)
+    db.flush()
+    db.add(
+        ExternalEvent(
+            calendar_id=cal.id,
+            starts_on=sunday + timedelta(days=5),
+            ends_on=sunday + timedelta(days=5),
+            title="Wycieczka",
+        )
+    )
+    db.commit()
+    (d,) = notify.build_digests(db, "evening", sunday, preview_for=user)
+    week = [ln.text for ln in d.lines if ln.rank == notify.RANK_WEEK]
+    assert week == [
+        "📆 Tydzień 8–14.03: 2 terminy · opłaty −1\xa0500\xa0zł – wt Czynsz, czw Przegląd kotła · 📅 1 z kalendarzy"
+    ]
+    assert d.title() == "Domownik: na jutro i tydzień"
+    assert not any(
+        ln.rank == notify.RANK_WEEK
+        for ln in notify.build_digests(db, "evening", sunday - timedelta(days=1), preview_for=user)[0].lines
+    )

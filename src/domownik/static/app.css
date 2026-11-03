@@ -1379,3 +1379,17 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 .ext-icons label { margin: 0; }
 .ext-help { margin-top: 0.75rem; }
 .ext-help li { font-size: 0.9rem; margin-bottom: 0.3rem; }
+
+/* calendar: drag a task to another day */
+[data-drag-task] { cursor: grab; }
+.cal-dragging [data-cal-day], .cal-dragging .cal-week-day[data-sel] { transition: background 0.1s; }
+.drop-over { background: color-mix(in srgb, var(--pico-primary) 16%, transparent) !important; outline: 2px dashed var(--pico-primary); outline-offset: -2px; }
+
+/* photos on a note */
+.note-photos { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0; }
+.note-photo { position: relative; margin: 0; }
+.note-photo img { display: block; width: 4.5rem; height: 4.5rem; object-fit: cover; border-radius: 6px; }
+.note-photo .doc-thumb-kind { display: flex; align-items: center; justify-content: center; width: 4.5rem; height: 4.5rem; border-radius: 6px; font-size: 0.7rem; text-align: center; background: color-mix(in srgb, var(--pico-color) 8%, transparent); }
+.note-photo-del { position: absolute; top: -0.4rem; right: -0.4rem; width: 1.4rem; height: 1.4rem; padding: 0; margin: 0; border-radius: 50%; font-size: 0.7rem; line-height: 1; border: 0; color: #fff; background: rgba(0, 0, 0, 0.55); }
+.note-photo-add { cursor: pointer; margin: 0; }
+.note-photo-pick { font-size: 0.9rem; }

@@ -42,7 +42,7 @@
       <label><input type="checkbox" role="switch" name="notify_morning" value="1" {% if user.notify_morning %}checked{% endif %}>
         Rano ({{ morning_hour }}:00) – zaległe, na dziś i to, co zbliża się do terminu</label>
       <label><input type="checkbox" role="switch" name="notify_evening" value="1" {% if user.notify_evening %}checked{% endif %}>
-        Wieczorem ({{ evening_hour }}:00) – co jest jutro</label>
+        Wieczorem ({{ evening_hour }}:00) – co jest jutro; w niedzielę także podsumowanie tygodnia</label>
     </fieldset>
     <button type="submit" class="small">Zapisz</button>
   </form>

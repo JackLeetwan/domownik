@@ -22,6 +22,18 @@
   {% elif n.body %}
   <div class="note-body">{% if n.pinned and active and not n.title %}📌 {% endif %}{{ n.body }}</div>
   {% endif %}
+  {% if n.photos %}
+  <div class="note-photos">
+    {% for a in n.photos %}
+    <figure class="note-photo">
+      <a href="/files/{{ a.id }}" target="_blank" rel="noopener" hx-boost="false" title="{{ a.original_name }} – otwórz">
+        {% if a.has_thumb %}<img src="/files/{{ a.id }}/thumb" alt="{{ a.original_name }}" loading="lazy" decoding="async">{% else %}<span class="doc-thumb-kind">📷 {{ a.original_name|truncate(14) }}</span>{% endif %}
+      </a>
+      {% if active %}<button type="button" class="note-photo-del" hx-post="/notatki/{{ n.id }}/zdjecia/{{ a.id }}/usun" hx-target="#note-{{ n.id }}" hx-swap="outerHTML" hx-confirm="Usunąć to zdjęcie?" aria-label="Usuń zdjęcie {{ a.original_name }}" title="Usuń zdjęcie">✕</button>{% endif %}
+    </figure>
+    {% endfor %}
+  </div>
+  {% endif %}
   <div class="note-meta">
     {% if n.created_by %}<span>{{ n.created_by.name }}</span>{% endif %}
     <span>{{ n.created_at.date()|d }}</span>
@@ -31,6 +43,8 @@
   <div class="note-actions">
     {% if active %}
     <form method="post" action="/notatki/{{ n.id }}/pin" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">{% if n.pinned %}Odepnij{% else %}📌 Przypnij{% endif %}</button></form>
+    <label class="link note-photo-add" title="Dodaj zdjęcie do notatki">📷<input type="file" name="files" multiple accept="image/*,.heic" hidden
+      hx-post="/notatki/{{ n.id }}/zdjecia" hx-encoding="multipart/form-data" hx-trigger="change" hx-target="#note-{{ n.id }}" hx-swap="outerHTML"></label>
     {% if n.is_list and n.items_done %}<button type="button" class="link" hx-post="/notatki/{{ n.id }}/wyczysc" hx-target="#note-{{ n.id }}" hx-swap="outerHTML">Usuń odhaczone</button>{% endif %}
     <form method="post" action="/notatki/{{ n.id }}/archive" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">✓ Do archiwum</button></form>
     {% else %}
@@ -45,7 +59,7 @@
   {% if active %}
   <details>
     <summary>Edytuj</summary>
-    <form method="post" action="/notatki/{{ n.id }}/edit">
+    <form method="post" action="/notatki/{{ n.id }}/edit" enctype="multipart/form-data">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       {% with fid = n.id %}{% include "partials/note_fields.html" %}{% endwith %}
       <button type="submit" class="small">Zapisz</button>

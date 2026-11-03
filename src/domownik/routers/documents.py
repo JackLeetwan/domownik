@@ -13,7 +13,7 @@ from domownik import documents
 from domownik.config import get_settings, today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
-from domownik.models import DOC_KINDS, Attachment, Item, User, Warranty
+from domownik.models import DOC_KINDS, Attachment, BoardNote, Item, User, Warranty
 from domownik.security import current_user, verify_csrf
 from domownik.web import is_htmx, render
 
@@ -35,8 +35,17 @@ def _get_item(db: Session, item_id: int) -> Item:
 
 def _get_attachment(db: Session, att_id: int) -> Attachment:
     att = db.get(Attachment, att_id)
-    if att is None:
+    # a photo of someone else's private note: the note is not visible, so neither is the photo
+    if att is None or (att.note_id is not None and db.get(BoardNote, att.note_id) is None):
         raise HTTPException(404, "Nie ma takiego pliku")
+    return att
+
+
+def _item_file(db: Session, att_id: int) -> Attachment:
+    """Preview / edit / delete windows are for item documents; a note's photo is handled on its card."""
+    att = _get_attachment(db, att_id)
+    if att.item_id is None:
+        raise HTTPException(404, "To zdjęcie notatki – zarządzasz nim na karcie notatki")
     return att
 
 
@@ -136,7 +145,7 @@ def thumbnail(att_id: int, db: Session = Depends(get_db), user: User = Depends(c
 @router.get("/files/{att_id}/view")
 def view(request: Request, att_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     """Preview + edit window (htmx) or the same as a page of its own."""
-    att = _get_attachment(db, att_id)
+    att = _item_file(db, att_id)
     page = not is_htmx(request) or request.headers.get("hx-boosted") == "true"
     tree = Tree.load(db, include_archived=True)
     return render(
@@ -156,7 +165,7 @@ def view(request: Request, att_id: int, db: Session = Depends(get_db), user: Use
 
 @router.post("/files/{att_id}/edit", dependencies=[Depends(verify_csrf)])
 async def edit_file(request: Request, att_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    att = _get_attachment(db, att_id)
+    att = _item_file(db, att_id)
     form = await request.form()
     if form.get("doc_kind") in DOC_KINDS:
         att.doc_kind = form["doc_kind"]
@@ -169,7 +178,7 @@ async def edit_file(request: Request, att_id: int, db: Session = Depends(get_db)
 
 @router.post("/files/{att_id}/delete", dependencies=[Depends(verify_csrf)])
 def delete_file(att_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    att = _get_attachment(db, att_id)
+    att = _item_file(db, att_id)
     item_id = att.item_id
     documents.delete_attachment(db, att)
     db.commit()

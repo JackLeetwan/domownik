@@ -81,6 +81,8 @@ osoby przypisanej). Punkty ⭐ i „Wymaga zatwierdzenia” – w „Więcej szc
 `/kalendarz` – miesiąc (polskie święta i dni wolne czerwonym numerem) albo `/kalendarz/tydzien` – siedem dni
 jako lista. Filtr „Moje”.
 Dwuklik na dzień (albo „＋” przy wybranym dniu) – „＋ Dodaj” wydarzenie, zadanie lub wydatek na ten dzień.
+Przeciągnięcie terminu myszą na inny dzień (miesiąc i tydzień) = „Przełóż” – tylko bieżący termin zadania,
+nie na dzień, który minął; na telefonie „Przełóż” w oknie zadania.
 
 Kalendarze z zewnątrz (`/kalendarz/zewnetrzne`): link ICS przedszkola, szkoły, zajęć albo kalendarza z pracy
 (Google: „Tajny adres w formacie iCal”). Pobierane co godzinę, wydarzenia cykliczne rozwinięte na ~13 miesięcy;
@@ -101,7 +103,8 @@ listę zakupów).
 ## Notatki, kuchnia, punkty
 
 `/notatki` – tytuł, tekst albo lista do odhaczania na karcie, kolor, kategoria (chipsy filtra), filtr przy
-pisaniu, komentarze. 🎤 dyktowanie (Web Speech API, tylko gdzie przeglądarka to umie) w zakupach, notatkach
+pisaniu, komentarze, 📷 zdjęcia (w formularzu albo ikoną na karcie; same zdjęcie też jest notatką; trzymane w
+`uploads/files/0/`, znikają razem z notatką, prywatne z prywatną). 🎤 dyktowanie (Web Speech API, tylko gdzie przeglądarka to umie) w zakupach, notatkach
 i spiżarni – przy zakupach „i” rozdziela pozycje.
 
 `/kuchnia` – jadłospis tygodnia (przepis albo tekst), przepisy (składniki w liniach, tagi), spiżarnia
@@ -138,7 +141,8 @@ Web Push wysyłany przez samego Domownika (service worker `/sw.js`, klucze VAPID
 bez dodatkowych aplikacji. Po zalogowaniu na nowym urządzeniu wyskakuje pytanie „Włączyć powiadomienia?”;
 zarządzanie w **Ustawieniach**. Na iPhonie wymaga dodania do ekranu początkowego (iOS 16.4+).
 Scheduler w kontenerze (co 5 min) wysyła rano (8:00) skrót: zaległe (co 3 dni), na dziś, nowe „wkrótce”;
-wieczorem (19:00) – co jest jutro. Przycisk ✓ w powiadomieniu odhacza zadanie (podpisany link, 14 dni;
+wieczorem (19:00) – co jest jutro, a w niedzielę także jedna linijka o nadchodzącym tygodniu (terminy, suma
+opłat, wydarzenia z kalendarzy z zewnątrz, zaległe). Przycisk ✓ w powiadomieniu odhacza zadanie (podpisany link, 14 dni;
 telefon musi być w tailnecie). Podgląd: `domownik notify morning`.
 Na kopiach bazy uruchamiaj z `DOMOWNIK_SCHEDULER=false`. Po przywróceniu kopii (bez `secrets/`)
 urządzenia trzeba włączyć ponownie.

@@ -516,6 +516,10 @@ class BoardNote(Base):
     comments: Mapped[list[Comment]] = relationship(
         cascade="all, delete-orphan", passive_deletes=True, order_by="Comment.id"
     )
+    # photos (the files are removed by board.delete_note, the rows also by the FK)
+    photos: Mapped[list[Attachment]] = relationship(
+        primaryjoin="BoardNote.id == foreign(Attachment.note_id)", viewonly=True, order_by="Attachment.id"
+    )
 
     def is_active(self, today: date) -> bool:
         return not self.archived and (self.valid_until is None or self.valid_until >= today)
@@ -570,7 +574,9 @@ class Attachment(Base):
     __tablename__ = "attachment"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    item_id: Mapped[int] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
+    # the item it belongs to; None for a photo of a note on the board (note_id)
+    item_id: Mapped[int | None] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
+    note_id: Mapped[int | None] = mapped_column(ForeignKey("board_note.id", ondelete="CASCADE"), index=True)
     # set when added while ticking a task off ("faktura za serwis")
     completion_id: Mapped[int | None] = mapped_column(ForeignKey("completion.id", ondelete="SET NULL"), index=True)
     # added in the task's form (a photo of what is to be done, the letter, the leaflet)
@@ -586,7 +592,7 @@ class Attachment(Base):
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
-    item: Mapped[Item] = relationship(back_populates="attachments")
+    item: Mapped[Item | None] = relationship(back_populates="attachments")
     completion: Mapped[Completion | None] = relationship(back_populates="attachments")
     task: Mapped[Task | None] = relationship(back_populates="attachments")
     created_by: Mapped[User | None] = relationship()

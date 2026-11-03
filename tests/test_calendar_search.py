@@ -250,3 +250,16 @@ def test_search_requires_login(client):
     for url in ("/szukaj?q=olej", "/szukaj/na-zywo?q=olej"):
         r = client.get(url, follow_redirects=False)
         assert r.status_code == 303 and r.headers["location"].startswith("/login")
+
+
+def test_only_the_current_date_is_draggable(auth_client, db):
+    """Drag & drop in the calendar posts to "Przełóż": only a task's current date carries the handle."""
+    item = _zone(db)
+    due = today() + timedelta(days=3)
+    _task(db, item, "Czynsz", due, recurrence={"mode": "monthly", "day": due.day})
+    page = auth_client.get(f"/kalendarz/tydzien?d={due.isoformat()}").text
+    assert page.count('data-drag-task="') == 1 and f'data-drag-from="{due.isoformat()}"' in page
+    from dateutil.relativedelta import relativedelta
+
+    nxt = auth_client.get(f"/kalendarz/tydzien?d={(due + relativedelta(months=1)).isoformat()}").text
+    assert "Czynsz" in nxt and "data-drag-task" not in nxt  # a later occurrence is not moved by dragging

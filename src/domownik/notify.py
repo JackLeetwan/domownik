@@ -37,6 +37,9 @@ MAX_LINES = 12
 RANK_SCHEDULE = 4  # one line "🗓️ Grafik: 16:00 Odbiór z przedszkola, 17:00 Basen"
 RANK_CHORES = 5  # one line "🧹 Obowiązki: łazienka, śmieci" (morning only)
 RANK_PANTRY = 6  # one line "🥫 Spiżarnia: mleko (dziś), jogurt (po terminie)" (morning only)
+RANK_WEEK = 7  # Sunday evening: one line about the coming week
+WEEK_DAYS = ("pon", "wt", "śr", "czw", "pt", "sob", "nd")
+WEEK_TITLES = 4
 
 
 @dataclass
@@ -62,7 +65,11 @@ class Digest:
 
     def title(self) -> str:
         if self.slot == "evening":
-            return "Domownik: na jutro"
+            return (
+                "Domownik: na jutro i tydzień"
+                if any(ln.rank == RANK_WEEK for ln in self.lines)
+                else "Domownik: na jutro"
+            )
         c = self.counts
         parts = []
         if c.get(0):
@@ -180,6 +187,8 @@ def build_digests(db: Session, slot: str, today: date, *, preview_for: User | No
             tasks = [r.task for r in rs]
             digests[user.id].lines.append(Line(rank, _line_text(rank, title, due, today, tasks), tasks, due))
     _add_household_lines(db, list(digests.values()), slot, today)
+    if slot == "evening" and today.weekday() == 6:
+        _add_week_lines(db, list(digests.values()), rows, today)
     for d in digests.values():
         d.lines.sort(key=lambda ln: (ln.rank, ln.due, ln.text))
     return list(digests.values())
@@ -231,6 +240,50 @@ def _add_household_lines(db: Session, digests: list[Digest], slot: str, today: d
     for d in digests:
         if d.lines or not _already(db, d.user, "pantry", task_id=None, ref=None, since=since):
             d.lines.append(Line(RANK_PANTRY, pantry_text, [], today))
+
+
+def week_text(db: Session, user: User, rows: list[services.TaskRow], today: date) -> str | None:
+    """Sunday evening: "📆 Tydzień 9–15.11: 6 terminów · opłaty −1 250,00 zł – pon Przegląd, śr Czynsz…"."""
+    from domownik import extcal
+
+    first, last = today + timedelta(days=1), today + timedelta(days=7)
+    mine = [
+        r
+        for r in rows
+        if first <= r.due.date <= last
+        and r.task.assignee_id in (None, user.id)
+        and r.task.private_to_id in (None, user.id)
+    ]
+    mine.sort(key=lambda r: (r.due.date, r.task.due_time or "", r.task.full_title))
+    events = {e.id: e for d in range(7) for e in extcal.for_push(db, first + timedelta(days=d), user.id)}
+    late = sum(
+        1
+        for r in rows
+        if r.due.date < today and r.task.assignee_id in (None, user.id) and r.task.private_to_id in (None, user.id)
+    )
+    if not mine and not events and not late:
+        return None
+    n = len(mine)
+    word = "termin" if n == 1 else ("terminy" if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14) else "terminów")
+    head = f"📆 Tydzień {first.day}–{last.strftime('%d.%m')}: " + (f"{n} {word}" if n else "bez terminów")
+    pay = [r.task for r in mine if r.task.direction == "expense" and r.task.amount_gr]
+    if pay:
+        head += f" · opłaty {format_pln(-sum(t.amount_gr for t in pay), sign=True)}"
+    if mine:
+        names = ", ".join(f"{WEEK_DAYS[r.due.date.weekday()]} {r.task.full_title}" for r in mine[:WEEK_TITLES])
+        head += " – " + names + ("…" if n > WEEK_TITLES else "")
+    if events:
+        head += f" · 📅 {len(events)} z kalendarzy"
+    if late:
+        head += f" · ⚠️ {late} zaległe"
+    return head
+
+
+def _add_week_lines(db: Session, digests: list[Digest], rows: list[services.TaskRow], today: date) -> None:
+    for d in digests:
+        text = week_text(db, d.user, rows, today)
+        if text:
+            d.lines.append(Line(RANK_WEEK, text, [], today))
 
 
 # ---------------------------------------------------------------- one-tap "done"

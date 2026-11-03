@@ -10,12 +10,12 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import privacy, services
+from domownik import documents, privacy, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
 from domownik.domain.tree import Tree
-from domownik.models import NOTE_COLORS, BoardNote, Todo, User
+from domownik.models import NOTE_COLORS, Attachment, BoardNote, Todo, User
 from domownik.security import current_user, verify_csrf
 from domownik.web import is_quick, quick_saved, render
 
@@ -61,7 +61,7 @@ def parse_items(text: str) -> list[dict]:
     return out[:MAX_NOTE_ITEMS]
 
 
-def _fill(n: BoardNote, form, user: User) -> None:
+def _fill(n: BoardNote, form, user: User, *, has_photos: bool = False) -> None:
     """Title, content (text or checklist), colour, label, pin, date – from the add / edit form."""
     n.title = str(form.get("title") or "").strip()[:120] or None
     content = str(form.get("body") or "").strip()
@@ -69,7 +69,7 @@ def _fill(n: BoardNote, form, user: User) -> None:
         n.items, n.body = parse_items(content), ""
     else:
         n.items, n.body = None, content
-    if not (n.title or n.body or n.items):
+    if not (n.title or n.body or n.items or has_photos):  # a photo alone is a note too
         raise HTTPException(400, "Notatka jest pusta")
     color = form.get("color")
     n.color = color if color in NOTE_COLORS and color != "yellow" else None
@@ -77,6 +77,24 @@ def _fill(n: BoardNote, form, user: User) -> None:
     n.pinned = bool(form.get("pinned"))
     n.valid_until = _date(form.get("valid_until"))
     privacy.apply(n, form, user)
+
+
+MAX_NOTE_PHOTOS = 12
+
+
+def _store_photos(db: Session, n: BoardNote, form, user: User) -> None:
+    """Photos picked in the note's form or on its card – all saved or (rolled back) none; 422 with the reason."""
+    files = documents.uploads_in(form)
+    if not files:
+        return
+    if len(n.photos) + len(files) > MAX_NOTE_PHOTOS:
+        db.rollback()
+        raise HTTPException(422, f"Notatka może mieć najwyżej {MAX_NOTE_PHOTOS} zdjęć")
+    try:
+        documents.store_files(db, None, [(f.filename or "", f.file) for f in files], user=user, note_id=n.id)
+    except documents.UploadError as exc:
+        db.rollback()
+        raise HTTPException(422, str(exc)) from None
 
 
 def note_labels(notes: list[BoardNote]) -> list[str]:
@@ -122,8 +140,10 @@ def notes_page(
 async def add_note(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     form = await request.form()
     n = BoardNote(created_by_id=user.id)
-    _fill(n, form, user)
+    _fill(n, form, user, has_photos=bool(documents.uploads_in(form)))
     db.add(n)
+    db.flush()
+    _store_photos(db, n, form, user)
     db.commit()
     if is_quick(request):
         return quick_saved("Dodano notatkę")
@@ -141,10 +161,37 @@ def _note(db: Session, note_id: int) -> BoardNote:
 async def edit_note(request: Request, note_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     n = _note(db, note_id)
     form = await request.form()
-    _fill(n, form, user)
+    _fill(n, form, user, has_photos=bool(n.photos or documents.uploads_in(form)))
     n.updated_at = datetime.now()
+    _store_photos(db, n, form, user)
     db.commit()
     return _redirect("/notatki")
+
+
+@router.post("/notatki/{note_id}/zdjecia", dependencies=[Depends(verify_csrf)])
+async def add_note_photos(
+    request: Request, note_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    n = _note(db, note_id)
+    _store_photos(db, n, await request.form(), user)
+    n.updated_at = datetime.now()
+    db.commit()
+    db.refresh(n)
+    return _card(request, n, user)
+
+
+@router.post("/notatki/{note_id}/zdjecia/{att_id}/usun", dependencies=[Depends(verify_csrf)])
+def delete_note_photo(
+    request: Request, note_id: int, att_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    n = _note(db, note_id)
+    att = db.get(Attachment, att_id)
+    if att is None or att.note_id != n.id:
+        raise HTTPException(404, "Nie ma takiego zdjęcia")
+    documents.delete_attachment(db, att)
+    db.commit()
+    db.refresh(n)
+    return _card(request, n, user)
 
 
 def _card(request: Request, n: BoardNote, user: User):
@@ -215,7 +262,10 @@ def archive_note(note_id: int, db: Session = Depends(get_db), user: User = Depen
 
 @router.post("/notatki/{note_id}/delete", dependencies=[Depends(verify_csrf)])
 def delete_note(note_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    db.delete(_note(db, note_id))
+    n = _note(db, note_id)
+    for att in list(n.photos):
+        documents.delete_attachment(db, att)  # the files too, not only the rows
+    db.delete(n)
     db.commit()
     return _redirect("/notatki")
 
