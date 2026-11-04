@@ -1,5 +1,5 @@
 <section class="notes-section" id="do-zrobienia">
-  <h2>Do zrobienia <small class="muted">bez terminu</small></h2>
+  <h2>Do zrobienia <small class="muted">bez terminu{% if todos %} ({{ todos|length }}){% endif %}</small></h2>
   {% if todos %}
   <ul class="todo-list">
     {% for td in todos %}{% set show_zone = td.item_id != item.id %}{% include "partials/todo.html" %}{% endfor %}

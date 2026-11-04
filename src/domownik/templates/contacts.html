@@ -15,10 +15,13 @@
          hx-get="/kontakty" hx-trigger="input changed delay:300ms, search" hx-target="#contact-groups" hx-select="#contact-groups" hx-swap="outerHTML" hx-push-url="true">
 </form>
 {% endif %}
-<div id="contact-groups">
+{# groups fold to their heading (app.js); search results are never folded #}
+<div id="contact-groups"{% if not q %} data-fold-scope="kontakty"{% endif %}>
 {% for role, icon, rows in groups %}
+<section class="contact-group">
 <h2 class="todo-group">{{ icon }} {{ role }} <small>({{ rows|length }})</small></h2>
 <ul class="contact-list">{% for c in rows %}{% include "partials/contact_card.html" %}{% endfor %}</ul>
+</section>
 {% endfor %}
 {% if not groups %}
 <p class="muted">{% if q %}Nic nie pasuje do „{{ q }}”.{% else %}Brak kontaktów. Dodaj mechanika, przedszkole, ubezpieczyciela – numer będzie pod ręką.{% endif %}</p>

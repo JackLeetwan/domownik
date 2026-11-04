@@ -11,6 +11,8 @@
   </div>
 </header>
 
+{# sections below fold to their heading (app.js, data-fold-scope); urgent ones start open #}
+<div data-fold-scope="item-{{ item.id }}">
 {% include "partials/pinned.html" %}
 
 {% if item.kind == 'car' %}
@@ -91,7 +93,7 @@
 
 {% if history %}
 <section>
-  <h2>Historia</h2>
+  <h2>Historia <small class="muted">({{ history|length }})</small></h2>
   <div class="table-scroll">
   <table class="history">
     <thead><tr><th>Data</th><th>Zadanie</th><th>Kwota</th><th>Kto</th><th></th></tr></thead>
@@ -124,4 +126,5 @@
   <ul>{% for t in inactive %}<li><a href="/tasks/{{ t.id }}/edit">{{ t.title }}</a>{% if t.recurrence.count %} <small class="muted">· seria {{ t.recurrence.count }}/{{ t.recurrence.count }} zakończona</small>{% endif %}</li>{% endfor %}</ul>
 </details>
 {% endif %}
+</div>
 {% endblock %}

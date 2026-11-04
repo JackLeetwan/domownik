@@ -24,12 +24,13 @@
   </div>
 </article>
 
+<div data-fold-scope="na-wypadek">
 <h2>Od was</h2>
 <p class="muted"><small>🔒 Nie wpisujcie haseł, PIN-ów ani numerów kart – napiszcie, <i>gdzie</i> je znaleźć. Domownik nie zapisze czegoś, co wygląda na hasło.</small></p>
 {% for key, (title, icon, hint) in SECTIONS.items() %}
 <section class="em-section" id="{{ key }}">
-  <h3>{{ icon }} {{ title }}</h3>
   {% set list = entries[key] %}
+  <h3>{{ icon }} {{ title }}{% if list %} <small class="muted">({{ list|length }})</small>{% endif %}</h3>
   {% if not list %}<p class="muted"><small>{{ hint }}</small></p>{% endif %}
   {% for e in list %}
   <div class="em-entry">
@@ -64,6 +65,7 @@
 <p class="muted"><small>Polisy, kredyty i opłaty to zadania w strefach, kontakty – w „Kontaktach”. Zmieniasz je tam, a teczka bierze stamtąd aktualny stan.</small></p>
 {% with print = false %}{% include "partials/emergency_auto.html" %}{% endwith %}
 
+<section class="em-section">
 <h2 id="przygotowanie">Do przygotowania przez was</h2>
 <p class="muted"><small>Rzeczy, które warto zrobić teraz, żeby rodzina miała łatwiej. Każdą można wrzucić do „Do zrobienia”.</small></p>
 <ul class="em-prepare">
@@ -79,6 +81,8 @@
   </li>
   {% endfor %}
 </ul>
+</section>
+</div>
 
 <details class="em-steps-box">
   <summary><h2>Pierwsze kroki dla rodziny</h2></summary>

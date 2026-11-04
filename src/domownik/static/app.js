@@ -486,6 +486,75 @@
     saveNotesState(st);
   });
 
+  // ------------------------------------------------------------------ sections folded to their heading
+  // Inside [data-fold-scope="key"] every <section> that starts with a heading (h2/h3, or a header with
+  // one) folds to that heading; a tap on it (or ▾) opens / folds, remembered on this device per scope.
+  // Default: data-fold-default on the section, else open when it holds something urgent (a task overdue,
+  // due today or soon), else folded. Only CSS hides the rest – nothing is moved, htmx targets keep working.
+  const FOLD_KEY = "dm-fold";
+  const foldState = () => { try { return JSON.parse(localStorage.getItem(FOLD_KEY)) || {}; } catch (_) { return {}; } };
+  const saveFoldState = (st) => { try { localStorage.setItem(FOLD_KEY, JSON.stringify(st)); } catch (_) { /* private mode */ } };
+  const URGENT = ".status-overdue, .status-today, .status-soon, [data-fold-urgent]";
+  function foldHead(sec) {
+    const first = sec.firstElementChild;
+    if (!first) return null;
+    if (/^H[23]$/.test(first.tagName)) return first;
+    if (first.tagName === "HEADER" && first.querySelector("h2, h3")) return first;
+    return null;
+  }
+  function foldId(scope, sec, head) {
+    const name = sec.id || (head.querySelector("h2, h3") || head).textContent.replace(/\(\d+\)|\d+/g, "").trim().slice(0, 40);
+    return `${scope.dataset.foldScope}:${name}`;
+  }
+  function setFold(sec, open) {
+    sec.classList.toggle("collapsed", !open);
+    // looked up each time: a page restored from htmx's history cache has the button but no JS state
+    const btn = sec.querySelector(":scope > .fold-head .fold-toggle");
+    if (btn) {
+      btn.setAttribute("aria-expanded", String(open));
+      btn.setAttribute("aria-label", open ? "Zwiń sekcję" : "Rozwiń sekcję");
+    }
+  }
+  function foldSections(root) {
+    const scopes = new Set();
+    const own = root.closest && root.closest("[data-fold-scope]");
+    if (own) scopes.add(own);
+    if (root.querySelectorAll) root.querySelectorAll("[data-fold-scope]").forEach((s) => scopes.add(s));
+    const st = foldState();
+    for (const scope of scopes) {
+      const secs = [...scope.querySelectorAll("section")];
+      if (root.matches && root.matches("section")) secs.push(root);
+      for (const sec of secs) {
+        if (sec.classList.contains("fold") || sec.closest("[data-fold-scope]") !== scope) continue;
+        const head = foldHead(sec);
+        if (!head) continue;
+        sec.classList.add("fold");
+        head.classList.add("fold-head");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "fold-toggle";
+        btn.textContent = "▾";
+        btn.title = "Zwiń / rozwiń";
+        head.appendChild(btn);
+        sec.dataset.foldId = foldId(scope, sec, head);
+        const def = sec.dataset.foldDefault ? sec.dataset.foldDefault === "open" : !!sec.querySelector(URGENT);
+        setFold(sec, sec.dataset.foldId in st ? st[sec.dataset.foldId] : def);
+      }
+    }
+  }
+  document.addEventListener("htmx:load", (e) => foldSections(e.detail.elt));
+  document.addEventListener("click", (e) => {
+    const head = e.target.closest(".fold > .fold-head");
+    if (!head) return;
+    if (e.target.closest("a, input, select, textarea, label, form") || (e.target.closest("button") && !e.target.closest(".fold-toggle"))) return;
+    const sec = head.parentElement;
+    const open = sec.classList.contains("collapsed");
+    setFold(sec, open);
+    const st = foldState();
+    st[sec.dataset.foldId] = open;
+    saveFoldState(st);
+  });
+
   // ------------------------------------------------------------------ dictation (🎤, Web Speech API)
   // Only where the browser can do it (Chrome on Android, Safari); the buttons stay hidden elsewhere.
   // For a list ("mleko chleb i masło") "i" / "oraz" become commas – the server splits on those.

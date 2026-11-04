@@ -35,12 +35,17 @@
   </details>
 </form>
 
+{# groups can be folded to their heading (app.js); this is the list itself, so they start open #}
+<div data-fold-scope="do-zrobienia">
 {% for group, todos in groups.items() %}
+<section class="todo-group-box" data-fold-default="open">
 <h2 class="todo-group">{{ group }} <small>({{ todos|length }})</small></h2>
 <ul class="todo-list">
   {% for td in todos %}{% set show_zone = td.item_id is not none %}{% include "partials/todo.html" %}{% endfor %}
 </ul>
+</section>
 {% endfor %}
+</div>
 {% if not groups %}<p class="muted">Nic do zrobienia. 🎉</p>{% endif %}
 
 {% if done_todos %}

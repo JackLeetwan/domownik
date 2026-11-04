@@ -1,5 +1,5 @@
-<section class="notes-section" id="sprawy">
-  <h2>{% if item.is_member %}Problemy i sprawy{% else %}Usterki i sprawy{% endif %}</h2>
+<section class="notes-section" id="sprawy"{% if open_issues %} data-fold-default="open"{% endif %}>
+  <h2>{% if item.is_member %}Problemy i sprawy{% else %}Usterki i sprawy{% endif %}{% if open_issues %} <small class="muted">({{ open_issues|length }} otwarte)</small>{% endif %}</h2>
   {% if open_issues %}
   <ul class="issue-list">{% for i in open_issues %}{% include "partials/issue.html" %}{% endfor %}</ul>
   {% endif %}

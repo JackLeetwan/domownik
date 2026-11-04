@@ -1,5 +1,5 @@
 <section class="notes-section" id="dziennik">
-  <h2>Dziennik</h2>
+  <h2>Dziennik{% if item.journal %} <small class="muted">({{ item.journal|length }})</small>{% endif %}</h2>
   <details class="quick-add">
     <summary>＋ Wpis</summary>
     <form method="post" action="/items/{{ item.id }}/journal">

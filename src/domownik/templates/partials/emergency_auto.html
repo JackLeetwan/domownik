@@ -1,4 +1,5 @@
-{# What the app knows, for the folder (page and printout). Needs: auto (emergency.Overview), print (bool) #}
+{# What the app knows, for the folder (page and printout). Needs: auto (emergency.Overview), print (bool).
+   On the page each part is a <section> that folds (app.js); the printout stays exactly as it was. #}
 {% macro rows(list, empty) %}
   {% if list %}
   <ul class="em-rows">
@@ -15,19 +16,32 @@
   {% else %}<p class="muted"><small>{{ empty }}</small></p>{% endif %}
 {% endmacro %}
 
-<h3 id="ubezpieczenia">🛡️ Ubezpieczenia</h3>
+{% if not print %}<section class="em-section">{% endif %}
+<h3 id="ubezpieczenia">🛡️ Ubezpieczenia{% if not print and auto.insurance %} <small class="muted">({{ auto.insurance|length }})</small>{% endif %}</h3>
 {{ rows(auto.insurance, "Brak polis w Domowniku – dodaj je jako zadania z kategorią „Ubezpieczenie”.") }}
-<h3>💳 Kredyty, raty, leasing</h3>
+{% if not print %}</section>{% endif %}
+{% if not print %}<section class="em-section">{% endif %}
+<h3>💳 Kredyty, raty, leasing{% if not print and auto.debts %} <small class="muted">({{ auto.debts|length }})</small>{% endif %}</h3>
 {{ rows(auto.debts, "Brak kredytów ani rat.") }}
-<h3>🔁 Stałe opłaty</h3>
+{% if not print %}</section>{% endif %}
+{% if not print %}<section class="em-section">{% endif %}
+<h3>🔁 Stałe opłaty{% if not print and auto.bills %} <small class="muted">({{ auto.bills|length }})</small>{% endif %}</h3>
 {{ rows(auto.bills, "Brak stałych opłat.") }}
-<h3>💰 Stałe wpływy</h3>
+{% if not print %}</section>{% endif %}
+{% if not print %}<section class="em-section">{% endif %}
+<h3>💰 Stałe wpływy{% if not print and auto.income %} <small class="muted">({{ auto.income|length }})</small>{% endif %}</h3>
 {{ rows(auto.income, "Brak stałych wpływów (pensje, najem) – wpisuje się je w Budżet → Kategorie i limity.") }}
-<h3>🏠 Majątek</h3>
+{% if not print %}</section>{% endif %}
+{% if not print %}<section class="em-section">{% endif %}
+<h3>🏠 Majątek{% if not print and auto.property %} <small class="muted">({{ auto.property|length }})</small>{% endif %}</h3>
 {{ rows(auto.property, "Brak domu, mieszkań ani samochodów w strefach.") }}
-<h3>📁 Dokumenty zapisane w Domowniku</h3>
+{% if not print %}</section>{% endif %}
+{% if not print %}<section class="em-section">{% endif %}
+<h3>📁 Dokumenty zapisane w Domowniku{% if not print and auto.documents %} <small class="muted">({{ auto.documents|length }})</small>{% endif %}</h3>
 {{ rows(auto.documents, "Brak polis, umów ani dowodów rejestracyjnych w dokumentach stref.") }}
-<h3 id="kontakty">📇 Kontakty</h3>
+{% if not print %}</section>{% endif %}
+{% if not print %}<section class="em-section">{% endif %}
+<h3 id="kontakty">📇 Kontakty{% if not print and auto.contacts %} <small class="muted">({{ auto.contacts|length }})</small>{% endif %}</h3>
 {% if auto.contacts %}
 <ul class="em-rows">
   {% for c in auto.contacts %}
@@ -41,3 +55,4 @@
   {% endfor %}
 </ul>
 {% else %}<p class="muted"><small>Brak kontaktów – dodaj w „Kontakty” księgową, agenta ubezpieczeniowego, notariusza, pracodawców.</small></p>{% endif %}
+{% if not print %}</section>{% endif %}

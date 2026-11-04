@@ -586,6 +586,19 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 /* the hint under the note text only while "Lista do odhaczania" is on */
 .note-list-hint { display: none; margin: -0.3rem 0 0.4rem; font-size: 0.78rem; }
 form:has(input[name=as_list]:checked) .note-list-hint { display: block; }
+/* sections folded to their heading ([data-fold-scope], app.js): only the heading stays */
+.fold > .fold-head { position: relative; cursor: pointer; padding-right: 2.8rem; }
+.fold-toggle { position: absolute; right: 0; top: 50%; translate: 0 -50%; width: 2.6rem; height: 2.6rem; margin: 0; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--pico-primary); font-size: 1.15rem; line-height: 1; transition: rotate 0.15s; }
+.fold-toggle:focus-visible { outline: 2px solid var(--pico-primary); }
+.fold.collapsed > .fold-head .fold-toggle { rotate: -90deg; }
+.fold.collapsed > :not(.fold-head) { display: none !important; }
+.fold.collapsed { padding-bottom: 0; }
+.fold.collapsed > .fold-head { margin-bottom: 0.4rem; }
+.em-section.fold.collapsed { margin-bottom: 0; }
+.em-section.fold.collapsed > .fold-head { margin: 0.5rem 0 0.3rem; }
+.contact-group.fold.collapsed > .fold-head { margin-bottom: 0.2rem; }
+/* "Do zrobienia": a folded card shows its note on two lines at most, the whole note when opened */
+.todo-body:not([open]) .todo-notes { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .notes-fold { margin: 0 0 0.6rem; font-size: 0.85rem; }
 .notes-fold button.link { font-size: inherit; }
 .note-card textarea, .note-card input, .note-card select { background: color-mix(in srgb, var(--nb) 55%, #fff); color: var(--nfg); }
