@@ -1,0 +1,5 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# shared log/run of both services: $LOGDIR/sv/<service>/current
+name=$(basename "$(dirname "$PWD")")
+mkdir -p "/data/data/com.termux/files/usr/var/log/sv/$name"
+exec svlogd -tt "/data/data/com.termux/files/usr/var/log/sv/$name"

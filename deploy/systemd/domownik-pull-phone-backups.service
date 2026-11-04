@@ -1,0 +1,6 @@
+[Unit]
+Description=Domownik – pobranie kopii z telefonu-serwera (adb)
+
+[Service]
+Type=oneshot
+ExecStart=%h/domownik/scripts/pull-phone-backups.sh

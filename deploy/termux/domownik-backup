@@ -1,0 +1,6 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Daily archive without secrets into $DOMOWNIK_DATA_DIR/backups/auto; the PC fetches them over adb
+# (scripts/pull-phone-backups.sh).
+cd "$HOME/domownik" || exit 1
+set -a; . "$HOME/domownik.env"; set +a
+exec .venv/bin/domownik backup --keep 30

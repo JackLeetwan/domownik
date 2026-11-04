@@ -1,0 +1,4 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Tailscale without root: userspace networking; state survives reinstalls of the binary.
+exec 2>&1
+exec "$HOME/bin/tailscaled" --tun=userspace-networking --statedir="$HOME/.tailscale" --socket=/data/data/com.termux/files/usr/var/run/tailscaled.sock

@@ -1,0 +1,5 @@
+#!/data/data/com.termux/files/usr/bin/sh
+exec 2>&1
+cd "$HOME/domownik" || exit 1
+set -a; . "$HOME/domownik.env"; set +a
+exec .venv/bin/domownik serve --host 127.0.0.1 --port 8000

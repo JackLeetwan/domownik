@@ -1,0 +1,9 @@
+[Unit]
+Description=Domownik – co 15 min sprawdź, czy telefon-serwer jest podłączony, i pobierz nowe kopie
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+
+[Install]
+WantedBy=timers.target

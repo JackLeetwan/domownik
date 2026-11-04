@@ -22,6 +22,48 @@ sudo tailscale serve --bg 8000      # → https://<host>.<tailnet>.ts.net
 Po włączeniu HTTPS ustaw w `.env`: `DOMOWNIK_HTTPS_ONLY=true` i `DOMOWNIK_BASE_URL=https://…`,
 potem `docker compose up -d`.
 
+Uwaga: produkcja może działać tylko w jednym miejscu – dwa serwery na jednej bazie (lub jej kopii
+z sekretami) wysyłają podwójne powiadomienia. Kopię do rozwoju uruchamiaj z `DOMOWNIK_SCHEDULER=false`.
+
+## Serwer na telefonie (Termux)
+
+Zapasowy telefon z Androidem jako serwer: działa na baterii przy braku prądu, mało prądu bierze.
+Wszystko w `deploy/termux/`, sterowane z PC przez adb (USB).
+
+**Telefon:** debugowanie USB, bez blokady ekranu (Android odszyfrowuje dane aplikacji dopiero po
+pierwszym odblokowaniu – z PIN-em po restarcie nic nie wstanie), ładowanie z limitem 80%, Termux
+i Termux:Boot z wydań na GitHubie (wersja debug pozwala na `adb shell run-as com.termux …`;
+Termux:Boot otworzyć raz). Termux bez optymalizacji baterii, wyłączony „phantom process killer”:
+
+```bash
+adb shell dumpsys deviceidle whitelist +com.termux
+adb shell settings put global settings_enable_monitor_phantom_procs false
+adb shell device_config set_sync_disabled_for_tests persistent
+adb shell device_config put activity_manager max_phantom_processes 2147483647
+```
+
+**Pierwsza instalacja** (w Termuksie na telefonie):
+
+```bash
+git clone https://github.com/JackLeetwan/domownik.git && cd domownik
+deploy/termux/install-deps.sh            # Python 3.14 z pkg; pydantic-core itp. budują się na telefonie
+deploy/termux/build-tailscaled.sh 1.104.5  # oficjalna binarka linux pada w Termuksie (seccomp)
+deploy/termux/setup.sh                   # usługi runit, Termux:Boot, cron z kopią o 3:30
+nano ~/domownik.env                      # wzór: deploy/termux/domownik.env.example
+sv up tailscaled && tailscale --socket=$PREFIX/var/run/tailscaled.sock up --hostname=domownik
+tailscale --socket=$PREFIX/var/run/tailscaled.sock serve --bg 8000
+```
+
+Przeprowadzka danych: `domownik export` na starym serwerze (z sekretami – sesje i powiadomienia
+zostają), `domownik import` na telefonie, ta sama nazwa węzła w tailnecie → ten sam adres, nikt nic
+nie zmienia na swoim telefonie.
+
+**Aktualizacja:** `git push`, potem z PC przy podłączonym telefonie `scripts/deploy-phone.sh`
+(kopia przed migracjami, `git pull`, zależności przy zmianie `pyproject.toml`, restart, `/healthz`).
+
+**Na telefonie:** `sv status domownik tailscaled crond`, logi w `$LOGDIR/sv/<usługa>/current`,
+restart `sv restart domownik`.
+
 ## Budżet
 
 `/budzet` – jeden wspólny budżet domu, miesiąc po miesiącu. Plan kategorii = koperta (miesięczny limit,
@@ -147,7 +189,7 @@ adresu w tailnecie nie zobaczy – na Androidzie potrzebna jest aplikacja typu I
 Web Push wysyłany przez samego Domownika (service worker `/sw.js`, klucze VAPID w `data/secrets/`) –
 bez dodatkowych aplikacji. Po zalogowaniu na nowym urządzeniu wyskakuje pytanie „Włączyć powiadomienia?”;
 zarządzanie w **Ustawieniach**. Na iPhonie wymaga dodania do ekranu początkowego (iOS 16.4+).
-Scheduler w kontenerze (co 5 min) wysyła rano (8:00) skrót: zaległe (co 3 dni), na dziś, nowe „wkrótce”;
+Scheduler w serwerze (co 5 min) wysyła rano (8:00) skrót: zaległe (co 3 dni), na dziś, nowe „wkrótce”;
 wieczorem (19:00) – co jest jutro, a w niedzielę także jedna linijka o nadchodzącym tygodniu (terminy, suma
 opłat, wydarzenia z kalendarzy z zewnątrz, zaległe). Przycisk ✓ w powiadomieniu odhacza zadanie (podpisany link, 14 dni;
 telefon musi być w tailnecie). Podgląd: `domownik notify morning`.
@@ -156,7 +198,16 @@ urządzenia trzeba włączyć ponownie.
 
 ## Kopie zapasowe
 
-Codziennie o 3:30 (timer systemd użytkownika) `scripts/backup.sh`:
+**Serwer na telefonie:** cron o 3:30 `domownik backup --keep 30` w katalogu danych telefonu, a PC
+co 15 minut (timer `domownik-pull-phone-backups`) sprawdza, czy telefon jest podłączony przez USB,
+i ściąga nowe archiwa na Dysk Google (`scripts/pull-phone-backups.sh`, 30 ostatnich):
+
+```bash
+ln -sf ~/domownik/deploy/systemd/domownik-pull-phone-backups.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload && systemctl --user enable --now domownik-pull-phone-backups.timer
+```
+
+**Serwer w Dockerze:** codziennie o 3:30 (timer systemd użytkownika) `scripts/backup.sh`:
 1. w kontenerze `domownik backup` → `data/backups/auto/` (14 ostatnich, bez klucza sesji),
 2. kopiuje najnowsze archiwum na Dysk Google: `~/GoogleDrive/Domownik/kopie` (30 ostatnich).
 

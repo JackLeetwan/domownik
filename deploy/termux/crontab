@@ -1,0 +1,1 @@
+30 3 * * * $HOME/bin/domownik-backup >> $HOME/log/backup.log 2>&1
