@@ -66,6 +66,25 @@ def test_quick_task_saves_with_guessed_category(auth_client, db):
     assert task.recurrence == {"mode": "once"}
 
 
+def test_quick_task_with_hour_and_reminder(auth_client, db):
+    car = Item(name="Auto 1", kind="car")
+    db.add(car)
+    db.commit()
+    html = auth_client.get("/dodaj/task").text
+    assert 'name="due_time"' in html and 'name="remind_minutes"' in html
+    base = {"item_id": car.id, "freq": "once", "next_due_date": "2030-05-01"}
+    r = auth_client.post(
+        "/tasks/new", data=base | {"title": "Przegląd", "due_time": "09:30", "remind_minutes": "60"}, headers=QUICK
+    )
+    assert _added(r) == "Dodano zadanie"
+    task = db.scalar(select(Task).where(Task.title == "Przegląd"))
+    assert task.due_time == "09:30" and task.remind_minutes == 60
+    # without an hour the reminder is only the morning digest
+    r = auth_client.post("/tasks/new", data=base | {"title": "Bez godziny", "remind_minutes": "60"}, headers=QUICK)
+    task = db.scalar(select(Task).where(Task.title == "Bez godziny"))
+    assert task.due_time is None and task.remind_minutes is None
+
+
 def test_quick_task_error_goes_to_window(auth_client, db):
     car = Item(name="Auto 1", kind="car")
     db.add(car)

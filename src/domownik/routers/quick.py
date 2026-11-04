@@ -113,11 +113,12 @@ def form(
         "today": today(),
         "start": day or today(),
     } | _day_ctx(day)
-    if kind == "event":
+    if kind in ("event", "task"):
         from domownik.routers.tasks import DEFAULT_REMIND, REMIND_CHOICES
 
         ctx["remind_choices"] = REMIND_CHOICES
         ctx["default_remind"] = DEFAULT_REMIND
+    if kind == "event":
         if ctx["current_item"] is None:
             # an appointment is usually someone's: start with the person's own page in the tree
             own = db.scalar(select(Item.id).where(Item.user_id == user.id, Item.archived.is_(False)))

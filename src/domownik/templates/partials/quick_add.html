@@ -39,15 +39,18 @@
       {% for i in items %}<option value="{{ i.id }}" {% if i.id == current_item %}selected{% endif %}>{{ label(i.id) }}</option>{% endfor %}
     </select>
   </label>
-  <div class="grid">
-    <label>Termin <input type="date" name="next_due_date" required value="{{ start.isoformat() }}"></label>
+  <label>Termin <input type="date" name="next_due_date" required value="{{ start.isoformat() }}"></label>
+  <div class="qa-time">
+    <label>Godzina <input type="time" name="due_time"></label>
     <label>Kwota [zł] <input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" placeholder="opcjonalnie" autocomplete="off"></label>
   </div>
+  <label>Powiadom<select name="remind_minutes">{% for k, l in remind_choices.items() %}<option value="{{ k }}" {% if k == default_remind %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+  <small class="muted qa-time-hint">Godzina opcjonalna – bez niej zadanie jest na cały dzień, a przypomnienie przyjdzie w porannym skrócie.</small>
   <footer class="modal-actions">
     <button type="submit">Dodaj</button>
     <a href="/tasks/new?item={{ current_item or (items[0].id if items else '') }}" role="button" class="outline secondary" hx-boost="false" data-qa-more>Więcej opcji…</a>
   </footer>
-  <small class="muted">Powtarzanie, przypomnienie, osoba i kategoria – w „Więcej opcji”, albo później w edycji zadania.</small>
+  <small class="muted">Powtarzanie, osoba i kategoria – w „Więcej opcji”, albo później w edycji zadania.</small>
 </form>
 
 {% elif kind == 'event' %}
