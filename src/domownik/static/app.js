@@ -440,6 +440,25 @@
     if (none) none.hidden = shown > 0;
   });
 
+  // ------------------------------------------------------------------ a form that comes back to this page
+  // A boosted form (✓ Zamknij, ☐ zrobione, ＋ wpis…) posts, and the server answers with the same page;
+  // htmx then scrolls to the top as for any new page. When the answer is the page we are on, stay where
+  // we were. Going to another page still starts at the top.
+  let formScroll = null;
+  document.addEventListener("htmx:beforeRequest", (e) => {
+    const elt = e.detail.elt;
+    formScroll = e.detail.boosted && elt && elt.tagName === "FORM" ? { path: location.pathname, y: window.scrollY } : null;
+  });
+  document.addEventListener("htmx:afterSettle", (e) => {
+    if (!formScroll || !e.detail.boosted) return;
+    const back = formScroll;
+    formScroll = null;
+    // where the answer came from (after the server's redirect) – the address bar may still be updating
+    const url = e.detail.xhr && e.detail.xhr.responseURL;
+    // htmx scrolls to the top right after this event – put the page back in the next frame, before paint
+    if (url && new URL(url).pathname === back.path) requestAnimationFrame(() => window.scrollTo(0, back.y));
+  });
+
   // ------------------------------------------------------------------ notes: fold to the head
   // On the notes board ([data-notes-board]) cards are folded to label + title + a short preview, pinned
   // ones open; a tap on the head (or ▾) opens / folds one, and this device remembers that per note.
