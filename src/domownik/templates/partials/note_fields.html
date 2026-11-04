@@ -1,15 +1,17 @@
 {# Fields of the add / edit note form. Needs: NOTE_COLORS; optional: n (edited note), all_labels, preset_label, fid #}
 {% set fid = fid|default('new') %}
 <input name="title" maxlength="120" value="{{ n.title if n else '' }}" placeholder="Tytuł (opcjonalnie)" aria-label="Tytuł">
+{# editing: the list switch right above the text, so it is clear what the lines are #}
+{% if n %}<label class="note-as-list"><input type="checkbox" name="as_list" role="switch" {% if n.is_list %}checked{% endif %}> ☑ Lista do odhaczania</label>{% endif %}
 <textarea name="body" rows="{{ 4 if n and n.is_list else 3 }}" aria-label="Treść"
   placeholder="Treść. Przy liście: jeden punkt w linii">{% if n %}{% if n.is_list %}{{ items_text(n.items) }}{% else %}{{ n.body }}{% endif %}{% endif %}</textarea>
+<small class="note-list-hint muted">Lista: jeden punkt w linii · ☐ do zrobienia · ✓ odhaczony (linia bez znaku też jest punktem)</small>
 <button type="button" class="mic secondary outline" data-dictate="textarea[name=body]" data-dictate-list="" hidden title="Dyktuj" aria-label="Dyktuj głosem">🎤</button>
 {% if not n %}<label class="note-as-list"><input type="checkbox" name="as_list" role="switch"> ☑ Lista do odhaczania</label>
 <details class="todo-add-more note-more">
   <summary>Więcej opcji <small class="muted">(zdjęcie, kolor, kategoria, ważna do, przypięta)</small></summary>
 {% endif %}<label class="note-photo-pick">📷 Zdjęcia <small class="muted">(paragon, plan lekcji, kod do furtki…)</small>
   <input type="file" name="files" multiple accept="image/*,.heic"></label>
-{% if n %}<label class="note-as-list"><input type="checkbox" name="as_list" role="switch" {% if n.is_list %}checked{% endif %}> ☑ Lista do odhaczania</label>{% endif %}
 <fieldset class="note-colors">
   <legend>Kolor</legend>
   {% for key, lbl in NOTE_COLORS.items() %}

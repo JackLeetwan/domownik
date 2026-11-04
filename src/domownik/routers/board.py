@@ -42,12 +42,13 @@ def _int(v) -> int | None:
 
 
 DONE_MARKS = ("✓ ", "✓", "[x] ", "[x]", "[X] ", "[X]")
+OPEN_MARKS = ("☐ ", "☐", "[ ] ", "[ ]")  # the edit form shows open points as "☐ …"
 MAX_NOTE_ITEMS = 200
 NO_LABEL = "_brak"
 
 
 def parse_items(text: str) -> list[dict]:
-    """One point per line; a line starting with ✓ or [x] is already ticked."""
+    """One point per line; a line starting with ✓ or [x] is already ticked, ☐ / [ ] or nothing – open."""
     out = []
     for line in str(text or "").splitlines():
         line = line.strip().lstrip("-•*").strip()
@@ -56,6 +57,11 @@ def parse_items(text: str) -> list[dict]:
             if line.startswith(mark):
                 line, done = line[len(mark) :].strip(), True
                 break
+        else:
+            for mark in OPEN_MARKS:
+                if line.startswith(mark):
+                    line = line[len(mark) :].strip()
+                    break
         if line:
             out.append({"t": line[:200], "d": done})
     return out[:MAX_NOTE_ITEMS]
@@ -68,6 +74,8 @@ def _fill(n: BoardNote, form, user: User, *, has_photos: bool = False) -> None:
     if form.get("as_list"):
         n.items, n.body = parse_items(content), ""
     else:
+        # a checklist turned into plain text: drop the "☐ " the edit form put in front of open points
+        content = "\n".join(ln[2:] if ln.startswith("☐ ") else ln for ln in content.splitlines())
         n.items, n.body = None, content
     if not (n.title or n.body or n.items or has_photos):  # a photo alone is a note too
         raise HTTPException(400, "Notatka jest pusta")

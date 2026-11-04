@@ -50,7 +50,7 @@ def test_edit_switches_list_back_to_text_and_keeps_ticks(auth_client, db):
     _add(auth_client, body="a\nb", as_list="1")
     n = db.scalar(select(BoardNote))
     page = auth_client.get("/notatki").text
-    assert ">a\nb</textarea>" in page  # list shown as lines in the edit form
+    assert ">☐ a\n☐ b</textarea>" in page  # list shown as lines in the edit form, open ones marked ☐
     auth_client.post(f"/notatki/{n.id}/edit", data={"body": "✓ a\nb", "as_list": "1"})
     db.refresh(n)
     assert n.items == [{"t": "a", "d": True}, {"t": "b", "d": False}]
@@ -118,3 +118,39 @@ def test_migration_0017(tmp_path):
         cols = {r[1] for r in conn.execute(sa.text("PRAGMA table_info(board_note)"))}
         assert not cols & {"title", "items", "color", "label"}
         command.upgrade(cfg, "head")
+
+
+def test_edit_text_marks_open_points_and_round_trips():
+    from domownik.web import items_text
+
+    items = [{"t": "Mleko", "d": False}, {"t": "Chleb", "d": True}, {"t": "☐ w nazwie", "d": False}]
+    text = items_text(items)
+    assert text.splitlines()[:2] == ["☐ Mleko", "✓ Chleb"]
+    assert parse_items(text) == items
+    assert parse_items("[ ] jajka\n☐masło") == [{"t": "jajka", "d": False}, {"t": "masło", "d": False}]
+
+
+def test_edit_form_shows_list_and_list_to_text_drops_open_marks(auth_client, db):
+    _add(auth_client, title="Książki", body="Lalka\nPotop", as_list="1")
+    n = db.scalar(select(BoardNote))
+    page = auth_client.get("/notatki").text
+    assert "☐ Lalka\n☐ Potop" in page and "note-list-hint" in page
+    # the switch sits above the text in the edit form
+    form = page[page.index(f'action="/notatki/{n.id}/edit"') :]
+    assert form.index('name="as_list"') < form.index('name="body"')
+    r = auth_client.post(
+        f"/notatki/{n.id}/edit",
+        data={"title": "Książki", "body": "☐ Lalka\n✓ Potop"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303, r.text
+    db.refresh(n)
+    assert not n.is_list and n.body == "Lalka\n✓ Potop"
+
+
+def test_notes_board_cards_have_a_foldable_head(auth_client, db):
+    _add(auth_client, title="Kod do furtki", body="1234")
+    _add(auth_client, body="Bez tytułu – pierwsza linia\ndruga")
+    page = auth_client.get("/notatki").text
+    assert "data-notes-board" in page and page.count("data-note-head") == 2 and "data-notes-all" in page
+    assert '<span class="np-text">Bez tytułu – pierwsza linia</span>' in page

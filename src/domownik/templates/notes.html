@@ -24,7 +24,8 @@
 {% endif %}
 
 {% if notes %}
-<div class="notes-grid" data-notes-grid>{% for n in notes %}{% include "partials/note_card.html" %}{% endfor %}</div>
+{% if notes|length > 1 %}<p class="notes-fold"><button type="button" class="link" data-notes-all="open">Rozwiń wszystkie</button> · <button type="button" class="link" data-notes-all="close">Zwiń wszystkie</button></p>{% endif %}
+<div class="notes-grid" data-notes-grid data-notes-board>{% for n in notes %}{% include "partials/note_card.html" %}{% endfor %}</div>
 <p class="muted" data-notes-none hidden>Nic nie pasuje.</p>
 {% elif total %}
 <p class="muted">Brak notatek w tej kategorii.</p>
@@ -35,7 +36,7 @@
 {% if archive %}
 <details class="notes-archive">
   <summary>Archiwum ({{ archive|length }})</summary>
-  <div class="notes-grid">{% for n in archive %}{% include "partials/note_card.html" %}{% endfor %}</div>
+  <div class="notes-grid" data-notes-board>{% for n in archive %}{% include "partials/note_card.html" %}{% endfor %}</div>
 </details>
 {% endif %}
 {% endblock %}

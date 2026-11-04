@@ -85,8 +85,8 @@ def week_title(monday) -> str:
 
 
 def items_text(items: list[dict] | None) -> str:
-    """A checklist note as editable text: one point per line, ticked ones start with ✓."""
-    return "\n".join(("✓ " if i.get("d") else "") + i.get("t", "") for i in items or [])
+    """A checklist note as editable text: one point per line – ✓ ticked, ☐ open (parse_items reads both)."""
+    return "\n".join(("✓ " if i.get("d") else "☐ ") + i.get("t", "") for i in items or [])
 
 
 env = templates.env

@@ -1,8 +1,22 @@
 {# One note on the board; swapped in place after ticking a point. Needs: n, NOTE_COLORS #}
 {% set active = n.is_active(today()) %}
+{# On the notes board (data-notes-board) app.js folds the card to its head; the rest is in .note-rest #}
+{% set first_line = (n.body or '').strip().splitlines()[0] if (n.body or '').strip() else '' %}
+{% set first_open = (n.items|rejectattr('d')|map(attribute='t')|first) if n.is_list and n.items else '' %}
 <article class="note-card{% if n.color %} c-{{ n.color }}{% endif %}{% if n.pinned and active %} pinned{% endif %}" id="note-{{ n.id }}" data-note-text="{{ n.text|lower }}">
+  <div class="note-head" data-note-head>
   {% if n.label or n.private_to_id %}<span class="note-label">{% if n.private_to_id %}🔒 tylko dla Ciebie{% if n.label %} · {% endif %}{% endif %}{{ n.label or '' }}</span>{% endif %}
   {% if n.title %}<h3 class="note-title">{% if n.pinned and active %}📌 {% endif %}{{ n.title }}</h3>{% endif %}
+  {# shown only while folded: enough to tell the notes apart #}
+  <p class="note-preview">
+    {%- if not n.title %}{% if n.pinned and active %}📌 {% endif %}<span class="np-text">{{ (first_line or first_open or 'Notatka')|truncate(90) }}</span>{% endif -%}
+    {%- if n.is_list and n.items %}<span>☐ {{ n.items_done }}/{{ n.items|length }}</span>{% endif -%}
+    {%- if n.photos %}<span>📷 {{ n.photos|length }}</span>{% endif -%}
+    {%- if n.comments %}<span>💬 {{ n.comments|length }}</span>{% endif -%}
+  </p>
+  <button type="button" class="note-toggle" data-note-toggle aria-expanded="true" aria-controls="note-rest-{{ n.id }}" aria-label="Zwiń notatkę" title="Zwiń / rozwiń">▾</button>
+  </div>
+  <div class="note-rest" id="note-rest-{{ n.id }}">
   {% if n.is_list %}
   <ul class="note-list">
     {% for it in n.items %}
@@ -66,4 +80,5 @@
     </form>
   </details>
   {% endif %}
+  </div>
 </article>

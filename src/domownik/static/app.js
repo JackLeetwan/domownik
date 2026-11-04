@@ -440,6 +440,52 @@
     if (none) none.hidden = shown > 0;
   });
 
+  // ------------------------------------------------------------------ notes: fold to the head
+  // On the notes board ([data-notes-board]) cards are folded to label + title + a short preview, pinned
+  // ones open; a tap on the head (or ▾) opens / folds one, and this device remembers that per note.
+  // A card swapped in after ticking a point keeps its state (htmx:load runs for the new card too).
+  const NOTES_KEY = "dm-notes-open";
+  const notesState = () => { try { return JSON.parse(localStorage.getItem(NOTES_KEY)) || {}; } catch (_) { return {}; } };
+  const saveNotesState = (st) => { try { localStorage.setItem(NOTES_KEY, JSON.stringify(st)); } catch (_) { /* private mode */ } };
+  function setNoteOpen(card, open) {
+    card.classList.add("foldable");
+    card.classList.toggle("collapsed", !open);
+    const btn = card.querySelector("[data-note-toggle]");
+    if (btn) {
+      btn.setAttribute("aria-expanded", String(open));
+      btn.setAttribute("aria-label", open ? "Zwiń notatkę" : "Rozwiń notatkę");
+    }
+  }
+  function foldNotes(root) {
+    const cards = root.matches && root.matches(".note-card") ? [root] : [...root.querySelectorAll(".note-card")];
+    const st = notesState();
+    for (const card of cards) {
+      if (!card.closest("[data-notes-board]")) continue;
+      setNoteOpen(card, card.id in st ? st[card.id] : card.classList.contains("pinned"));
+    }
+  }
+  document.addEventListener("htmx:load", (e) => foldNotes(e.detail.elt));
+  document.addEventListener("click", (e) => {
+    const all = e.target.closest("[data-notes-all]");
+    if (all) {
+      const open = all.dataset.notesAll === "open";
+      const st = notesState();
+      document.querySelectorAll("[data-notes-grid] .note-card.foldable").forEach((card) => { setNoteOpen(card, open); st[card.id] = open; });
+      saveNotesState(st);
+      return;
+    }
+    const head = e.target.closest(".note-card.foldable [data-note-head]");
+    if (!head) return;
+    // links, the 🔒 label etc. keep working; only the head itself and ▾ fold
+    if (e.target.closest("a, input, select, textarea, label, form") || (e.target.closest("button") && !e.target.closest("[data-note-toggle]"))) return;
+    const card = head.closest(".note-card");
+    const open = card.classList.contains("collapsed");
+    setNoteOpen(card, open);
+    const st = notesState();
+    st[card.id] = open;
+    saveNotesState(st);
+  });
+
   // ------------------------------------------------------------------ dictation (🎤, Web Speech API)
   // Only where the browser can do it (Chrome on Android, Safari); the buttons stay hidden elsewhere.
   // For a list ("mleko chleb i masło") "i" / "oraz" become commas – the server splits on those.
