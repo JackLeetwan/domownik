@@ -1074,10 +1074,23 @@
     };
   }
 
+  // vis spaces minor ticks for labels of this many characters (default 7). On a phone a 3-month window
+  // then got month ticks only; planned for 2-3 characters it picks weeks, labelled with the day number.
+  const PHONE_DENSE = 3;
+  function minorChars(span) {
+    return phone && span > 45 * DAY && span < 200 * DAY ? PHONE_DENSE : 7;
+  }
+  function spanNow() {
+    if (!timeline) return savedRange * DAY;
+    const w = timeline.getWindow();
+    return w.end - w.start;
+  }
+
   // weeks start on Monday (vis rounds week ticks with its bundled moment, English locale = Sunday)
   if (vis.moment && vis.moment.updateLocale) vis.moment.updateLocale("en", { week: { dow: 1, doy: 4 } });
 
   let timeline = null;
+  let plannedChars = minorChars(savedRange * DAY);
   timeline = new vis.Timeline(container, items, {
     start: new Date(today.getTime() - savedRange * 0.15 * DAY),
     end: new Date(today.getTime() + savedRange * 0.85 * DAY),
@@ -1088,9 +1101,12 @@
     showWeekScale: true,
     stack: true,
     stackSubgroups: true,
-    maxHeight: phone ? Math.max(170, Math.round(window.innerHeight * 0.4) - 110) : 340,
+    // phones: room for ~6 rows ("Rok" hid its last row behind a scroll inside the card)
+    maxHeight: phone ? Math.max(230, Math.round(window.innerHeight * 0.5) - 110) : 340,
     minHeight: phone ? 110 : 120,
-    margin: { item: { horizontal: 2, vertical: 4 }, axis: 6 },
+    // phones: a wider gap – a long urgent name ran right up to the next dot and read as one entry
+    margin: { item: { horizontal: phone ? 10 : 2, vertical: phone ? 3 : 4 }, axis: 6 },
+    maxMinorChars: plannedChars,
     orientation: { axis: "top", item: "top" },
     selectable: false,
     tooltip: { followMouse: true, overflowMethod: "cap", delay: 150 },
@@ -1105,6 +1121,9 @@
         if (scale === "month") return fmtMonth.format(d);
         // week ticks: vis adds a tick on the 1st of the month too – unlabelled, it crowded the Monday next to it
         if (scale === "week" && d.getDate() === 1 && d.getDay() !== 1) return "";
+        // phones, ~3 months: a tick per week, labelled with the day only ("9") – "9 lis" does not fit;
+        // the month is in the major label above
+        if (phone && (scale === "week" || scale === "day") && minorChars(spanNow()) === PHONE_DENSE) return String(d.getDate());
         return fmtDay.format(d);
       },
       majorLabels: (date, scale) => {
@@ -1174,7 +1193,12 @@
     }
   }
 
-  timeline.on("rangechanged", () => load(false));
+  timeline.on("rangechanged", () => {
+    // the label width vis plans its ticks for follows the zoom (see minorChars)
+    const chars = minorChars(spanNow());
+    if (chars !== plannedChars) { plannedChars = chars; timeline.setOptions({ maxMinorChars: chars }); }
+    load(false);
+  });
   timeline.on("click", (props) => {
     if (!props.item) return;
     const it = items.get(props.item);
