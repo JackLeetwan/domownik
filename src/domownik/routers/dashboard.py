@@ -11,7 +11,7 @@ from domownik import budget, chores, emergency, extcal, goals, kitchen, schedule
 from domownik.config import now, today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
-from domownik.models import MEMBER_KINDS, Item, User
+from domownik.models import CATEGORIES, MEMBER_KINDS, Item, User
 from domownik.routers.shopping import open_items
 from domownik.security import current_user, verify_csrf
 from domownik.web import render
@@ -85,6 +85,47 @@ def dashboard(
             "today_ext": today_ext,
             "backup_warning": services.backup_warning(t),
             "emergency_warning": _emergency_warning(db),
+        },
+    )
+
+
+@router.get("/zadania")
+def tasks_page(
+    request: Request,
+    who: str | None = None,
+    kat: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """All dated tasks in one list – the dashboard's "Najbliższe terminy" without the cut, by category."""
+    t = today()
+    services.settle_autopay(db, t)
+    tree = Tree.load(db)
+    rows = services.task_rows(db, tree, t)
+    if who == "me":
+        rows = [r for r in rows if r.task.assignee_id in (None, user.id)]
+    # categories that have something, in the usual order – the filter offers only those
+    present = {r.task.category for r in rows}
+    categories = [(k, lbl, ic) for k, (lbl, ic) in CATEGORIES.items() if k in present]
+    if kat not in present:
+        kat = None
+    if kat:
+        rows = [r for r in rows if r.task.category == kat]
+    buckets: dict[str, list] = {"overdue": [], "week": [], "month": [], "later": []}
+    for r in rows:
+        buckets[r.due.bucket].append(r)
+    return render(
+        request,
+        "tasks.html",
+        {
+            "user": user,
+            "who": who,
+            "kat": kat,
+            "categories": categories,
+            "count": len(rows),
+            "buckets": buckets,
+            "grouped": {k: services.group_payments(v) for k, v in buckets.items()},
+            "any_assigned": services.any_assigned(db),
         },
     )
 

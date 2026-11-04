@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Zadania · Domownik{% endblock %}
+{% block content %}
+{% set q_who = '&who=me' if who == 'me' else '' %}
+{% set q_kat = '&kat=' ~ kat if kat else '' %}
+<header class="agenda-head">
+  <h1>📋 Zadania <small class="muted">({{ count }})</small></h1>
+  <div role="group" class="who">
+    <a href="/zadania{{ ('?' ~ q_kat[1:]) if kat else '' }}" role="button" class="{% if who != 'me' %}{% else %}outline {% endif %}secondary">Wszyscy</a>
+    <a href="/zadania?who=me{{ q_kat }}" role="button" class="{% if who == 'me' %}{% else %}outline {% endif %}secondary">Moje</a>
+  </div>
+</header>
+<p class="muted"><small>Sprawy z terminem – te same, co na osi czasu i w kalendarzu. Bez terminu → <a href="/do-zrobienia">☐ Do zrobienia</a>.</small></p>
+{% if who == 'me' and not any_assigned %}
+<p class="who-hint"><small>Żadne zadanie nie jest jeszcze przypisane, więc „Moje” pokazuje wszystko. <a href="/przypisania">Ustal, kto czym się zajmuje →</a></small></p>
+{% endif %}
+
+<div class="tasks-tools">
+  <button type="button" hx-get="/dodaj/task" hx-target="#modal-body">＋ Zadanie</button>
+  {% if categories|length > 1 or kat %}
+  <nav class="cat-chips" aria-label="Kategoria">
+    <a href="/zadania{{ ('?' ~ q_who[1:]) if who == 'me' else '' }}" {% if not kat %}aria-current="true"{% endif %}>Wszystkie</a>
+    {% for k, lbl, ic in categories %}<a href="/zadania?kat={{ k }}{{ q_who }}" {% if k == kat %}aria-current="true"{% endif %}>{{ ic }} {{ lbl }}</a>{% endfor %}
+  </nav>
+  {% endif %}
+</div>
+
+<section class="agenda">
+  {% for key, label in BUCKETS %}
+    {% if buckets[key] %}
+    <h3 class="bucket bucket-{{ key }}">{{ label }} <small class="muted">({{ buckets[key]|length }})</small></h3>
+    <ul class="task-list">
+      {% for entry in grouped[key] %}{% if entry.rows is defined %}{% set g = entry %}{% include "partials/payment_group.html" %}{% else %}{% set row = entry %}{% include "partials/task_row.html" %}{% endif %}{% endfor %}
+    </ul>
+    {% endif %}
+  {% endfor %}
+  {% if not count %}
+  <p class="muted">{% if kat or who == 'me' %}Nic tu nie ma – <a href="/zadania">pokaż wszystkie</a>.{% else %}Nie ma jeszcze zadań. Dodaj pierwsze przyciskiem „＋ Zadanie”.{% endif %}</p>
+  {% endif %}
+</section>
+{% endblock %}

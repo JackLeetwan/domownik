@@ -1572,3 +1572,10 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .done-early { margin: 0 0 0.75rem; }
 .done-early > summary { color: var(--pico-primary); }
 .done-early[open] > summary { margin-bottom: 0.6rem; }
+
+/* 📋 Zadania: add button + category chips (scroll sideways on a phone) */
+.tasks-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin: 0.5rem 0 1rem; }
+.tasks-tools > button { margin: 0; width: auto; padding: 0.4rem 0.9rem; }
+.cat-chips { display: flex; gap: 0.4rem; overflow-x: auto; min-width: 0; flex: 1 1 100%; padding-bottom: 0.2rem; scrollbar-width: none; }
+.cat-chips a { flex: none; white-space: nowrap; padding: 0.25rem 0.7rem; border: 1px solid var(--dm-tile-border); border-radius: 999px; font-size: 0.88rem; text-decoration: none; color: inherit; }
+.cat-chips a[aria-current] { background: var(--pico-primary-background); border-color: var(--pico-primary-background); color: #fff; font-weight: 600; }

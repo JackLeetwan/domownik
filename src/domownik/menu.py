@@ -25,6 +25,7 @@ LINKS: tuple[Link, ...] = (
     Link("zakupy", "/zakupy", "🛒", "Zakupy", "shopping"),
     Link("kuchnia", "/kuchnia", "🍳", "Kuchnia"),
     Link("notatki", "/notatki", "📝", "Notatki", "notes"),
+    Link("zadania", "/zadania", "📋", "Zadania"),
     Link("do-zrobienia", "/do-zrobienia", "☐", "Do zrobienia", "todos"),
     Link("punkty", "/punkty", "⭐", "Punkty", "points"),
     Link("zdjecia", "/zdjecia", "📥", "Do rozpoznania", "inbox"),
