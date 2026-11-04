@@ -85,6 +85,20 @@ def test_quick_task_with_hour_and_reminder(auth_client, db):
     assert task.due_time is None and task.remind_minutes is None
 
 
+def test_quick_task_in_payments_zone_is_a_payment_only_with_an_amount(auth_client, db):
+    home = Item(name="Dom", kind="zone")
+    db.add(home)
+    db.flush()
+    for n in range(3):
+        db.add(Task(item_id=home.id, title=f"Rachunek {n}", category="payment", recurrence={"mode": "once"}))
+    db.commit()
+    base = {"item_id": home.id, "freq": "once", "next_due_date": "2030-05-01"}
+    auth_client.post("/tasks/new", data=base | {"title": "Zapytać o formę płatności"}, headers=QUICK)
+    auth_client.post("/tasks/new", data=base | {"title": "Prąd", "amount": "200"}, headers=QUICK)
+    assert db.scalar(select(Task).where(Task.title == "Zapytać o formę płatności")).category == "other"
+    assert db.scalar(select(Task).where(Task.title == "Prąd")).category == "payment"
+
+
 def test_quick_task_error_goes_to_window(auth_client, db):
     car = Item(name="Auto 1", kind="car")
     db.add(car)

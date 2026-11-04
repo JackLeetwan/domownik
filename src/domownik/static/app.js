@@ -920,7 +920,40 @@
       };
       [freq, mode, end].forEach((el) => el.addEventListener("change", apply));
       apply();
+      payDefaults(form, freq);
     });
+  }
+  // New task in a zone full of bills: an amount makes it a monthly payment, no amount – a one-off
+  // of the usual category. Only fields the user has not changed by hand follow the amount.
+  function payDefaults(form, freq) {
+    const payCat = form.dataset.payCategory;
+    const amount = form.querySelector("input[name=amount]");
+    if (!payCat || !amount) return;
+    const cat = form.querySelector("select[name=category]");
+    const bud = form.querySelector("select[name=budget_category_id]");
+    const plain = { freq: freq.value, cat: cat && cat.value, bud: bud && bud.value };
+    const paid = { freq: "month", cat: payCat, bud: form.dataset.payBudget };
+    const touched = new Set();
+    let auto = false;
+    [["freq", freq], ["cat", cat], ["bud", bud]].forEach(([k, el]) => {
+      if (el) el.addEventListener("change", () => { if (!auto) touched.add(k); });
+    });
+    const set = (k, el, v) => {
+      if (!el || touched.has(k) || v === undefined || el.value === v) return;
+      if (v !== "" && !el.querySelector(`option[value="${CSS.escape(v)}"]`)) return;
+      auto = true;
+      el.value = v;
+      el.dispatchEvent(new Event("change", { bubbles: true })); // rule preview + shown fields
+      auto = false;
+    };
+    const follow = () => {
+      const want = amount.value.trim() ? paid : plain;
+      set("freq", freq, want.freq);
+      set("cat", cat, want.cat);
+      set("bud", bud, want.bud);
+    };
+    amount.addEventListener("input", follow);
+    follow();
   }
   // htmx:load fires for the initial page and for every swapped-in fragment / boosted page
   document.addEventListener("htmx:load", (e) => {

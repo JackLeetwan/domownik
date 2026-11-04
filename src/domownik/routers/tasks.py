@@ -270,14 +270,15 @@ DEFAULT_LEAD_DAYS = 7
 
 
 def _is_payments_place(item) -> bool:
-    """Mostly bills here (a "payments" zone)? Then a new task is a monthly payment by default."""
+    """Mostly bills here (a "payments" zone)? Then a new task with an amount is a monthly payment by default."""
     tasks = [t for t in item.tasks if t.active]
     pay = sum(t.category in ("payment", "income") for t in tasks)
     return len(tasks) >= 2 and pay * 2 > len(tasks)
 
 
-def _default_category(item, tree: Tree) -> str:
-    if _is_payments_place(item):
+def _default_category(item, tree: Tree, *, has_amount: bool = False) -> str:
+    # only a bill has an amount: "zapytać o formę płatności" in a zone full of bills is not a payment
+    if has_amount and _is_payments_place(item):
         return "payment"
     return DEFAULT_CATEGORY_BY_KIND.get(item.kind, "other")
 
@@ -302,7 +303,7 @@ def _guess_category(db: Session, task: Task) -> None:
     item = tree.items.get(task.item_id)
     if item is None:
         raise ValueError("Wybierz, czego dotyczy zadanie")
-    task.category = _default_category(item, tree)
+    task.category = _default_category(item, tree, has_amount=bool(task.amount_gr))
     if task.amount_gr and not task.budget_category_id:
         task.budget_category_id = budget.suggest_category(db, tree, item.id, task.category)
 
@@ -313,25 +314,29 @@ def new_task_form(request: Request, item: int, db: Session = Depends(get_db), us
     if item not in tree.items:
         raise HTTPException(404)
     it = tree.items[item]
-    # bills: monthly is what almost every new entry in a payments zone is; anything else starts as a one-off
-    rule = (
-        {"mode": "interval", "every": 1, "unit": "month", "anchor": "due"}
-        if _is_payments_place(it)
-        else {"mode": "once"}
-    )
     task = Task(
         item_id=item,
         category=_default_category(it, tree),
-        recurrence=rule,
+        recurrence={"mode": "once"},
         lead_days=DEFAULT_LEAD_DAYS,
         direction="expense",
     )
     # a guess, so that a task with an amount lands in the right place of the budget
     task.budget_category_id = budget.suggest_category(db, tree, item, task.category)
+    # bills: in a payments zone an amount turns the new task into a monthly payment (app.js),
+    # as long as the category / repetition / budget line were not picked by hand
+    pay_default = None
+    if _is_payments_place(it):
+        pay_default = {
+            "category": _default_category(it, tree, has_amount=True),
+            "budget": budget.suggest_category(db, tree, item, "payment") or "",
+        }
     return render(
         request,
         "task_form.html",
-        _form_context(db, tree, user=user, task=task, is_new=True, path=tree.path(item), more_open=False),
+        _form_context(
+            db, tree, user=user, task=task, is_new=True, path=tree.path(item), more_open=False, pay_default=pay_default
+        ),
     )
 
 
@@ -614,7 +619,7 @@ def _postpone_error(msg: str) -> HTMLResponse:
 def edit_task_form(request: Request, task_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     task = _get_task(db, task_id)
     tree = Tree.load(db, include_archived=True)
-    more_open = _more_open(task, _default_category(task.item, tree))
+    more_open = _more_open(task, _default_category(task.item, tree, has_amount=bool(task.amount_gr)))
     return render(
         request,
         "task_form.html",

@@ -51,7 +51,7 @@ def test_new_form_defaults_one_off_with_date_and_details_closed(auth_client, db)
     assert '<option value="km"' not in page  # mileage only for cars
 
 
-def test_new_form_in_payments_zone_defaults_monthly(auth_client, db):
+def test_new_form_in_payments_zone_becomes_a_payment_with_an_amount(auth_client, db):
     zone = _item(db, "Opłaty", "group")
     for n in range(2):
         db.add(
@@ -59,7 +59,13 @@ def test_new_form_in_payments_zone_defaults_monthly(auth_client, db):
         )
     db.commit()
     page = auth_client.get(f"/tasks/new?item={zone.id}").text
-    assert '<option value="month" selected>' in page and '<option value="payment" selected>' in page
+    # a plain one-off until an amount is typed – then app.js switches to a monthly payment
+    assert '<option value="once" selected>' in page and '<option value="other" selected>' in page
+    assert 'data-pay-category="payment"' in page
+    # elsewhere nothing to switch
+    other = _item(db, "Garaż", "group")
+    db.commit()
+    assert "data-pay-category" not in auth_client.get(f"/tasks/new?item={other.id}").text
 
 
 def test_car_form_offers_mileage(auth_client, db):
