@@ -1066,3 +1066,23 @@
   load(true);
   }
 })();
+
+// ---------------------------------------------------------------- menu: start loading on touch
+// On the small phone server a page takes ~30–120 ms to compute; the tap ("click") comes ~100 ms after
+// the finger touches the screen. Touching a menu link ([data-preload]) asks the service worker to fetch
+// the page right away, with the headers htmx will send for that boosted click; the click then gets
+// that answer (used once, kept at most a few seconds – nothing is cached for later).
+(() => {
+  if (!("serviceWorker" in navigator)) return;
+  document.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || !navigator.serviceWorker.controller) return;
+    const a = e.target.closest("[data-preload] a[href]");
+    if (!a || a.target || a.hasAttribute("download") || a.getAttribute("hx-boost") === "false") return;
+    const url = new URL(a.href, location.href);
+    if (url.origin !== location.origin || url.hash || url.href === location.href) return;
+    fetch(url.href, {
+      credentials: "same-origin",
+      headers: { "HX-Request": "true", "HX-Boosted": "true", "HX-Current-URL": location.href, "X-DM-Preload": "1" },
+    }).catch(() => {});
+  }, { passive: true, capture: true });
+})();

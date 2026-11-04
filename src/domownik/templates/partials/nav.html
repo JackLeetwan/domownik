@@ -1,6 +1,7 @@
 {# Sidebar on desktop, slide-in drawer ("Więcej") on phones. Needs: nav, user, request #}
 {% set p = request.url.path %}
-<aside class="sidebar" id="sidebar" aria-label="Menu">
+{# data-preload: a link here starts loading when touched (app.js + sw.js), the tap itself comes later #}
+<aside class="sidebar" id="sidebar" aria-label="Menu" data-preload>
   <a href="/" class="brand sidebar-brand">🏡 Domownik</a>
   <form class="side-search" action="/szukaj" method="get" aria-label="Szukaj" data-side-search>
     <input type="search" name="q" id="side-search" placeholder="Szukaj…" aria-label="Szukaj (skrót: /)" autocomplete="off" enterkeyhint="search"
@@ -41,7 +42,7 @@
   </div>
 </aside>
 <div class="nav-backdrop" data-nav-close></div>
-<nav class="bottombar" aria-label="Szybkie menu">
+<nav class="bottombar" aria-label="Szybkie menu" data-preload>
   <a href="/" {% if p == '/' %}aria-current="page"{% endif %}><span>🏠</span>Pulpit</a>
   {% set bb = menu_bar(user) %}
   {% with ln = bb[0] %}{% set cnt = nav[ln.count] if ln.count else 0 %}<a href="{{ ln.href }}" {% if p.startswith(ln.href) %}aria-current="page"{% endif %}><span>{{ ln.icon }}{% if cnt %}<b class="count">{{ cnt }}</b>{% endif %}</span>{{ ln.label }}</a>{% endwith %}

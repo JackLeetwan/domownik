@@ -41,6 +41,7 @@ from domownik.routers import (
     tasks,
 )
 from domownik.security import LoginRequired
+from domownik.slowlog import SlowRequestLog
 from domownik.web import HERE, is_htmx, render
 
 log = logging.getLogger("domownik")
@@ -206,6 +207,8 @@ def create_app() -> FastAPI:
             request, "error.html", {"code": exc.status_code, "detail": exc.detail}, status_code=exc.status_code
         )
 
+    # outermost: times the whole request, session and security headers included
+    app.add_middleware(SlowRequestLog, threshold_ms=settings.slow_ms)
     return app
 
 

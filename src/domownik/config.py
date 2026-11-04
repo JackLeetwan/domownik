@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     evening_hour: int = 19
     # background jobs (digests, autopay); off in tests and throwaway dev copies
     scheduler: bool = True
+    # requests at least this slow go to the log ("SLOW …", domownik.slowlog); 0 = off
+    slow_ms: int = 150
     # documents and photos kept with items (data/uploads/files)
     max_upload_mb: int = 20
     max_upload_files: int = 20

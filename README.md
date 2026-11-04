@@ -65,6 +65,10 @@ nie zmienia na swoim telefonie.
 bez tego telefon zaczyna krótkie zadania (jedna strona) na wolnych i strony liczą się ok. 2× dłużej.
 SQLAlchemy musi być zbudowany ze skompilowanymi przyspieszeniami (`install-deps.sh` tego pilnuje).
 
+**Wolne żądania:** każde żądanie ≥ `DOMOWNIK_SLOW_MS` (domyślnie 150 ms, 0 = wyłączone) trafia do logu
+jako `SLOW … ms GET /trasa/{param}` (szablon trasy, bez prawdziwych adresów i tokenów; narzut ~7 µs).
+Podsumowanie z telefonu: `scripts/phone-slow-report.sh`.
+
 **Na telefonie:** `sv status domownik tailscaled crond`, logi w `$LOGDIR/sv/<usługa>/current`,
 restart `sv restart domownik`.
 

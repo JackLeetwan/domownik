@@ -92,11 +92,59 @@ async function staleWhileRevalidate(request) {
   return cached || net;
 }
 
+// ---- menu pages loaded on touch (app.js): the answer waits here for the click that follows – once, briefly
+const PRELOAD_TTL = 3000;
+const preloaded = new Map(); // key → { at, response: Promise<Response> }
+
+// the headers htmx sends for a boosted click that the server looks at – a preload must match them all
+function preloadKey(req) {
+  const h = req.headers;
+  return [req.url, h.get("HX-Request"), h.get("HX-Boosted"), h.get("HX-Current-URL")].join("\n");
+}
+
+function preload(req) {
+  const now = Date.now();
+  for (const [k, v] of preloaded) if (now - v.at > PRELOAD_TTL) preloaded.delete(k);
+  const key = preloadKey(req);
+  if (!preloaded.has(key)) {
+    const headers = new Headers(req.headers);
+    headers.delete("X-DM-Preload");
+    const response = fetch(new Request(req, { headers }));
+    response.catch(() => preloaded.delete(key));
+    preloaded.set(key, { at: now, response });
+  }
+  return new Response(null, { status: 204 });
+}
+
+function takePreloaded(req) {
+  const key = preloadKey(req);
+  const hit = preloaded.get(key);
+  if (!hit) return null;
+  preloaded.delete(key);
+  if (Date.now() - hit.at > PRELOAD_TTL) return null;
+  return hit.response.catch(() => fetch(req)); // a failed preload: ask again as if nothing happened
+}
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  if (req.headers.get("X-DM-Preload") === "1") {
+    event.respondWith(preload(req));
+    return;
+  }
+  if (req.headers.get("HX-Boosted") === "true") {
+    const hit = takePreloaded(req);
+    if (hit) {
+      // the shopping list keeps its offline copy fresh exactly as without the preload
+      event.respondWith(!OFFLINE_PAGES.includes(url.pathname) ? hit : hit.then(async (resp) => {
+        if (cacheable(resp)) await (await caches.open(PAGES)).put(url.pathname, resp.clone());
+        return resp;
+      }));
+      return;
+    }
+  }
   if (url.pathname.startsWith("/static/")) {
     event.respondWith(url.searchParams.has("v") ? cacheFirst(req) : staleWhileRevalidate(req));
     return;
