@@ -14,11 +14,11 @@
   <div id="timeline" class="timeline" aria-label="Oś czasu zadań"></div>
   <p class="timeline-status muted" data-timeline-status role="status">Ładowanie osi czasu…</p>
   <p class="timeline-legend muted">
-    <span class="dot overdue"></span> zaległe
-    <span class="dot soon"></span> wkrótce
-    <span class="dot later"></span> zaplanowane
-    <span class="dot forecast"></span> prognoza z przebiegu
-    <span class="dot done"></span> wykonane
+    <span class="tl-key"><span class="dot overdue"></span> zaległe</span>
+    <span class="tl-key"><span class="dot soon"></span> wkrótce</span>
+    <span class="tl-key"><span class="dot later"></span> zaplanowane</span>
+    <span class="tl-key"><span class="dot forecast"></span> prognoza<span class="tl-key-long"> z przebiegu</span></span>
+    <span class="tl-key"><span class="dot done"></span> wykonane</span>
     {% if not timeline_item %}<a href="/kalendarz" class="timeline-cal">Kalendarz →</a>{% endif %}
   </p>
 </section>

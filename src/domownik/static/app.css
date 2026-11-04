@@ -135,6 +135,8 @@ button.link { background: none; border: 0; padding: 0; color: var(--pico-primary
 .timeline-status[hidden] { display: none; }
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .timeline-legend { font-size: 0.78rem; margin: 0.4rem 0 0; display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; align-items: center; }
+.timeline-legend .tl-key { white-space: nowrap; } /* a dot never ends a line without its word */
+.timeline-legend .tl-key .dot { margin-right: 0.2rem; }
 .dot { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 50%; margin-right: -0.5rem; vertical-align: middle; }
 .dot.overdue { background: var(--dm-overdue); } .dot.soon { background: var(--dm-soon); } .dot.later { background: var(--dm-later); }
 .dot.forecast { background: transparent; border: 2px dashed var(--dm-forecast); } .dot.done { background: var(--dm-done); }
@@ -142,6 +144,8 @@ button.link { background: none; border: 0; padding: 0; color: var(--pico-primary
 .timeline-card .vis-timeline { border: 0; font-family: var(--pico-font-family); font-size: 0.8rem; }
 .timeline-card .vis-panel.vis-center, .timeline-card .vis-panel.vis-left, .timeline-card .vis-panel.vis-right, .timeline-card .vis-panel.vis-top, .timeline-card .vis-panel.vis-bottom { border-color: var(--dm-tile-border); }
 .timeline-card .vis-time-axis .vis-text { color: var(--pico-muted-color); }
+/* week ticks: the (unlabelled) 1st of the month cuts the Monday before it short ("30 lis" → "3") – let it run on */
+.timeline-card .vis-time-axis .vis-text.vis-minor { overflow: visible; }
 .timeline-card .vis-time-axis .vis-grid.vis-minor { border-color: color-mix(in srgb, var(--dm-tile-border) 60%, transparent); }
 .timeline-card .vis-time-axis .vis-grid.vis-major { border-color: var(--dm-tile-border); }
 .timeline-card .vis-labelset .vis-label { color: var(--pico-color); border-color: var(--dm-tile-border); }
@@ -185,6 +189,7 @@ body div.vis-tooltip { font-family: var(--pico-font-family); font-size: 0.82rem;
   .timeline-card .vis-item .tl-label { max-width: 11ch; }
   .timeline-card .vis-item.tl-urgent .tl-label { max-width: 18ch; }
   .timeline-legend { font-size: 0.72rem; gap: 0.1rem 0.6rem; margin-top: 0.25rem; }
+  .timeline-legend .tl-key-long { display: none; }
 }
 .bundle-list { list-style: none; padding: 0; margin: 0; }
 .bundle-list li { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.45rem 0; border-bottom: 1px solid var(--dm-tile-border); list-style: none; }

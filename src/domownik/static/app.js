@@ -1014,6 +1014,8 @@
     const to = new Date(p.end + "T12:00:00");
     const when = p.start === p.end ? fmtFull.format(d) : `${fmtDay.format(from)} – ${fmtDay.format(to)}`;
     const icons = p.icons.map(esc).join("");
+    // phones: two icons at most – the count says the rest, the tap opens the list
+    const shownIcons = phone ? p.icons.slice(0, 2).map(esc).join("") : icons;
     const names = p.tasks.slice(0, 10).map((t) => `${esc(t.icon)} ${esc(t.title)}`).join("<br>");
     const more = p.tasks.length > 10 ? `<br>… i ${p.tasks.length - 10} więcej` : "";
     return {
@@ -1022,7 +1024,7 @@
       start: d,
       type: "point",
       // the next occurrences carry a name ("💳 Opłaty 17"), further repeats only icons + count
-      content: `<span class="tl-icon">${icons}</span>${p.status === "later" && p.category ? `<span class="tl-label">${esc(p.label)}</span>` : ""}<span class="tl-count">${p.count}</span>`,
+      content: `<span class="tl-icon">${shownIcons}</span>${!phone && p.status === "later" && p.category ? `<span class="tl-label">${esc(p.label)}</span>` : ""}<span class="tl-count">${p.count}</span>`,
       title: `<strong>${icons} ${esc(p.label)}</strong><br>${esc(when)}<br>${esc(p.summary)}<br><small>${names}${more}</small><br><em>kliknij, żeby zobaczyć listę</em>`,
       className: `st-${p.status} tl-bundle`,
       group: p.group,
@@ -1062,7 +1064,8 @@
       start: d,
       type: "point",
       // only the next occurrence gets a label – repeats stay as quiet icons
-      content: p.status === "future" || p.kind === "done"
+      // phones: a name only where it matters now (overdue, today, soon) – long names ran over the next weeks
+      content: p.status === "future" || p.kind === "done" || (phone && !URGENT[p.status])
         ? `<span class="tl-icon">${esc(p.icon)}</span>`
         : `<span class="tl-icon">${esc(p.icon)}</span><span class="tl-label">${esc(p.title)}</span>`,
       title: `<strong>${esc(p.icon)} ${esc(p.title)}</strong><br>${esc(p.zone)}<br>${esc(fmtFull.format(d))}${esc(amount)}<br><em>${esc(p.kind === "forecast" ? "prognoza z przebiegu" : STATUS_TEXT[p.status] || "")}</em>`,
@@ -1071,6 +1074,9 @@
     };
   }
 
+  // weeks start on Monday (vis rounds week ticks with its bundled moment, English locale = Sunday)
+  if (vis.moment && vis.moment.updateLocale) vis.moment.updateLocale("en", { week: { dow: 1, doy: 4 } });
+
   let timeline = null;
   timeline = new vis.Timeline(container, items, {
     start: new Date(today.getTime() - savedRange * 0.15 * DAY),
@@ -1078,6 +1084,8 @@
     zoomMin: 7 * DAY,
     zoomMax: 6 * 365 * DAY,
     showCurrentTime: true,
+    // a tick per week (vis jumps from months straight to every 2nd day without it) – "1 mies." had no dates at all
+    showWeekScale: true,
     stack: true,
     stackSubgroups: true,
     maxHeight: phone ? Math.max(170, Math.round(window.innerHeight * 0.4) - 110) : 340,
@@ -1095,6 +1103,8 @@
         const d = new Date(date.valueOf());
         if (scale === "year") return fmtYear.format(d);
         if (scale === "month") return fmtMonth.format(d);
+        // week ticks: vis adds a tick on the 1st of the month too – unlabelled, it crowded the Monday next to it
+        if (scale === "week" && d.getDate() === 1 && d.getDay() !== 1) return "";
         return fmtDay.format(d);
       },
       majorLabels: (date, scale) => {
