@@ -61,6 +61,10 @@ nie zmienia na swoim telefonie.
 **Aktualizacja:** `git push`, potem z PC przy podłączonym telefonie `scripts/deploy-phone.sh`
 (kopia przed migracjami, `git pull`, zależności przy zmianie `pyproject.toml`, restart, `/healthz`).
 
+**Szybkość:** `DOMOWNIK_CPUS` w `~/domownik.env` (np. `4-7`) trzyma serwer na szybkich rdzeniach –
+bez tego telefon zaczyna krótkie zadania (jedna strona) na wolnych i strony liczą się ok. 2× dłużej.
+SQLAlchemy musi być zbudowany ze skompilowanymi przyspieszeniami (`install-deps.sh` tego pilnuje).
+
 **Na telefonie:** `sv status domownik tailscaled crond`, logi w `$LOGDIR/sv/<usługa>/current`,
 restart `sv restart domownik`.
 

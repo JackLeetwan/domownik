@@ -2,4 +2,9 @@
 exec 2>&1
 cd "$HOME/domownik" || exit 1
 set -a; . "$HOME/domownik.env"; set +a
+# DOMOWNIK_CPUS (e.g. 4-7): only the fast cores – the phone otherwise starts short bursts like one page
+# on a slow core and the same page takes about twice as long
+if [ -n "$DOMOWNIK_CPUS" ]; then
+  exec taskset -c "$DOMOWNIK_CPUS" .venv/bin/domownik serve --host 127.0.0.1 --port 8000
+fi
 exec .venv/bin/domownik serve --host 127.0.0.1 --port 8000

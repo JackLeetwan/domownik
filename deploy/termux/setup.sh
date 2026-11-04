@@ -5,7 +5,9 @@ set -euo pipefail
 here=$(dirname "$(readlink -f "$0")")
 sv_dir=$PREFIX/var/service
 
-dpkg -s termux-services >/dev/null 2>&1 || DEBIAN_FRONTEND=noninteractive apt-get -y -q install termux-services cronie
+for p in termux-services cronie util-linux; do  # util-linux: taskset (DOMOWNIK_CPUS)
+  dpkg -s "$p" >/dev/null 2>&1 || DEBIAN_FRONTEND=noninteractive apt-get -y -q install "$p"
+done
 for name in tailscaled domownik; do
   mkdir -p "$sv_dir/$name/log"
   install -m 700 "$here/service/$name/run" "$sv_dir/$name/run"
