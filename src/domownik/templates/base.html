@@ -13,15 +13,16 @@
     // before first paint: apply the saved theme (auto = follow the system)
     try { var t = localStorage.getItem("dm-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
-  <link rel="stylesheet" href="/static/vendor/pico.min.css">
-  <link rel="stylesheet" href="/static/vendor/vis-timeline-graph2d.min.css">
+  {# ?v=N: the service worker keeps versioned files for good – bump N whenever the file changes #}
+  <link rel="stylesheet" href="/static/vendor/pico.min.css?v=1">
+  <link rel="stylesheet" href="/static/vendor/vis-timeline-graph2d.min.css?v=1">
   {% block head %}{% endblock %}
   <link rel="stylesheet" href="/static/app.css?v=56">
   {# in <head>, deferred: run once per full page load – hx-boost swaps only <body>,
      scripts inside <body> would re-run (and stack listeners) on every navigation #}
-  <script src="/static/vendor/htmx.min.js" defer></script>
-  <script src="/static/vendor/vis-timeline-graph2d.min.js" defer></script>
-  <script src="/static/app.js?v=31" defer></script>
+  <script src="/static/vendor/htmx.min.js?v=1" defer></script>
+  <script src="/static/vendor/vis-timeline-graph2d.min.js?v=1" defer></script>
+  <script src="/static/app.js?v=32" defer></script>
 </head>
 <body hx-boost="true" hx-headers='{"X-CSRF-Token": "{{ csrf }}"}'>
 <div id="offline-bar" class="offline-bar" role="status" hidden></div>

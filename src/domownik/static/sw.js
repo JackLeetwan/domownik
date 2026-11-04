@@ -2,7 +2,8 @@
    Served at /sw.js (scope "/").
 
    Offline: /zakupy and /zakupy/lista are network-first (a slow shop connection falls back to the copy after
-   a few seconds), static files stale-while-revalidate. Without a connection any page opens the shopping list.
+   a few seconds). Static files with ?v=N come from the cache without asking the server again (a new N is a new
+   URL); other static files stale-while-revalidate. Without a connection any page opens the shopping list.
    Taps made offline are queued by app.js, not here. */
 "use strict";
 
@@ -63,6 +64,24 @@ async function networkFirst(request, path) {
   try { return await net; } catch (_) { return offlineResponse(); }
 }
 
+// versioned file (?v=N): once cached it never changes – no download on every page load
+// (on a small home server those background downloads competed with rendering the page itself)
+async function cacheFirst(request) {
+  const cache = await caches.open(STATIC);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const resp = await fetch(request);
+  if (cacheable(resp)) {
+    await cache.put(request, resp.clone());
+    // drop the older versions of the same file
+    const path = new URL(request.url).pathname;
+    for (const old of await cache.keys()) {
+      if (old.url !== request.url && new URL(old.url).pathname === path) await cache.delete(old);
+    }
+  }
+  return resp;
+}
+
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(STATIC);
   const cached = await cache.match(request);
@@ -79,7 +98,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/static/")) {
-    event.respondWith(staleWhileRevalidate(req));
+    event.respondWith(url.searchParams.has("v") ? cacheFirst(req) : staleWhileRevalidate(req));
     return;
   }
   if (OFFLINE_PAGES.includes(url.pathname)) {

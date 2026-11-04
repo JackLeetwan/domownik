@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 
+from fastapi import Request
 from sqlalchemy import create_engine, event, or_
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import ORMExecuteState, Session, sessionmaker, with_loader_criteria
@@ -48,9 +49,61 @@ def session_factory() -> sessionmaker[Session]:
     return _session_factory
 
 
-def get_db() -> Iterator[Session]:
+def get_db(request: Request) -> Iterator[Session]:
     with session_factory()() as session:
-        yield session
+        # the page's sidebar (web.render) reads with the same session – and the same memo below
+        request.state.db = session
+        try:
+            yield session
+        finally:
+            request.state.db = None
+
+
+# ---------------------------------------------------------------- per-session memo
+# One page asks for the same things more than once (the dashboard and the sidebar both want the zone tree,
+# the task list, notes, todos, chores). On a small server every repeat costs real time, so read-only helpers
+# keep their result in the session until anything is written: every flush, commit, rollback or non-SELECT
+# statement empties the memo. A session lives for one request, so nothing outlives the page.
+
+MEMO = "memo"
+
+
+def memoized[T](db: Session, key: tuple, compute: Callable[[], T]) -> T:
+    if db.new or db.dirty or db.deleted:
+        # unflushed changes: a fresh query would autoflush and see them – so must we
+        forget(db)
+        return compute()
+    store = db.info.setdefault(MEMO, {})
+    full = (key, db.info.get(VIEWER))  # private rows depend on who is looking
+    if full not in store:
+        store[full] = compute()
+    return store[full]
+
+
+def forget(db: Session) -> None:
+    db.info.pop(MEMO, None)
+
+
+@event.listens_for(Session, "after_flush")
+def _forget_after_flush(session: Session, _ctx) -> None:
+    forget(session)
+
+
+@event.listens_for(Session, "after_commit")
+@event.listens_for(Session, "after_rollback")
+def _forget_after_tx(session: Session) -> None:
+    forget(session)
+
+
+@event.listens_for(Session, "after_soft_rollback")
+def _forget_after_soft_rollback(session: Session, _previous) -> None:
+    forget(session)
+
+
+@event.listens_for(Session, "do_orm_execute")
+def _forget_after_write(state: ORMExecuteState) -> None:
+    if not state.is_select:
+        forget(state.session)
 
 
 # ---------------------------------------------------------------- private tasks / notes / todos

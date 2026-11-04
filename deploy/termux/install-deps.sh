@@ -2,7 +2,8 @@
 # Install Domownik's Python dependencies inside Termux (run on the phone, from ~/domownik).
 # - no prebuilt wheels for Android: pillow and cryptography come from Termux packages
 #   (venv with system site-packages), the rest is built here (rust/clang/cmake from pkg);
-# - uvicorn without [standard]: uvloop and watchfiles do not build on Android and are not needed.
+# - uvicorn without [standard]: uvloop and watchfiles do not build on Android and are not needed;
+# - SQLAlchemy built from source, with its compiled speedups.
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/../.."
 
@@ -37,5 +38,11 @@ PY
 export ANDROID_API_LEVEL=$("$py" -c 'import sys; print(sys.getandroidapilevel())')
 export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-6}
 "$py" -m pip install -q -c "$cons" -r "$reqs"
+# SQLAlchemy ships a pure-Python wheel that pip picks on Android – its Cython speedups make every
+# query noticeably faster on the phone, so build it from source (and fail loudly when that breaks)
+sa=$("$py" -c 'import sqlalchemy; print(sqlalchemy.__version__)')
+if ! "$py" -c 'import sqlalchemy.engine._result_cy as m, sys; sys.exit(not m.__file__.endswith(".so"))'; then
+  REQUIRE_SQLALCHEMY_CEXT=1 "$py" -m pip install -q --no-deps --force-reinstall --no-binary sqlalchemy "sqlalchemy==$sa"
+fi
 "$py" -m pip install -q --no-deps -e .
-"$py" -c 'import domownik, fastapi, argon2, pywebpush, PIL; print("zależności OK")'
+"$py" -c 'import domownik, fastapi, argon2, pywebpush, PIL, sqlalchemy.engine._result_cy as m; assert m.__file__.endswith(".so"); print("zależności OK")'

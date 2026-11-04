@@ -17,6 +17,7 @@ from datetime import date, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from domownik.db import memoized
 from domownik.models import Chore, ChoreDone, PointEntry, User
 
 SOON_SHARE = 0.75  # past 3/4 of the interval → "wkrótce"
@@ -109,6 +110,10 @@ class ChoreState:
 
 def states(db: Session, today: date, *, user_id: int | None = None) -> list[ChoreState]:
     """All chores, most urgent first. user_id → only the ones for that person ("Moje")."""
+    return list(memoized(db, ("chore_states", today, user_id), lambda: _states(db, today, user_id)))
+
+
+def _states(db: Session, today: date, user_id: int | None) -> list[ChoreState]:
     chores = list(db.scalars(select(Chore).options(selectinload(Chore.history).selectinload(ChoreDone.done_by))))
     users = {u.id: u for u in db.scalars(select(User))}
     out = []

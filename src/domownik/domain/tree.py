@@ -17,6 +17,13 @@ class Tree:
 
     @classmethod
     def load(cls, db: Session, *, include_archived: bool = False) -> Tree:
+        """Kept for the rest of the request (db.memoized) – treat the tree as read-only."""
+        from domownik.db import memoized
+
+        return memoized(db, ("tree", include_archived), lambda: cls._load(db, include_archived))
+
+    @classmethod
+    def _load(cls, db: Session, include_archived: bool) -> Tree:
         stmt = select(Item).order_by(Item.sort_order, Item.name)
         if not include_archived:
             stmt = stmt.where(Item.archived.is_(False))

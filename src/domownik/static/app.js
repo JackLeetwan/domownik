@@ -971,11 +971,16 @@
     },
   });
 
+  // the range being fetched right now: vis reports its first range change while the initial load is
+  // still on its way – without this the same points were fetched twice on every page load
+  let pending = null;
+  const covers = (r, w, bin) => r && r.bin === bin && w.start >= r.start && w.end <= r.end;
+
   async function load(force) {
     const w = timeline.getWindow();
     const span = w.end - w.start;
     const bin = binFor();
-    if (!force && bin === loadedBin && loaded && w.start >= loaded.start && w.end <= loaded.end) return;
+    if (!force && (covers(loaded && { ...loaded, bin: loadedBin }, w, bin) || covers(pending, w, bin))) return;
     // preload one window on each side, but stay within the API limit (6 years in total)
     const pad = Math.max(0, Math.min(span, (6 * 365 * DAY - span) / 2));
     const start = new Date(w.start.getTime() - pad);
@@ -985,16 +990,24 @@
     if (lanes) qs.set("lanes", "1");
     if (itemId) qs.set("item", itemId);
     const seq = ++loadSeq;
-    let res;
+    const req = { start: start.getTime(), end: end.getTime(), bin };
+    pending = req;
+    let data;
     try {
-      res = await fetch(`/api/timeline?${qs}`, { credentials: "same-origin" });
-    } catch (_) {
-      setStatus("Nie udało się wczytać osi czasu – brak połączenia z serwerem.");
-      return;
+      let res;
+      try {
+        res = await fetch(`/api/timeline?${qs}`, { credentials: "same-origin" });
+      } catch (_) {
+        setStatus("Nie udało się wczytać osi czasu – brak połączenia z serwerem.");
+        return;
+      }
+      if (res.status === 401) { window.location.href = "/login"; return; }
+      if (!res.ok) { setStatus(`Nie udało się wczytać osi czasu (błąd ${res.status}).`); return; }
+      data = await res.json();
+    } finally {
+      // answered or failed: from now on `loaded` decides (a failed range may be asked for again)
+      if (pending === req) pending = null;
     }
-    if (res.status === 401) { window.location.href = "/login"; return; }
-    if (!res.ok) { setStatus(`Nie udało się wczytać osi czasu (błąd ${res.status}).`); return; }
-    const data = await res.json();
     if (seq !== loadSeq) return;
     groups = data.groups;
     items.clear();

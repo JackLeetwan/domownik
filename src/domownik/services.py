@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from domownik import catalog
 from domownik import chores as chores_mod
+from domownik.db import memoized
 from domownik.domain import recurrence
 from domownik.domain.status import Due, compute_due
 from domownik.domain.tree import Tree
@@ -176,6 +177,15 @@ def active_tasks(db: Session, item_ids: set[int] | None = None) -> list[Task]:
 
 
 def task_rows(db: Session, tree: Tree, today: date, item_ids: set[int] | None = None) -> list[TaskRow]:
+    # the dashboard asks twice (its list and the zone tiles) – compute once per request
+    key = ("task_rows", id(tree), today, frozenset(item_ids) if item_ids is not None else None)
+    cached_tree, rows = memoized(db, key, lambda: (tree, _task_rows(db, tree, today, item_ids)))
+    if cached_tree is not tree:  # id() reused by another tree object – never trust it
+        return _task_rows(db, tree, today, item_ids)
+    return list(rows)
+
+
+def _task_rows(db: Session, tree: Tree, today: date, item_ids: set[int] | None) -> list[TaskRow]:
     ids = item_ids if item_ids is not None else tree.visible()
     readings = km_readings(db, ids)
     rows = [TaskRow(t, task_due(t, today, readings), tree.label(t.item_id)) for t in active_tasks(db, ids)]
@@ -241,6 +251,14 @@ def open_todos(
     """
     if include_general is None:
         include_general = item_ids is None
+    key = ("open_todos", id(tree), frozenset(item_ids) if item_ids is not None else None, include_general)
+    cached_tree, todos = memoized(db, key, lambda: (tree, _open_todos(db, tree, item_ids, include_general)))
+    if cached_tree is not tree:
+        return _open_todos(db, tree, item_ids, include_general)
+    return list(todos)
+
+
+def _open_todos(db: Session, tree: Tree, item_ids: set[int] | None, include_general: bool) -> list[Todo]:
     visible = tree.visible()
     ids = visible if item_ids is None else (item_ids & visible)
     todos = [
@@ -254,6 +272,10 @@ def open_todos(
 
 
 def active_notes(db: Session, today: date) -> list[BoardNote]:
+    return list(memoized(db, ("active_notes", today), lambda: _active_notes(db, today)))
+
+
+def _active_notes(db: Session, today: date) -> list[BoardNote]:
     notes = [n for n in db.scalars(select(BoardNote).where(BoardNote.archived.is_(False))) if n.is_active(today)]
     return sorted(notes, key=lambda n: (not n.pinned, -(n.updated_at or n.created_at).timestamp()))
 

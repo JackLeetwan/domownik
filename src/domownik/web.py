@@ -119,23 +119,29 @@ env.globals.update(
 )
 
 
-def _nav(name: str, ctx: dict):
+def _nav(request: Request, name: str, ctx: dict):
     """Sidebar data for full pages of a logged-in user (not for HTMX fragments)."""
     if not ctx.get("user") or name.startswith("partials/"):
         return None
     from domownik import services  # local: services imports models, avoid import cycles at module load
-    from domownik.db import session_factory, set_viewer
+    from domownik.db import VIEWER, session_factory, set_viewer
 
+    uid = ctx["user"].id
+    # the page's own session when it already looks as this user: what the page has just read
+    # (zone tree, notes, todos, chores) is not read again
+    db = getattr(request.state, "db", None)
+    if db is not None and db.info.get(VIEWER) == uid:
+        return services.nav_context(db, today(), uid)
     with session_factory()() as db:
-        set_viewer(db, ctx["user"].id)
-        return services.nav_context(db, today(), ctx["user"].id)
+        set_viewer(db, uid)
+        return services.nav_context(db, today(), uid)
 
 
 def render(request: Request, name: str, ctx: dict | None = None, *, status_code: int = 200, headers=None):
     context = {"csrf": csrf_token(request)}
     context.update(ctx or {})
     if "nav" not in context:
-        context["nav"] = _nav(name, context)
+        context["nav"] = _nav(request, name, context)
     return templates.TemplateResponse(request, name, context, status_code=status_code, headers=headers)
 
 
