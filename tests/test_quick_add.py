@@ -90,7 +90,11 @@ def test_quick_task_in_payments_zone_is_a_payment_only_with_an_amount(auth_clien
     db.add(home)
     db.flush()
     for n in range(3):
-        db.add(Task(item_id=home.id, title=f"Rachunek {n}", category="payment", recurrence={"mode": "once"}))
+        db.add(
+            Task(
+                item_id=home.id, title=f"Rachunek {n}", category="payment", amount_gr=5000, recurrence={"mode": "once"}
+            )
+        )
     db.commit()
     base = {"item_id": home.id, "freq": "once", "next_due_date": "2030-05-01"}
     auth_client.post("/tasks/new", data=base | {"title": "Zapytać o formę płatności"}, headers=QUICK)

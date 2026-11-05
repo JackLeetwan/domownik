@@ -55,10 +55,20 @@ def test_new_form_in_payments_zone_becomes_a_payment_with_an_amount(auth_client,
     zone = _item(db, "Opłaty", "group")
     for n in range(2):
         db.add(
-            Task(item_id=zone.id, title=f"Rachunek {n}", category="payment", recurrence={"mode": "monthly", "day": 10})
+            Task(
+                item_id=zone.id,
+                title=f"Rachunek {n}",
+                category="payment",
+                amount_gr=10000,
+                recurrence={"mode": "monthly", "day": 10},
+            )
         )
+    # to-dos without an amount do not tip the zone – it is counted among tasks with one
+    for n in range(3):
+        db.add(Task(item_id=zone.id, title=f"Zapytać {n}", category="other", recurrence={"mode": "once"}))
     db.commit()
     page = auth_client.get(f"/tasks/new?item={zone.id}").text
+    assert "data-pay-note" in page
     # a plain one-off until an amount is typed – then app.js switches to a monthly payment
     assert '<option value="once" selected>' in page and '<option value="other" selected>' in page
     assert 'data-pay-category="payment"' in page

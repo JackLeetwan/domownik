@@ -93,7 +93,8 @@
       <label class="seg-btn"><input type="radio" name="direction" value="expense" {% if task.direction == 'expense' %}checked{% endif %}> Wydatek</label>
       <label class="seg-btn"><input type="radio" name="direction" value="income" {% if task.direction == 'income' %}checked{% endif %}> Przychód</label>
     </div>
-    <label>Kwota [zł] <input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" value="{{ task.amount_gr|pln_input }}" placeholder="opcjonalnie"></label>
+    <label>Kwota [zł] <input name="amount" inputmode="decimal" pattern="[0-9 ]*([.,][0-9]{1,2})?" title="Kwota w złotych, np. 54,90" value="{{ task.amount_gr|pln_input }}" placeholder="opcjonalnie"></label>{% if pay_default %}
+    <small class="muted pay-note" data-pay-note hidden>Z kwotą: 💳 płatność co miesiąc – kategorię i budżet zmienisz w „Więcej szczegółów”.</small>{% endif %}
   </div>
 
   <details class="more" {% if more_open %}open{% endif %}>

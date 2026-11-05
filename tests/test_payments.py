@@ -120,6 +120,22 @@ def test_dashboard_shows_group_and_paid_all(auth_client, db):
     assert db.scalar(select(Completion).where(Completion.task_id == tasks[0].id)).actual_amount_gr == 10000
 
 
+def test_paid_all_returns_to_the_page_it_was_on(auth_client, db):
+    item = _home(db)
+    day = today() + timedelta(days=5)
+    tasks = [_payment(db, item, n, day) for n in ("Netflix", "Spotify", "Play")]
+
+    page = auth_client.get("/zadania").text
+    assert 'action="/tasks/bulk-done?next=/zadania"' in page
+    r = auth_client.post(
+        "/tasks/bulk-done?next=/zadania", data={"task_id": [str(x.id) for x in tasks]}, follow_redirects=False
+    )
+    assert r.headers["location"] == "/zadania"
+    # only paths of this site
+    r = auth_client.post("/tasks/bulk-done?next=//evil.example", data={"task_id": []}, follow_redirects=False)
+    assert r.headers["location"] == "/"
+
+
 def test_scripts_load_once_in_head(auth_client, db):
     _home(db)
     html = auth_client.get("/").text

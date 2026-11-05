@@ -946,15 +946,33 @@
       el.dispatchEvent(new Event("change", { bubbles: true })); // rule preview + shown fields
       auto = false;
     };
+    const note = form.querySelector("[data-pay-note]");
     const follow = () => {
       const want = amount.value.trim() ? paid : plain;
       set("freq", freq, want.freq);
       set("cat", cat, want.cat);
       set("bud", bud, want.bud);
+      // the category sits in the folded "Więcej szczegółów" – say what changed
+      if (note) note.hidden = !(want === paid && cat && cat.value === payCat && !touched.has("cat"));
     };
     amount.addEventListener("input", follow);
     follow();
   }
+  // "Powiadom" means something only with an hour: greyed out (and not sent) while "Godzina" is empty
+  function syncRemind(form) {
+    const time = form && form.querySelector("input[name=due_time]");
+    const remind = form && form.querySelector("select[name=remind_minutes]");
+    if (time && remind) remind.disabled = !time.value;
+  }
+  document.addEventListener("input", (e) => { if (e.target.matches("input[name=due_time]")) syncRemind(e.target.form); });
+  document.addEventListener("change", (e) => { if (e.target.matches("input[name=due_time]")) syncRemind(e.target.form); });
+  document.addEventListener("htmx:load", (e) => {
+    const root = e.detail.elt;
+    if (!root.querySelectorAll) return;
+    const forms = new Set([...root.querySelectorAll("input[name=due_time]")].map((i) => i.form));
+    if (root.matches && root.matches("form")) forms.add(root);
+    forms.forEach(syncRemind);
+  });
   // htmx:load fires for the initial page and for every swapped-in fragment / boosted page
   document.addEventListener("htmx:load", (e) => {
     const root = e.detail.elt;

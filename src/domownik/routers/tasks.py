@@ -270,8 +270,9 @@ DEFAULT_LEAD_DAYS = 7
 
 
 def _is_payments_place(item) -> bool:
-    """Mostly bills here (a "payments" zone)? Then a new task with an amount is a monthly payment by default."""
-    tasks = [t for t in item.tasks if t.active]
+    """Mostly bills here (a "payments" zone)? Then a new task with an amount is a monthly payment by default.
+    Counted among tasks with an amount: to-dos without one ("zapytać o formę płatności") must not tip the zone."""
+    tasks = [t for t in item.tasks if t.active and t.amount_gr]
     pay = sum(t.category in ("payment", "income") for t in tasks)
     return len(tasks) >= 2 and pay * 2 > len(tasks)
 
@@ -548,12 +549,14 @@ async def complete(request: Request, task_id: int, db: Session = Depends(get_db)
 
 @router.post("/tasks/bulk-done", dependencies=[Depends(verify_csrf)])
 async def bulk_done(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    """'Paid all' for a group of payments on the dashboard."""
+    """'Paid all' for a group of payments (dashboard, 📋 Zadania, zone page)."""
     form = await request.form()
     ids = {int(v) for v in form.getlist("task_id") if str(v).isdigit()}
     tasks = [t for t in db.scalars(select(Task).where(Task.id.in_(ids), Task.active.is_(True)))] if ids else []
     services.complete_many(db, tasks, user=user, done_on=today())
-    return _redirect("/")
+    # back to the page the group was on (dashboard, 📋 Zadania, a zone page)
+    nxt = request.query_params.get("next") or ""
+    return _redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else "/")
 
 
 @router.post("/completions/{comp_id}/undo", dependencies=[Depends(verify_csrf)])

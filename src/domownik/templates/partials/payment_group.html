@@ -19,7 +19,7 @@
       {% for row in g.rows %}{% include "partials/task_row.html" %}{% endfor %}
     </ul>
     {% if g.manual %}
-    <form method="post" action="/tasks/bulk-done" class="group-pay"
+    <form method="post" action="/tasks/bulk-done?next={{ (request.url.path ~ ('?' ~ request.url.query if request.url.query else ''))|urlencode }}" class="group-pay"
           hx-confirm="Oznaczyć {{ g.manual|length }} {{ 'płatność' if g.manual|length == 1 else 'płatności' }} jako zapłacone dziś, z kwotami z planu?">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       {% for row in g.manual %}<input type="hidden" name="task_id" value="{{ row.task.id }}">{% endfor %}

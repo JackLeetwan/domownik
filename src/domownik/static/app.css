@@ -777,6 +777,9 @@ code.topic { user-select: all; word-break: break-all; }
 .badge.steps { font-weight: 500; }
 .qa-time { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 0.75rem; }
 .qa-time-hint { display: block; margin: -0.5rem 0 0.75rem; }
+.pay-note { display: block; margin: -0.5rem 0 0.75rem; }
+.pay-note[hidden] { display: none; }
+select[name=remind_minutes]:disabled { opacity: 0.5; }
 .time-tag { font-variant-numeric: tabular-nums; font-weight: 600; }
 .task-form .form-row > [hidden] { display: none; }
 .task-form label { margin-bottom: 0.25rem; }
