@@ -59,8 +59,8 @@ def test_pantry_matching_and_shopping_modal(auth_client, db):
     db.add(PantryItem(name="Jajko", place="fridge"))
     db.commit()
     needs = {n.name: n for n in kitchen.needs([rec], kitchen.pantry_items(db))}
-    assert needs["Jajka"].have is not None and needs["Mąki"].have is not None
-    assert needs["Mleka"].have is None
+    assert needs["Jajka"].have is not None and needs["Mąka"].have is not None
+    assert needs["Mleko"].have is None
 
     modal = auth_client.get(f"/kuchnia/przepisy/{rec.id}/zakupy", headers=HX).text
     assert 'value="500 ml mleka" checked' in modal and 'value="2 jajka" >' in modal.replace("  ", " ")
@@ -71,11 +71,11 @@ def test_pantry_matching_and_shopping_modal(auth_client, db):
         and "Dopisano do zakupów: 2" in json.loads(r.headers["HX-Trigger"])["dm-added"]
     )
     names = {s.name: s.qty for s in db.scalars(select(ShoppingItem))}
-    assert names["Mleka"] == "500 ml"
+    assert names["Mleko"] == "500 ml"
     r = auth_client.post("/kuchnia/do-zakupow", data={"entry": ["500 ml mleka"]}, headers=HX)
     assert "ilość dodana: 1" in json.loads(r.headers["HX-Trigger"])["dm-added"]
     db.expire_all()
-    assert db.scalar(select(ShoppingItem).where(ShoppingItem.name == "Mleka")).qty == "1000 ml"
+    assert db.scalar(select(ShoppingItem).where(ShoppingItem.name == "Mleko")).qty == "1000 ml"
     assert auth_client.post("/kuchnia/do-zakupow", data={}, headers=HX).status_code == 400
 
 
@@ -117,14 +117,14 @@ def test_pantry_add_rebuy_used_and_status(auth_client, db):
         "/kuchnia/spizarnia", data={"text": "mleko, 2 jogurty", "place": "fridge", "expires_on": soon.isoformat()}
     )
     items = {p.name: p for p in db.scalars(select(PantryItem))}
-    assert set(items) == {"Mleko", "Jogurty"} and items["Jogurty"].qty == "2"
+    assert set(items) == {"Mleko", "Jogurt"} and items["Jogurt"].qty == "2"
     assert kitchen.pantry_status(items["Mleko"], today()) == "soon"
     page = auth_client.get("/kuchnia/spizarnia").text
     assert "Lodówka" in page and "kończy się termin" in page
 
     auth_client.post(f"/kuchnia/spizarnia/{items['Mleko'].id}/kup")
     assert db.scalar(select(ShoppingItem.name)) == "Mleko"
-    auth_client.post(f"/kuchnia/spizarnia/{items['Jogurty'].id}/usun")
+    auth_client.post(f"/kuchnia/spizarnia/{items['Jogurt'].id}/usun")
     db.expire_all()
     assert db.scalar(select(PantryItem)) is None
     assert auth_client.post("/kuchnia/spizarnia", data={"text": " "}, headers=HX).status_code == 400
@@ -162,10 +162,34 @@ def test_same_ingredient_adds_up_polish_first_letter_too(auth_client, db):
     a = _recipe(db, "Sos", "250 g śmietany, min. 30% tłuszczu\n1 cebula")
     b = _recipe(db, "Tarta", "250 g śmietany, min. 30% tłuszczu\n2 jajka\n250 g mąki")
     needs = {n.name: n for n in kitchen.needs([a, b], [])}
-    assert needs["Śmietany, min. 30% tłuszczu"].entry == "500 g śmietany, min. 30% tłuszczu"
-    assert needs["Śmietany, min. 30% tłuszczu"].sources == ["Sos", "Tarta"]
+    assert needs["Śmietana, min. 30% tłuszczu"].entry == "500 g śmietana, min. 30% tłuszczu"
+    assert needs["Śmietana, min. 30% tłuszczu"].sources == ["Sos", "Tarta"]
 
     for rec in (a, b):  # one recipe after the other, as in the report
         auth_client.post("/kuchnia/do-zakupow", data={"entry": rec.ingredient_list}, headers=HX)
-    rows = db.scalars(select(ShoppingItem).where(ShoppingItem.name.like("%mietany%"))).all()
-    assert [(r.name, r.qty) for r in rows] == [("Śmietany, min. 30% tłuszczu", "500 g")]
+    rows = db.scalars(select(ShoppingItem).where(ShoppingItem.name.like("%mietan%"))).all()
+    assert [(r.name, r.qty) for r in rows] == [("Śmietana, min. 30% tłuszczu", "500 g")]
+
+
+def test_recipe_forms_meet_on_the_list(auth_client, db):
+    """'5 jajek' and '2 jajka', 'masła' and 'masło': one row each, quantities added, the list's own form."""
+    auth_client.post("/zakupy", data={"text": "masło, 2 jajka, mleka 250 g"}, headers=HX)
+    entries = ["5 jajek", "100 g masła", "250 g mleka", "1 laska cynamonu", "2 łyżki mąki", "1 łyżka mąki"]
+    r = auth_client.post("/kuchnia/do-zakupow", data={"entry": entries}, headers=HX)
+    assert r.status_code == 200
+    rows = {s.name: s.qty for s in db.scalars(select(ShoppingItem))}
+    assert rows == {"Masło": "100 g", "Jajka": "7", "Mleko": "500 g", "Cynamon": "1 laska", "Mąka": "3 łyżki"}
+
+
+def test_unknown_words_meet_by_stem_and_take_the_lists_spelling(auth_client, db):
+    """'rabarbaru' is not in the lexicon: it still meets 'Rabarbar', and a new row takes the spelling used before."""
+    auth_client.post("/zakupy", data={"text": "rabarbar"}, headers=HX)
+    auth_client.post("/kuchnia/do-zakupow", data={"entry": ["500 g rabarbaru"]}, headers=HX)
+    assert [(s.name, s.qty) for s in db.scalars(select(ShoppingItem))] == [("Rabarbar", "500 g")]
+
+    db.query(ShoppingItem).delete()
+    db.add(ShoppingItem(name="Tahini", bought_on=today(), section="inne"))  # bought once
+    db.commit()
+    auth_client.post("/kuchnia/do-zakupow", data={"entry": ["2 łyżki tahiny"]}, headers=HX)
+    row = db.scalar(select(ShoppingItem).where(ShoppingItem.bought_on.is_(None)))
+    assert (row.name, row.qty) == ("Tahini", "2 łyżki")

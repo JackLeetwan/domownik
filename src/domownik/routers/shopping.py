@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from domownik import services
 from domownik.config import today
 from domownik.db import get_db
+from domownik.domain.grocery_names import key as name_key
 from domownik.domain.money import parse_pln
 from domownik.domain.shopping import SECTIONS, add_qty, guess_section, parse_entry
 from domownik.models import Item, ShoppingItem, Transaction, User
@@ -41,6 +42,13 @@ def suggestions(db: Session, limit: int = 300) -> list[str]:
     """Names bought or added before, most frequent first – for the input's autocomplete."""
     counts = Counter(n.strip() for n in db.scalars(select(ShoppingItem.name)) if n)
     return [n for n, _ in counts.most_common(limit)]
+
+
+def _known_form(db: Session, name: str) -> str:
+    """The spelling used on the list before for the same product ('Rabarbar' for a recipe's 'Rabarbaru')."""
+    k = name_key(name)
+    counts = Counter(n for n in db.scalars(select(ShoppingItem.name)) if n and n != name and name_key(n) == k)
+    return counts.most_common(1)[0][0] if counts else name
 
 
 def _section_for(db: Session, name: str) -> str:
@@ -73,13 +81,16 @@ def add_entries(
         name, qty = parse_entry(part)
         if not name:
             continue
-        existing = db.scalar(
-            select(ShoppingItem).where(ShoppingItem.bought_on.is_(None), func.lower(ShoppingItem.name) == name.lower())
-        )
-        if existing:  # already on the list – just refresh it
+        k = name_key(name)
+        existing = next((i for i in open_items(db) if name_key(i.name) == k), None)
+        if existing:  # already on the list (any form of the name: 'Mleka' = 'mleko') – just refresh it
             existing.checked_at = None
+            old_form = parse_entry(existing.name)[0]
+            if old_form and old_form != existing.name:  # a row from before: 'Mleka' takes the list's form
+                existing.name = old_form
             existing.qty = add_qty(existing.qty, qty) if add_up else qty or existing.qty
             continue
+        name = _known_form(db, name)
         db.add(
             ShoppingItem(
                 name=name, qty=qty, section=_section_for(db, name), note=note, item_id=item_id, added_by_id=user.id

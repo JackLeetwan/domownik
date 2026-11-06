@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+from domownik.domain.grocery_names import UNIT_FORMS, UNIT_WORDS, canonical, split_unit, unit_word
+
 # section key → label; order = walking order in a typical Polish supermarket
 SECTIONS: dict[str, str] = {
     "warzywa": "🥕 Warzywa i owoce",
@@ -64,6 +66,9 @@ KEYWORDS: dict[str, tuple[str, ...]] = {
         "kefir",
         "maślank",
         "jaj",
+        "żółtk",
+        "ciasto francuskie",
+        "ciasto filo",
         "serek",
         "mozzarel",
         "parmezan",
@@ -106,6 +111,9 @@ KEYWORDS: dict[str, tuple[str, ...]] = {
         "groch",
         "przypraw",
         "pieprz",
+        "cynamon",
+        "kurkum",
+        "gałka muszkat",
         "ketchup",
         "majonez",
         "musztard",
@@ -178,17 +186,26 @@ _TRAIL_QTY = re.compile(
 
 
 def parse_entry(text: str) -> tuple[str, str | None]:
-    """'2 mleko' → ('mleko', '2'); 'masło x2' → ('masło', '×2'); 'jajka 10 szt' → ('jajka', '10 szt')."""
+    """'2 mleko' → ('Mleko', '2'); 'masło x2' → ('Masło', '×2'); 'jajka 10 szt' → ('Jajka', '10 szt');
+    recipe lines in the list's own form: '5 jajek' → ('Jajka', '5'), 'laska cynamonu' → ('Cynamon', '1 laska')."""
+    name, qty = _split_qty(text)
+    if not name:
+        return "", None
+    name, qty = split_unit(name, qty)
+    return _clean_name(canonical(name)), qty
+
+
+def _split_qty(text: str) -> tuple[str, str | None]:
     text = " ".join((text or "").split())
     if not text:
         return "", None
     m = _LEAD_QTY.match(text)
     if m and not m.group(2)[0].isdigit():
-        return _clean_name(m.group(2)), _clean_qty(m.group(1))
+        return m.group(2), _clean_qty(m.group(1))
     m = _TRAIL_QTY.match(text)
     if m:
-        return _clean_name(m.group(1)), _clean_qty(m.group(2))
-    return _clean_name(text), None
+        return m.group(1), _clean_qty(m.group(2))
+    return text, None
 
 
 # quantity → (number, kind, factor to the base unit): mass in g, volume in ml, pieces
@@ -214,7 +231,10 @@ def _read_qty(qty: str):
     if not m:
         return None
     times, num, unit = m.group(1), float(m.group(2).replace(",", ".")), m.group(3).lower()
-    kind, factor = _UNITS.get(unit, (unit, 1))  # 'op', 'puszki' … add up only with the same word
+    if unit in _UNITS:
+        kind, factor = _UNITS[unit]
+    else:  # kitchen units in any form: 'łyżki' and 'łyżek' are one; others add up only with the same word
+        kind, factor = UNIT_FORMS.get(unit.rstrip("."), unit), 1
     return num * factor, kind, unit, bool(times)
 
 
@@ -235,6 +255,8 @@ def add_qty(a: str | None, b: str | None) -> str | None:
         if qa[3] and qb[3]:
             return f"×{_num(total)}"
         return f"{_num(total)} szt" if "szt" in qa[2] + qb[2] else _num(total)
+    if kind in UNIT_WORDS:
+        return f"{_num(total)} {unit_word(kind, total)}"
     return f"{_num(total)} {qa[2]}"
 
 

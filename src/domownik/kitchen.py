@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from domownik.domain.grocery_names import key as name_key
 from domownik.domain.shopping import add_qty, parse_entry
 from domownik.models import MEALS, MealPlan, PantryItem, Recipe
 
@@ -133,7 +134,7 @@ def needs(recipes: list[Recipe], pantry: list[PantryItem]) -> list[Need]:
             name, qty = parse_entry(line)
             if not name:
                 continue
-            key = name.lower()
+            key = name_key(name)
             if key in out:
                 if r.name not in out[key].sources:
                     out[key].sources.append(r.name)
