@@ -466,6 +466,9 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .recipes-head > a[role=button] { margin: 0; }
 .recipes-search { flex: 1 1 12rem; margin: 0; }
 .recipes-search input { margin: 0; }
+.cookidoo-import { margin: 0.25rem 0 1rem; padding: 0.75rem; border: 1px dashed var(--pico-muted-border-color); border-radius: var(--pico-border-radius); }
+.cookidoo-import label { margin-bottom: 0.35rem; }
+.cookidoo-import [role=group] { margin: 0; }
 .recipe-list { list-style: none; padding: 0; margin: 1rem 0; display: grid; gap: 0.5rem; }
 .recipe-list li { list-style: none; margin: 0; }
 .recipe-list a { display: flex; flex-direction: column; padding: 0.6rem 0.9rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-tile-bg); text-decoration: none; color: var(--pico-color); }

@@ -5,11 +5,12 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import kitchen
+from domownik import cookidoo, kitchen
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.shopping import guess_section, parse_entry
@@ -219,6 +220,34 @@ async def recipe_create(request: Request, db: Session = Depends(get_db), user: U
     return _redirect(f"/kuchnia/przepisy/{r.id}")
 
 
+@router.post("/przepisy/cookidoo", dependencies=[Depends(verify_csrf)])
+async def recipe_from_cookidoo(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """A Cookidoo link → a recipe here; the recipe page then opens 'do zakupów' at once."""
+    form = await request.form()
+    try:
+        url = cookidoo.find_url(str(form.get("link") or ""))
+        same = db.scalar(select(Recipe).where(Recipe.link == url.split("?")[0].split("#")[0]))
+        if same is None:
+            got = await run_in_threadpool(cookidoo.load, url)
+            same = db.scalar(select(Recipe).where(Recipe.link == got.url))
+    except cookidoo.CookidooError as exc:
+        return _error(str(exc))
+    if same is not None:  # imported before – no duplicate
+        return _redirect(f"/kuchnia/przepisy/{same.id}?zakupy=1")
+    r = Recipe(
+        created_by_id=user.id,
+        name=got.name,
+        ingredients="\n".join(got.ingredients) or None,
+        link=got.url[:300],
+        minutes=got.minutes,
+        servings=got.servings,
+        tags=", ".join(["cookidoo", *got.tags])[:120],
+    )
+    db.add(r)
+    db.commit()
+    return _redirect(f"/kuchnia/przepisy/{r.id}?zakupy=1")
+
+
 def _recipe(db: Session, rid: int) -> Recipe:
     r = db.get(Recipe, rid)
     if r is None:
@@ -227,7 +256,13 @@ def _recipe(db: Session, rid: int) -> Recipe:
 
 
 @router.get("/przepisy/{rid}")
-def recipe_page(request: Request, rid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+def recipe_page(
+    request: Request,
+    rid: int,
+    zakupy: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     r = _recipe(db, rid)
     pantry = kitchen.pantry_items(db)
     upcoming = list(
@@ -244,6 +279,7 @@ def recipe_page(request: Request, rid: int, db: Session = Depends(get_db), user:
             "upcoming": upcoming,
             "MEALS": MEALS,
             "today_d": today(),
+            "open_shop": bool(zakupy),
         },
     )
 
