@@ -13,7 +13,14 @@ _engine: Engine | None = None
 _session_factory: sessionmaker[Session] | None = None
 
 
+def _lower(value):
+    """SQLite's own lower() knows only ASCII: lower('Śmietana') stays 'Śmietana', so a Polish first letter
+    never matched name.lower() in Python. Replaced on every connection with Python's (no index uses it)."""
+    return value.lower() if isinstance(value, str) else value
+
+
 def _set_sqlite_pragmas(dbapi_conn, _record) -> None:
+    dbapi_conn.create_function("lower", 1, _lower, deterministic=True)
     cur = dbapi_conn.cursor()
     cur.execute("PRAGMA foreign_keys=ON")
     cur.execute("PRAGMA journal_mode=WAL")

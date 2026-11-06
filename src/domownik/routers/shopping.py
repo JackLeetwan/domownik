@@ -14,7 +14,7 @@ from domownik import services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
-from domownik.domain.shopping import SECTIONS, guess_section, parse_entry
+from domownik.domain.shopping import SECTIONS, add_qty, guess_section, parse_entry
 from domownik.models import Item, ShoppingItem, Transaction, User
 from domownik.security import current_user, verify_csrf
 from domownik.web import is_quick, quick_saved, render
@@ -54,9 +54,17 @@ def _section_for(db: Session, name: str) -> str:
 
 
 def add_entries(
-    db: Session, entries: list[str], *, user: User, note: str | None = None, item_id: int | None = None
+    db: Session,
+    entries: list[str],
+    *,
+    user: User,
+    note: str | None = None,
+    item_id: int | None = None,
+    add_up: bool = False,
 ) -> int:
     """Put entries ('2 mleko', 'masło') on the list; one already there is refreshed, not doubled.
+
+    add_up (ingredients of recipes): the quantity of one already there grows – 250 g + 250 g → 500 g.
 
     Returns how many were new. The caller commits. Used by /zakupy and the kitchen (recipes, pantry).
     """
@@ -70,7 +78,7 @@ def add_entries(
         )
         if existing:  # already on the list – just refresh it
             existing.checked_at = None
-            existing.qty = qty or existing.qty
+            existing.qty = add_qty(existing.qty, qty) if add_up else qty or existing.qty
             continue
         db.add(
             ShoppingItem(

@@ -149,10 +149,10 @@ async def to_shopping(request: Request, db: Session = Depends(get_db), user: Use
     entries = [str(e) for e in form.getlist("entry") if str(e).strip()]
     if not entries:
         return _error("Zaznacz, co dopisać do zakupów")
-    added = add_entries(db, entries, user=user)
+    added = add_entries(db, entries, user=user, add_up=True)
     db.commit()
     already = len(entries) - added
-    msg = f"Dopisano do zakupów: {added}" + (f" (już na liście: {already})" if already else "")
+    msg = f"Dopisano do zakupów: {added}" + (f" (już na liście – ilość dodana: {already})" if already else "")
     return quick_saved(msg)
 
 

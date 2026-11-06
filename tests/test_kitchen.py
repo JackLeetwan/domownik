@@ -73,7 +73,9 @@ def test_pantry_matching_and_shopping_modal(auth_client, db):
     names = {s.name: s.qty for s in db.scalars(select(ShoppingItem))}
     assert names["Mleka"] == "500 ml"
     r = auth_client.post("/kuchnia/do-zakupow", data={"entry": ["500 ml mleka"]}, headers=HX)
-    assert "już na liście: 1" in json.loads(r.headers["HX-Trigger"])["dm-added"]
+    assert "ilość dodana: 1" in json.loads(r.headers["HX-Trigger"])["dm-added"]
+    db.expire_all()
+    assert db.scalar(select(ShoppingItem).where(ShoppingItem.name == "Mleka")).qty == "1000 ml"
     assert auth_client.post("/kuchnia/do-zakupow", data={}, headers=HX).status_code == 400
 
 
@@ -153,3 +155,17 @@ def test_finish_shopping_to_pantry(auth_client, db):
     auth_client.post("/zakupy/zakoncz", data={"to_pantry": "on"})
     places = {p.name: p.place for p in db.scalars(select(PantryItem))}
     assert places == {"Ser żółty": "fridge", "Mrożone pierogi": "freezer", "Ryż": "pantry"}
+
+
+def test_same_ingredient_adds_up_polish_first_letter_too(auth_client, db):
+    """Two recipes with '250 g śmietany' → one row with 500 g; SQLite's ASCII lower() used to miss 'Ś'."""
+    a = _recipe(db, "Sos", "250 g śmietany, min. 30% tłuszczu\n1 cebula")
+    b = _recipe(db, "Tarta", "250 g śmietany, min. 30% tłuszczu\n2 jajka\n250 g mąki")
+    needs = {n.name: n for n in kitchen.needs([a, b], [])}
+    assert needs["Śmietany, min. 30% tłuszczu"].entry == "500 g śmietany, min. 30% tłuszczu"
+    assert needs["Śmietany, min. 30% tłuszczu"].sources == ["Sos", "Tarta"]
+
+    for rec in (a, b):  # one recipe after the other, as in the report
+        auth_client.post("/kuchnia/do-zakupow", data={"entry": rec.ingredient_list}, headers=HX)
+    rows = db.scalars(select(ShoppingItem).where(ShoppingItem.name.like("%mietany%"))).all()
+    assert [(r.name, r.qty) for r in rows] == [("Śmietany, min. 30% tłuszczu", "500 g")]

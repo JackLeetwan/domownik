@@ -138,3 +138,10 @@ def test_check_to_is_idempotent(auth_client, db):
     db.refresh(s)
     assert s.checked_at is not None
     assert f"/zakupy/{s.id}/check?to=0" in auth_client.get("/zakupy").text
+
+
+def test_polish_first_letter_dedups(auth_client, db):
+    """SQLite's lower() is ASCII-only – 'Śmietana' and 'śmietana' must still be one row."""
+    auth_client.post("/zakupy", data={"text": "śmietana"}, headers={"HX-Request": "true"})
+    auth_client.post("/zakupy", data={"text": "Śmietana"}, headers={"HX-Request": "true"})
+    assert len(db.scalars(select(ShoppingItem)).all()) == 1

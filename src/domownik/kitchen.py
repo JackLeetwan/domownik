@@ -13,7 +13,7 @@ from datetime import date, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from domownik.domain.shopping import parse_entry
+from domownik.domain.shopping import add_qty, parse_entry
 from domownik.models import MEALS, MealPlan, PantryItem, Recipe
 
 SOON_DAYS = 3  # pantry: "kończy się" this many days before the date
@@ -124,19 +124,26 @@ class Need:
 
 
 def needs(recipes: list[Recipe], pantry: list[PantryItem]) -> list[Need]:
-    """Ingredients of the recipes, one per name (first spelling wins), with what is already at home."""
+    """Ingredients of the recipes, one per name, quantities added up ('250 g śmietany' twice → '500 g'),
+    with what is already at home."""
     out: dict[str, Need] = {}
+    qtys: dict[str, str | None] = {}
     for r in recipes:
         for line in r.ingredient_list:
-            name, _qty = parse_entry(line)
+            name, qty = parse_entry(line)
             if not name:
                 continue
             key = name.lower()
             if key in out:
                 if r.name not in out[key].sources:
                     out[key].sources.append(r.name)
+                qtys[key] = total = add_qty(qtys[key], qty)
+                if total and " + " not in total:  # 'A + B' would not parse back – the first line stays
+                    low = f"{name[:1].lower()}{name[1:]}"
+                    out[key].entry = f"{low} {total}" if total.startswith("×") else f"{total} {low}"
                 continue
             out[key] = Need(line, name, at_home(name, pantry), [r.name])
+            qtys[key] = qty
     return list(out.values())
 
 

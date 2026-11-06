@@ -191,6 +191,53 @@ def parse_entry(text: str) -> tuple[str, str | None]:
     return _clean_name(text), None
 
 
+# quantity → (number, kind, factor to the base unit): mass in g, volume in ml, pieces
+_UNITS = {
+    "g": ("g", 1),
+    "dag": ("g", 10),
+    "kg": ("g", 1000),
+    "ml": ("ml", 1),
+    "l": ("ml", 1000),
+    "": ("szt", 1),
+    "szt": ("szt", 1),
+    "szt.": ("szt", 1),
+}
+_QTY = re.compile(r"^(×)?\s*(\d+(?:[.,]\d+)?)\s*([a-ząćęłńóśźż.]*)$", re.IGNORECASE)
+
+
+def _num(x: float) -> str:
+    return f"{x:.3f}".rstrip("0").rstrip(".").replace(".", ",")
+
+
+def _read_qty(qty: str):
+    m = _QTY.match(qty.strip())
+    if not m:
+        return None
+    times, num, unit = m.group(1), float(m.group(2).replace(",", ".")), m.group(3).lower()
+    kind, factor = _UNITS.get(unit, (unit, 1))  # 'op', 'puszki' … add up only with the same word
+    return num * factor, kind, unit, bool(times)
+
+
+def add_qty(a: str | None, b: str | None) -> str | None:
+    """Two quantities of the same thing together: '250 g' + '250 g' → '500 g', '1 kg' + '500 g' → '1,5 kg',
+    '2' + '3' → '5', '×2' + '×1' → '×3'. Units that do not add up stay side by side: '250 g + 2'."""
+    if not a or not b:
+        return a or b
+    qa, qb = _read_qty(a), _read_qty(b)
+    if not qa or not qb or qa[1] != qb[1]:
+        return f"{a} + {b}"[:30]
+    total, kind = qa[0] + qb[0], qa[1]
+    if kind == "g":
+        return f"{_num(total / 1000)} kg" if "kg" in (qa[2], qb[2]) and total >= 1000 else f"{_num(total)} g"
+    if kind == "ml":
+        return f"{_num(total / 1000)} l" if "l" in (qa[2], qb[2]) and total >= 1000 else f"{_num(total)} ml"
+    if kind == "szt":
+        if qa[3] and qb[3]:
+            return f"×{_num(total)}"
+        return f"{_num(total)} szt" if "szt" in qa[2] + qb[2] else _num(total)
+    return f"{_num(total)} {qa[2]}"
+
+
 def _clean_name(name: str) -> str:
     name = name.strip(" ,;-")
     return name[:1].upper() + name[1:] if name else name
