@@ -146,6 +146,19 @@
   <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
 </form>
 
+{% elif kind == 'timer' %}
+<form hx-post="/timery" {{ qa|safe }} class="qa-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Co <input name="title" list="qa-timer-titles" value="{{ titles[0] }}" maxlength="80" autocomplete="off" required></label>
+  <datalist id="qa-timer-titles">{% for t in titles %}<option value="{{ t }}">{% endfor %}</datalist>
+  <fieldset class="timer-presets" role="radiogroup" aria-label="Za ile">
+    {% for m in presets %}<label><input type="radio" name="minutes" value="{{ m }}" {% if loop.first %}checked{% endif %}> {{ duration_text(m) }}</label>{% endfor %}
+  </fieldset>
+  <label>Albo za ile minut <input name="own_minutes" type="number" inputmode="numeric" min="1" max="{{ max_minutes }}" placeholder="np. 45"></label>
+  <small class="muted">Po czasie dostaniesz powiadomienie. Jeśli nikt nie zareaguje przez 15 min, przypomnienie pójdzie do całego domu.</small>
+  <footer class="modal-actions"><button type="submit">Start</button></footer>
+</form>
+
 {% elif kind == 'reading' %}
 {% if meters %}
 <form hx-post="/liczniki/odczyty" hx-encoding="multipart/form-data" {{ qa|safe }} class="qa-form">

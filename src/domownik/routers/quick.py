@@ -35,6 +35,7 @@ KINDS: dict[str, tuple[str, str, str]] = {
     "todo": ("☐", "Do zrobienia", "bez terminu"),
     "expense": ("💸", "Wydatek", "do budżetu"),
     "reading": ("🔢", "Odczyt licznika", "prąd, woda, gaz"),
+    "timer": ("⏱", "Timer", "pranie, piekarnik – przypomni po czasie"),
 }
 
 # opened for one calendar day (double click on a day): only what has a date of its own
@@ -130,6 +131,13 @@ def form(
         ctx["categories"] = cats
         ctx["budget_kinds"] = BUDGET_KINDS
         ctx["default_cat"] = budget.last_used_category(db, user.id) or _default_expense_category(cats)
+    elif kind == "timer":
+        from domownik import timers
+
+        ctx["presets"] = timers.PRESETS
+        ctx["titles"] = timers.recent_titles(db) or [timers.DEFAULT_TITLE]
+        ctx["max_minutes"] = timers.MAX_MINUTES
+        ctx["duration_text"] = timers.duration_text
     elif kind == "reading":
         choices = meter_choices(db, tree)
         current = page_meter_id(request)

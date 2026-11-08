@@ -12,6 +12,7 @@
   </form>
 </article>
 {% else %}
+{% include "partials/timers.html" %}
 {% if backup_warning %}<p class="backup-warn" role="status"><small>{{ backup_warning }}</small></p>{% endif %}
 {% if emergency_warning %}<p class="backup-warn" role="status"><small><a href="/na-wypadek#wydruk">{{ emergency_warning }}</a></small></p>{% endif %}
 {% include "partials/timeline.html" %}

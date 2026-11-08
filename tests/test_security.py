@@ -61,8 +61,10 @@ PUBLIC = {
     ("GET", "/ics/{token}.ics"),  # the personal token in the URL (calendar apps cannot log in)
     ("GET", "/n/done/{token}"),  # does nothing on GET
     ("POST", "/n/done/{token}"),  # signed token from the push notification (the service worker has no session)
+    ("GET", "/n/timer/{token}/{action}"),  # does nothing on GET
+    ("POST", "/n/timer/{token}/{action}"),  # timer buttons in the push – signed token, like /n/done
 }
-NO_CSRF = {("POST", "/n/done/{token}")}
+NO_CSRF = {("POST", "/n/done/{token}"), ("POST", "/n/timer/{token}/{action}")}
 
 
 @pytest.fixture(autouse=True)

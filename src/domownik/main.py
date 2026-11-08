@@ -39,6 +39,7 @@ from domownik.routers import (
     schedule,
     shopping,
     tasks,
+    timers,
 )
 from domownik.security import LoginRequired
 from domownik.slowlog import SlowRequestLog
@@ -58,6 +59,17 @@ def _tick() -> None:
         log.exception("scheduler tick failed")
 
 
+def _timer_tick() -> None:
+    from domownik import timers
+    from domownik.db import session_factory
+
+    try:
+        with session_factory()() as db:
+            timers.run(db)
+    except Exception:
+        log.exception("timer tick failed")
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     settings = get_settings()
@@ -71,6 +83,8 @@ async def lifespan(_app: FastAPI):
         scheduler = BackgroundScheduler(timezone=settings.tz)
         # every 5 minutes; the first run right after start catches up on a missed morning
         scheduler.add_job(_tick, "interval", minutes=5, next_run_time=now(), max_instances=1, coalesce=True)
+        # timers ("pranie – 2 h") need the minute, not the five: a cheap query on an indexed column
+        scheduler.add_job(_timer_tick, "interval", minutes=1, next_run_time=now(), max_instances=1, coalesce=True)
         scheduler.start()
     yield
     if scheduler:
@@ -152,6 +166,7 @@ def create_app() -> FastAPI:
     app.include_router(emergency.router)
     app.include_router(inbox.router)
     app.include_router(meters.router)
+    app.include_router(timers.router)
 
     @app.exception_handler(LoginRequired)
     async def _login_required(request: Request, _exc: LoginRequired):

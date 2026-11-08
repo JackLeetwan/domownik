@@ -651,6 +651,26 @@
     }
   });
 
+  // ------------------------------------------------------------------ ⏱ timers on the dashboard
+  // the end comes from the server (data-timer-ends, ms); the countdown is counted here, the push by the server
+  const timerText = (ms) => {
+    const mins = Math.ceil(Math.abs(ms) / 60000);
+    const h = Math.floor(mins / 60), m = mins % 60;
+    const span = h ? `${h} godz.${m ? ` ${m} min` : ""}` : `${m} min`;
+    return ms > 0 ? `zostało ${span}` : (mins <= 1 ? "koniec!" : `koniec – czeka ${span}`);
+  };
+  const tickTimers = () => {
+    for (const row of document.querySelectorAll("[data-timer-ends]")) {
+      const left = Number(row.dataset.timerEnds) - Date.now();
+      const out = row.querySelector(".timer-left");
+      if (out) out.textContent = timerText(left);
+      row.classList.toggle("timer-over", left <= 0);
+    }
+  };
+  tickTimers();
+  setInterval(tickTimers, 15000);
+  document.addEventListener("htmx:afterSettle", tickTimers);
+
   // ------------------------------------------------------------------ quick add ("＋")
   // a quick-add form was saved (HX-Trigger: dm-added): close the window, say so, refresh the page under it
   document.addEventListener("dm-added", (e) => {

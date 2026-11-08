@@ -1200,6 +1200,18 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 .form-hint { margin-top: -0.5rem; }
 
 /* ---- dashboard "Dziś" (under the timeline) and the calendar's day list */
+.timers-card { margin: 0 0 1rem; display: grid; gap: 0.5rem; }
+.timer-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 0.75rem; padding: 0.6rem 0.9rem; border-radius: 12px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }
+.timer-main { display: grid; gap: 0.1rem; min-width: 0; }
+.timer-left { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.timer-row.timer-over { border-color: var(--dm-overdue); border-width: 2px; }
+.timer-row.timer-over .timer-left { color: var(--dm-overdue); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .timer-row.timer-over .timer-left { color: #ef6b6b; } }
+:root[data-theme="dark"] .timer-row.timer-over .timer-left { color: #ef6b6b; }
+.timer-actions { display: flex; gap: 0.5rem; }
+.timer-actions button { margin: 0; padding: 0.45rem 0.8rem; min-height: 2.5rem; width: auto; }
+.timer-presets { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; border: 0; padding: 0; margin: 0 0 0.75rem; }
+.timer-presets label { margin: 0; font-size: 1.05rem; }
 .today-card { margin: 0 0 1.25rem; padding: 0.6rem 0.9rem; border-radius: 12px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }
 .today-head { font-size: 1rem; margin: 0 0 0.3rem; }
 .today-head a { color: var(--pico-color); text-decoration: none; }

@@ -123,6 +123,28 @@ class NotificationLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
+class Timer(Base):
+    """A countdown ("Pranie – 2 h"): one push to whoever started it when it ends, and one to everyone 15 min
+    later if nobody reacted. Not a Task – it has no date, never reaches the timeline, budget or history.
+
+    Times are naive local, like the rest of the scheduler. finished_at is set by "Zrobione" and "Anuluj".
+    """
+
+    __tablename__ = "timer"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(80))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    minutes: Mapped[int] = mapped_column(Integer)
+    ends_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    notified_at: Mapped[datetime | None] = mapped_column(DateTime)
+    renotified_at: Mapped[datetime | None] = mapped_column(DateTime)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    user: Mapped[User | None] = relationship()
+
+
 class Item(Base):
     """A node in the zone tree: zone (root), group, car, appliance, person…"""
 

@@ -1,0 +1,16 @@
+{# ⏱ running timers at the top of the dashboard – the wrapper stays (empty) so the buttons can swap it #}
+<section id="timers" class="timers-card" aria-label="Timery"{% if not timers %} hidden{% endif %}>
+  {% for row in timers %}{% set t = row.timer %}
+  <div class="timer-row" data-timer-ends="{{ row.ends_ms }}">
+    <span class="timer-main">
+      <strong>⏱ {{ t.title }}</strong>
+      <span class="timer-left" aria-live="polite">do {{ t.ends_at.strftime('%H:%M') }}</span>
+      <small class="muted">{{ duration_text(t.minutes) }} · koniec o {{ t.ends_at.strftime('%H:%M') }}{% if t.user and t.user.id != user.id %} · {{ t.user.name }}{% endif %}</small>
+    </span>
+    <span class="timer-actions">
+      <button type="button" class="secondary outline" hx-post="/timery/{{ t.id }}/plus" hx-target="#timers" hx-swap="outerHTML" aria-label="Dodaj 15 minut do: {{ t.title }}">+15 min</button>
+      <button type="button" hx-post="/timery/{{ t.id }}/koniec" hx-target="#timers" hx-swap="outerHTML" aria-label="Zakończ: {{ t.title }}">✓ Zrobione</button>
+    </span>
+  </div>
+  {% endfor %}
+</section>
