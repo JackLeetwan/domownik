@@ -31,7 +31,9 @@ SUGGESTIONS: list[tuple[str, str, int, int | None]] = [
     ("Zmiana pościeli", "Sypialnia", 14, 15),
     ("Mycie lodówki", "Kuchnia", 30, 20),
     ("Mycie okien", "Cały dom", 90, 90),
+    ("Pranie", "Łazienka", 3, 10),
 ]
+TIMER_SUGGESTIONS = {"Pranie"}  # added with ⏱ 1/2/3 h on the row
 
 
 def turn_id(chore: Chore) -> int | None:

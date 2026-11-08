@@ -135,7 +135,11 @@ def form(
         from domownik import timers
 
         ctx["presets"] = timers.PRESETS
-        ctx["titles"] = timers.recent_titles(db) or [timers.DEFAULT_TITLE]
+        from domownik.models import Chore
+
+        titles = timers.recent_titles(db)
+        titles += [c for c in db.scalars(select(Chore.name).where(Chore.uses_timer.is_(True))) if c not in titles]
+        ctx["titles"] = titles or [timers.DEFAULT_TITLE]
         ctx["max_minutes"] = timers.MAX_MINUTES
         ctx["duration_text"] = timers.duration_text
     elif kind == "reading":

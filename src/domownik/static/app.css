@@ -1210,6 +1210,12 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 :root[data-theme="dark"] .timer-row.timer-over .timer-left { color: #ef6b6b; }
 .timer-actions { display: flex; gap: 0.5rem; }
 .timer-actions button { margin: 0; padding: 0.45rem 0.8rem; min-height: 2.5rem; width: auto; }
+.timer-actions .timer-cancel { padding: 0.45rem 0.7rem; }
+.timer-next { border-style: dashed; }
+.chore-timer { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.4rem 0 0.2rem; }
+.chore-timer form { margin: 0; }
+.chore-timer button { margin: 0; min-height: 2.25rem; }
+.chore-timer-run { font-weight: 600; }
 .timer-presets { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; border: 0; padding: 0; margin: 0 0 0.75rem; }
 .timer-presets label { margin: 0; font-size: 1.05rem; }
 .today-card { margin: 0 0 1.25rem; padding: 0.6rem 0.9rem; border-radius: 12px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }

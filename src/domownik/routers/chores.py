@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import chores, points, services
+from domownik import chores, points, services, timers
 from domownik.config import today
 from domownik.db import get_db
 from domownik.models import Chore, User
@@ -58,8 +58,17 @@ def chores_page(
             "suggestions": chores.missing_suggestions(db),
             "has_any": db.scalar(select(Chore.id).limit(1)) is not None,
             "overdue_n": sum(1 for s in sts if s.overdue),
+            "running": {t.chore_id: t for t in timers.active(db) if t.chore_id},
+            "timer_choices": {s.chore.id: _timer_choices(db, s.chore) for s in sts if s.chore.uses_timer},
+            "duration_text": timers.duration_text,
         },
     )
+
+
+def _timer_choices(db: Session, chore: Chore) -> list[tuple[int, bool]]:
+    """⏱ buttons of a chore: 1/2/3 h plus the time used last, which is the highlighted one."""
+    last = timers.last_minutes(db, chore) or timers.PRESETS[0]
+    return [(m, m == last) for m in sorted({*timers.PRESETS, last})]
 
 
 def _int(raw, lo: int, hi: int, msg: str, *, required: bool = True) -> int | None:
@@ -97,6 +106,8 @@ def _apply(db: Session, chore: Chore, form, me: User) -> None:
     if "points" in form:
         chore.points = points.parse_points(form.get("points"))
         chore.needs_approval = bool(form.get("needs_approval")) and bool(chore.points)
+    if "timer_sent" in form:
+        chore.uses_timer = bool(form.get("uses_timer"))
     turn = str(form.get("turn") or "").strip()
     chores.set_rotation(chore, _rotation(db, form, me), int(turn) if turn.isdigit() else None)
 
@@ -124,7 +135,14 @@ async def add_suggestion(request: Request, db: Session = Depends(get_db), user: 
     name, room, every, minutes = pick
     existing = db.scalar(select(Chore).where(Chore.name == name))
     if existing is None:
-        existing = Chore(name=name, room=room, every_days=every, est_minutes=minutes, created_by_id=user.id)
+        existing = Chore(
+            name=name,
+            room=room,
+            every_days=every,
+            est_minutes=minutes,
+            created_by_id=user.id,
+            uses_timer=name in chores.TIMER_SUGGESTIONS,
+        )
         chores.set_rotation(existing, _rotation(db, {}, user))
         db.add(existing)
         db.commit()

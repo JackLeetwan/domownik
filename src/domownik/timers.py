@@ -4,21 +4,26 @@ When a timer ends, the person who started it gets a push (nobody with a device a
 Nobody tapped "Zrobione" or "+15 min" for 15 minutes → one more push, this time to the whole household, so
 whoever is at home can move the laundry. The minute job in main.py calls run(); a server that was down
 catches up on a timer that ended less than CATCH_UP ago and drops older ones quietly.
+
+A timer started for a chore ("Pranie" with uses_timer) ticks the chore off on "Zrobione". After "Zrobione"
+the dashboard offers the next step for FOLLOW_UP_WINDOW: what this household started right after the same
+timer the last time, or DEFAULT_FOLLOW_UPS ("Pranie" → "Suszarka – 2 h").
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import services, webpush
+from domownik import chores, points, services, webpush
 from domownik.config import get_settings, now
-from domownik.models import PushSubscription, Timer, User
+from domownik.models import Chore, PushSubscription, Timer, User
 
 log = logging.getLogger("domownik.timers")
 
@@ -30,6 +35,8 @@ RENOTIFY_AFTER = timedelta(minutes=15)  # nobody reacted → the whole household
 CATCH_UP = timedelta(hours=3)  # a server back after a longer break does not push about old laundry
 AUTO_CLOSE = timedelta(hours=12)  # a timer nobody closed leaves the dashboard by itself
 TOKEN_MAX_AGE = 2 * 86400
+FOLLOW_UP_WINDOW = timedelta(minutes=30)  # how long "Suszarka – 2 h?" stays offered after "Zrobione"
+DEFAULT_FOLLOW_UPS: dict[str, tuple[str, int]] = {"pranie": ("Suszarka", 120)}
 
 
 def _now() -> datetime:
@@ -43,13 +50,24 @@ def duration_text(minutes: int) -> str:
     return f"{h} godz." + (f" {m} min" if m else "")
 
 
-def start(db: Session, user: User, title: str, minutes: int, at: datetime | None = None) -> Timer:
+def timer_chore(db: Session, title: str) -> Chore | None:
+    """The chore with ⏱ of that name – a timer "Pranie" started from "＋ Dodaj" still ticks it off."""
+    key = title.strip().lower()
+    return next((c for c in db.scalars(select(Chore).where(Chore.uses_timer.is_(True))) if c.name.lower() == key), None)
+
+
+def start(
+    db: Session, user: User, title: str, minutes: int, at: datetime | None = None, *, chore: Chore | None = None
+) -> Timer:
     at = at or _now()
+    title = (title.strip() or (chore.name if chore else DEFAULT_TITLE))[:80]
+    chore = chore or timer_chore(db, title)
     t = Timer(
-        title=(title.strip() or DEFAULT_TITLE)[:80],
+        title=title,
         user_id=user.id,
         minutes=minutes,
         ends_at=at.replace(microsecond=0) + timedelta(minutes=minutes),
+        chore_id=chore.id if chore else None,
     )
     db.add(t)
     db.commit()
@@ -79,10 +97,77 @@ def extend(db: Session, t: Timer, at: datetime | None = None) -> None:
     db.commit()
 
 
-def finish(db: Session, t: Timer, at: datetime | None = None) -> None:
+def last_minutes(db: Session, chore: Chore) -> int | None:
+    return db.scalar(select(Timer.minutes).where(Timer.chore_id == chore.id).order_by(Timer.id.desc()).limit(1))
+
+
+def finish(db: Session, t: Timer, at: datetime | None = None, *, by: User | None = None) -> None:
+    """✓ Zrobione: the timer ends; its chore is ticked off by `by` (from a push: whoever started it)."""
+    if t.finished_at is not None:
+        return
+    t.finished_at = at or _now()
+    doer = by or t.user
+    if t.chore is not None and doer is not None:
+        rec = chores.complete(db, t.chore, by=doer, on=t.finished_at.date())
+        points.for_chore(db, t.chore, rec, doer, doer)
+    db.commit()
+
+
+def cancel(db: Session, t: Timer, at: datetime | None = None) -> None:
+    """✕ – stopped without doing anything: no chore ticked, no next step offered."""
     if t.finished_at is None:
         t.finished_at = at or _now()
-        db.commit()
+    t.followup_dismissed = True
+    db.commit()
+
+
+def dismiss_follow_up(db: Session, t: Timer) -> None:
+    t.followup_dismissed = True
+    db.commit()
+
+
+# ---------------------------------------------------------------- the next step ("Suszarka – 2 h?")
+
+
+@dataclass
+class FollowUp:
+    after: Timer
+    title: str
+    minutes: int
+
+
+def _started(t: Timer) -> datetime:
+    """Local start time (created_at is SQLite's UTC now)."""
+    return t.created_at.replace(tzinfo=UTC).astimezone(get_settings().tz).replace(tzinfo=None)
+
+
+def next_step(db: Session, t: Timer) -> tuple[str, int] | None:
+    """What followed the same timer last time (started within FOLLOW_UP_WINDOW of its end), else the default."""
+    key = t.title.lower()
+    done = db.scalars(
+        select(Timer)
+        .where(Timer.finished_at.is_not(None), Timer.id != t.id, Timer.followup_dismissed.is_(False))
+        .order_by(Timer.id.desc())
+        .limit(100)
+    )
+    for prev in done:
+        if prev.title.lower() != key:
+            continue
+        nxt = db.scalar(select(Timer).where(Timer.id > prev.id, Timer.id != t.id).order_by(Timer.id).limit(1))
+        if nxt and nxt.title.lower() != key and timedelta(0) <= _started(nxt) - prev.finished_at <= FOLLOW_UP_WINDOW:
+            return nxt.title, nxt.minutes
+        break  # only the latest one counts – habits change
+    return DEFAULT_FOLLOW_UPS.get(key)
+
+
+def pending_follow_up(db: Session, at: datetime | None = None) -> FollowUp | None:
+    """The next step to offer now: the latest timer was finished ("Zrobione") less than the window ago."""
+    at = at or _now()
+    last = db.scalar(select(Timer).order_by(Timer.id.desc()).limit(1))
+    if last is None or last.finished_at is None or last.followup_dismissed or at - last.finished_at > FOLLOW_UP_WINDOW:
+        return None
+    step = next_step(db, last)
+    return FollowUp(last, *step) if step else None
 
 
 # ---------------------------------------------------------------- push

@@ -140,9 +140,14 @@ class Timer(Base):
     notified_at: Mapped[datetime | None] = mapped_column(DateTime)
     renotified_at: Mapped[datetime | None] = mapped_column(DateTime)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    # started for a chore ("Pranie"): "Zrobione" ticks the chore off as well
+    chore_id: Mapped[int | None] = mapped_column(ForeignKey("chore.id", ondelete="SET NULL"))
+    # the next step offered after it ("Suszarka – 2 h?") was waved away, or the timer was cancelled
+    followup_dismissed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     user: Mapped[User | None] = relationship()
+    chore: Mapped[Chore | None] = relationship()
 
 
 class Item(Base):
@@ -764,6 +769,7 @@ class Chore(Base):
     points: Mapped[int | None] = mapped_column(Integer)
     needs_approval: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     rotation: Mapped[list[int]] = mapped_column(JSON, default=list)  # user ids in turn order; [] = anyone
+    uses_timer: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")  # ⏱ 1/2/3 h on its row
     turn_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

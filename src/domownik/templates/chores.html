@@ -15,6 +15,10 @@
 </label>
 {% endif %}
 {% endmacro %}
+{% macro timer_field(c) %}
+<input type="hidden" name="timer_sent" value="1">
+<label><input type="checkbox" name="uses_timer" role="switch" {% if c is not none and c.uses_timer %}checked{% endif %}> ⏱ Z timerem – przyciski 1/2/3 h, po czasie powiadomienie (pranie, zmywarka)</label>
+{% endmacro %}
 
 <header class="agenda-head">
   <h1>🧹 Obowiązki{% if overdue_n %} <small class="badge overdue">{{ overdue_n }} zaległe</small>{% endif %}</h1>
@@ -41,6 +45,7 @@
       <label>Szacowany czas [min] <input name="est_minutes" type="number" min="1" max="1440" placeholder="opcjonalnie"></label>
     </div>
     {% with obj = none %}{% include "partials/points_fields.html" %}{% endwith %}
+    {{ timer_field(none) }}
     {{ rotation_fields(none) }}
   </details>
   <datalist id="rooms">{% for r in rooms %}<option value="{{ r }}">{% endfor %}</datalist>
@@ -84,6 +89,21 @@
         <button type="submit" class="small">✓ Zrobione</button>
       </form>
     </div>
+    {% if c.uses_timer %}
+    <div class="chore-timer">
+      {% if running.get(c.id) %}{% set rt = running[c.id] %}
+      <a href="/" class="chore-timer-run">⏱ Trwa – koniec o {{ rt.ends_at.strftime('%H:%M') }}</a>
+      {% else %}
+      <span class="muted">⏱ Start:</span>
+      {% for m, last in timer_choices[c.id] %}
+      <form method="post" action="/obowiazki/{{ c.id }}/timer" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="who" value="{{ who or '' }}"><input type="hidden" name="minutes" value="{{ m }}">
+        <button type="submit" class="small{% if not last %} secondary outline{% endif %}"{% if last %} title="Ostatnio używany czas"{% endif %}>{{ duration_text(m) }}</button>
+      </form>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% endif %}
     <div class="chore-meta">
       {% if s.last %}
       <small class="muted">Ostatnio: {{ s.last.done_by.name if s.last.done_by else '?' }}, {{ s.last.done_on|d }}</small>
@@ -116,6 +136,7 @@
             <label>Szacowany czas [min] <input name="est_minutes" type="number" min="1" max="1440" value="{{ c.est_minutes or '' }}"></label>
           </div>
           {% with obj = c %}{% include "partials/points_fields.html" %}{% endwith %}
+          {{ timer_field(c) }}
           {{ rotation_fields(c) }}
           <button type="submit" class="small">Zapisz</button>
         </form>

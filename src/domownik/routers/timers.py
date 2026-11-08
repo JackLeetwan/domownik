@@ -1,4 +1,4 @@
-"""⏱ Timers: started from "＋ Dodaj", shown on the dashboard, closed there or from the push."""
+"""⏱ Timers: started from "＋ Dodaj" or a chore, shown on the dashboard, closed there or from the push."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from domownik import timers
 from domownik.config import get_settings
 from domownik.db import get_db
-from domownik.models import Timer, User
+from domownik.models import Chore, Timer, User
 from domownik.security import current_user, verify_csrf
 from domownik.web import error_target, is_htmx, is_quick, quick_saved, render
 
@@ -20,7 +20,7 @@ router = APIRouter()
 def card_context(db: Session) -> dict:
     tz = get_settings().tz
     rows = [{"timer": t, "ends_ms": int(t.ends_at.replace(tzinfo=tz).timestamp() * 1000)} for t in timers.active(db)]
-    return {"timers": rows, "duration_text": timers.duration_text}
+    return {"timers": rows, "follow_up": timers.pending_follow_up(db), "duration_text": timers.duration_text}
 
 
 def _error(request: Request, message: str) -> HTMLResponse:
@@ -41,6 +41,12 @@ def _minutes(form) -> int | None:
     return value if 1 <= value <= timers.MAX_MINUTES else None
 
 
+def _card(request: Request, db: Session, user: User):
+    if is_htmx(request):
+        return render(request, "partials/timers.html", {"user": user} | card_context(db))
+    return RedirectResponse("/", status_code=303)
+
+
 @router.post("/timery", dependencies=[Depends(verify_csrf)])
 async def start(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     form = await request.form()
@@ -50,7 +56,7 @@ async def start(request: Request, db: Session = Depends(get_db), user: User = De
     t = timers.start(db, user, str(form.get("title") or ""), minutes)
     if is_quick(request):
         return quick_saved(f"⏱ {t.title}: przypomnę o {t.ends_at:%H:%M}")
-    return RedirectResponse("/", status_code=303)
+    return _card(request, db, user)  # "Suszarka – start 2 h" on the dashboard card
 
 
 def _timer(db: Session, timer_id: int) -> Timer:
@@ -58,12 +64,6 @@ def _timer(db: Session, timer_id: int) -> Timer:
     if t is None:
         raise HTTPException(404, "Nie ma takiego timera")
     return t
-
-
-def _card(request: Request, db: Session, user: User):
-    if is_htmx(request):
-        return render(request, "partials/timers.html", {"user": user} | card_context(db))
-    return RedirectResponse("/", status_code=303)
 
 
 @router.post("/timery/{timer_id}/plus", dependencies=[Depends(verify_csrf)])
@@ -76,8 +76,38 @@ def plus(timer_id: int, request: Request, db: Session = Depends(get_db), user: U
 
 @router.post("/timery/{timer_id}/koniec", dependencies=[Depends(verify_csrf)])
 def finish(timer_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    timers.finish(db, _timer(db, timer_id))
+    timers.finish(db, _timer(db, timer_id), by=user)
     return _card(request, db, user)
+
+
+@router.post("/timery/{timer_id}/anuluj", dependencies=[Depends(verify_csrf)])
+def cancel(timer_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    timers.cancel(db, _timer(db, timer_id))
+    return _card(request, db, user)
+
+
+@router.post("/timery/{timer_id}/bez-dalej", dependencies=[Depends(verify_csrf)])
+def no_follow_up(timer_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    timers.dismiss_follow_up(db, _timer(db, timer_id))
+    return _card(request, db, user)
+
+
+@router.post("/obowiazki/{chore_id}/timer", dependencies=[Depends(verify_csrf)])
+async def start_for_chore(
+    request: Request, chore_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    chore = db.get(Chore, chore_id)
+    if chore is None:
+        raise HTTPException(404, "Nie ma takiego obowiązku")
+    form = await request.form()
+    minutes = _minutes(form)
+    if minutes is None:
+        raise HTTPException(400, "Nieprawidłowy czas")
+    timers.start(db, user, chore.name, minutes, chore=chore)
+    url = "/obowiazki" + ("?who=me" if form.get("who") == "me" else "") + f"#ch{chore.id}"
+    resp = RedirectResponse(url, status_code=303)
+    resp.headers["HX-Redirect"] = url
+    return resp
 
 
 # ---------------------------------------------------------------- buttons in the push (no session)
@@ -94,7 +124,9 @@ def from_push(token: str, action: str, db: Session = Depends(get_db)):
         return PlainTextResponse(f"Już zakończone: {t.title}")
     if action == "done":
         timers.finish(db, t)
-        return PlainTextResponse(f"Zrobione: {t.title}")
+        step = timers.next_step(db, t)
+        hint = f" · {step[0]}? Start na pulpicie" if step else ""
+        return PlainTextResponse(f"Zrobione: {t.title}{hint}")
     timers.extend(db, t)
     return PlainTextResponse(f"{t.title}: przypomnę o {t.ends_at:%H:%M}")
 
