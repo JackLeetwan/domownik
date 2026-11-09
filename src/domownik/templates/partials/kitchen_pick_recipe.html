@@ -1,0 +1,32 @@
+{# Window on /zakupy: pick a recipe → its ingredients window, or a Cookidoo link. Needs: recipes, total, q, only_list #}
+{% macro recipe_list() %}
+<ul class="recipe-list pick-recipe-list" id="pick-recipe-list">
+  {% for r in recipes %}
+  <li><a href="/kuchnia/przepisy/{{ r.id }}" hx-get="/kuchnia/przepisy/{{ r.id }}/zakupy" hx-target="#modal-body" hx-push-url="false">
+    <strong>{{ r.name }}</strong>
+    <small class="muted">{{ r.ingredient_list|length }} skł.{% if r.minutes %} · ⏱️ {{ r.minutes }} min{% endif %}{% if r.tags %} · {{ r.tags }}{% endif %}</small>
+  </a></li>
+  {% else %}
+  <li class="muted">{% if total %}Nic nie pasuje do „{{ q }}”.{% else %}Nie ma jeszcze przepisów ze składnikami.{% endif %}</li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+{% if only_list %}{{ recipe_list() }}{% else %}
+<header>
+  <button class="close" aria-label="Zamknij" data-close>✕</button>
+  <h3 id="modal-title">📖 Składniki z przepisu</h3>
+</header>
+<form hx-post="/kuchnia/do-zakupow/cookidoo" hx-target="#modal-body" hx-disabled-elt="find button" class="cookidoo-import">
+  <label for="pick-cookidoo">🥣 Z Cookidoo <small class="muted">– Udostępnij → Kopiuj link</small></label>
+  <div role="group">
+    <input id="pick-cookidoo" name="link" inputmode="url" autocomplete="off" required placeholder="Wklej link z Cookidoo">
+    <button type="submit">Pobierz</button>
+  </div>
+</form>
+{% if total > 5 %}
+<input type="search" name="q" value="{{ q }}" placeholder="Szukaj: nazwa, składnik…" aria-label="Szukaj przepisów"
+       hx-get="/kuchnia/do-zakupow/przepis" hx-trigger="input changed delay:250ms, search" hx-target="#pick-recipe-list" hx-swap="outerHTML">
+{% endif %}
+{{ recipe_list() }}
+<p><a href="/kuchnia/przepisy/nowy">＋ Nowy przepis</a></p>
+{% endif %}

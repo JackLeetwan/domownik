@@ -8,9 +8,8 @@
   <p class="muted"><small>Odznacz to, co masz. „✓ w domu” – znalezione w spiżarni.</small></p>
   <ul class="kitchen-shop-list">
     {% for n in needs %}
-    <li><label><input type="checkbox" name="entry" value="{{ n.entry }}" {% if not n.have %}checked{% endif %}> {{ n.entry }}
-      {% if n.have %}<small class="badge have">✓ w domu</small>{% endif %}
-      {% if many %}<small class="muted"> · {{ n.sources|join(', ') }}</small>{% endif %}</label></li>
+    <li><label><input type="checkbox" name="entry" value="{{ n.entry }}" {% if not n.have %}checked{% endif %}>
+      <span>{{ n.entry }}{% if n.have %} <small class="badge have">✓ w domu</small>{% endif %}{% if many %}<small class="muted"> · {{ n.sources|join(', ') }}</small>{% endif %}</span></label></li>
     {% endfor %}
   </ul>
   <footer class="modal-actions"><button type="submit">Dopisz zaznaczone</button></footer>

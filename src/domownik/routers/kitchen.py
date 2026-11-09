@@ -220,20 +220,16 @@ async def recipe_create(request: Request, db: Session = Depends(get_db), user: U
     return _redirect(f"/kuchnia/przepisy/{r.id}")
 
 
-@router.post("/przepisy/cookidoo", dependencies=[Depends(verify_csrf)])
-async def recipe_from_cookidoo(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    """A Cookidoo link → a recipe here; the recipe page then opens 'do zakupów' at once."""
-    form = await request.form()
-    try:
-        url = cookidoo.find_url(str(form.get("link") or ""))
-        same = db.scalar(select(Recipe).where(Recipe.link == url.split("?")[0].split("#")[0]))
-        if same is None:
-            got = await run_in_threadpool(cookidoo.load, url)
-            same = db.scalar(select(Recipe).where(Recipe.link == got.url))
-    except cookidoo.CookidooError as exc:
-        return _error(str(exc))
-    if same is not None:  # imported before – no duplicate
-        return _redirect(f"/kuchnia/przepisy/{same.id}?zakupy=1")
+async def _import_cookidoo(db: Session, user: User, link: str) -> Recipe:
+    """A Cookidoo link → a recipe here (the one imported before, if any – no duplicate). Raises CookidooError."""
+    url = cookidoo.find_url(link)
+    same = db.scalar(select(Recipe).where(Recipe.link == url.split("?")[0].split("#")[0]))
+    if same is not None:
+        return same
+    got = await run_in_threadpool(cookidoo.load, url)
+    same = db.scalar(select(Recipe).where(Recipe.link == got.url))
+    if same is not None:
+        return same
     r = Recipe(
         created_by_id=user.id,
         name=got.name,
@@ -245,7 +241,57 @@ async def recipe_from_cookidoo(request: Request, db: Session = Depends(get_db), 
     )
     db.add(r)
     db.commit()
+    return r
+
+
+@router.post("/przepisy/cookidoo", dependencies=[Depends(verify_csrf)])
+async def recipe_from_cookidoo(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """A Cookidoo link → a recipe here; the recipe page then opens 'do zakupów' at once."""
+    form = await request.form()
+    try:
+        r = await _import_cookidoo(db, user, str(form.get("link") or ""))
+    except cookidoo.CookidooError as exc:
+        return _error(str(exc))
     return _redirect(f"/kuchnia/przepisy/{r.id}?zakupy=1")
+
+
+# ---------------------------------------------------------------- from the shopping list: pick a recipe
+
+
+def _matching(recipes: list[Recipe], q: str) -> list[Recipe]:
+    ql = q.strip().lower()
+    if not ql:
+        return recipes
+    return [
+        r
+        for r in recipes
+        if ql in r.name.lower() or ql in (r.ingredients or "").lower() or ql in (r.tags or "").lower()
+    ]
+
+
+@router.get("/do-zakupow/przepis")
+def pick_recipe(request: Request, q: str = "", db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """/zakupy → '📖 Z przepisu': a window with the recipes (pick one → its ingredients) or a Cookidoo link.
+    With HX-Target 'pick-recipe-list' (typing in the search box) only the list comes back."""
+    allr = [r for r in db.scalars(select(Recipe).order_by(Recipe.name)) if r.ingredient_list]
+    shown = _matching(allr, q)
+    only_list = request.headers.get("hx-target") == "pick-recipe-list"
+    return render(
+        request,
+        "partials/kitchen_pick_recipe.html",
+        {"user": user, "recipes": shown, "total": len(allr), "q": q, "only_list": only_list},
+    )
+
+
+@router.post("/do-zakupow/cookidoo", dependencies=[Depends(verify_csrf)])
+async def cookidoo_to_shopping(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """The Cookidoo link from the shopping list: imported (or found) and straight to its ingredients."""
+    form = await request.form()
+    try:
+        r = await _import_cookidoo(db, user, str(form.get("link") or ""))
+    except cookidoo.CookidooError as exc:
+        return _error(str(exc))
+    return _shop_modal(request, db, user, [r], f"Składniki: {r.name}")
 
 
 def _recipe(db: Session, rid: int) -> Recipe:

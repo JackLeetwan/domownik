@@ -193,3 +193,43 @@ def test_unknown_words_meet_by_stem_and_take_the_lists_spelling(auth_client, db)
     auth_client.post("/kuchnia/do-zakupow", data={"entry": ["2 łyżki tahiny"]}, headers=HX)
     row = db.scalar(select(ShoppingItem).where(ShoppingItem.bought_on.is_(None)))
     assert (row.name, row.qty) == ("Tahini", "2 łyżki")
+
+
+def test_shopping_page_picks_a_recipe(auth_client, db):
+    """/zakupy → '📖 Z przepisu': recipes with ingredients listed, search narrows, one opens its ingredients."""
+    rec = _recipe(db)
+    _recipe(db, name="Pusty", ingredients=None)
+    _recipe(db, name="Bigos", ingredients="1 kg kapusty\n500 g kiełbasy")
+    assert "Z przepisu" in auth_client.get("/zakupy").text
+    win = auth_client.get("/kuchnia/do-zakupow/przepis", headers=HX).text
+    assert "Naleśniki" in win and "Bigos" in win and "Pusty" not in win
+    assert f'hx-get="/kuchnia/przepisy/{rec.id}/zakupy"' in win and "Cookidoo" in win
+    only = auth_client.get("/kuchnia/do-zakupow/przepis?q=kapust", headers={**HX, "HX-Target": "pick-recipe-list"}).text
+    assert "Bigos" in only and "Naleśniki" not in only and "Cookidoo" not in only
+    assert "Nic nie pasuje" in auth_client.get("/kuchnia/do-zakupow/przepis?q=xyz", headers=HX).text
+
+
+def test_cookidoo_link_from_shopping_opens_ingredients(auth_client, db, monkeypatch):
+    from domownik import cookidoo
+
+    url = "https://cookidoo.pl/recipes/recipe/pl-PL/r1"
+    got = type(
+        "Got",
+        (),
+        {"url": url, "name": "Zupa", "ingredients": ["2 marchewki"], "minutes": 20, "servings": 4, "tags": []},
+    )
+    monkeypatch.setattr(cookidoo, "load", lambda u: got)
+    r = auth_client.post("/kuchnia/do-zakupow/cookidoo", data={"link": url}, headers=HX)
+    assert r.status_code == 200 and "Składniki: Zupa" in r.text and "2 marchewki" in r.text
+    r = auth_client.post("/kuchnia/do-zakupow/cookidoo", data={"link": url}, headers=HX)  # second time: no duplicate
+    assert len(db.scalars(select(Recipe)).all()) == 1
+    assert auth_client.post("/kuchnia/do-zakupow/cookidoo", data={"link": "nope"}, headers=HX).status_code == 400
+
+
+def test_auto_opened_shop_window_does_not_reopen(auth_client, db):
+    """After a Cookidoo import the page opens with ?zakupy=1; the window drops it, so the refresh after adding
+    (dm-added reloads the page under the window) does not open it again."""
+    rec = _recipe(db)
+    page = auth_client.get(f"/kuchnia/przepisy/{rec.id}?zakupy=1").text
+    assert 'hx-trigger="click, load"' in page and "history.replaceState" in page
+    assert "history.replaceState" not in auth_client.get(f"/kuchnia/przepisy/{rec.id}").text
