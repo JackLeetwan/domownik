@@ -15,7 +15,7 @@ from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
 from domownik.domain.tree import Tree
-from domownik.models import NOTE_COLORS, Attachment, BoardNote, Todo, User
+from domownik.models import NOTE_COLORS, Attachment, BoardNote, Todo, User, note_label_shades
 from domownik.security import current_user, verify_csrf
 from domownik.web import is_quick, quick_saved, render
 
@@ -136,6 +136,7 @@ def notes_page(
             "total": len(active),
             "archive": archive,
             "labels": labels,
+            "label_shades": note_label_shades(db),
             "all_labels": note_labels(active + archive),
             "k": k,
             "NO_LABEL": NO_LABEL,

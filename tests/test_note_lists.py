@@ -169,6 +169,7 @@ def test_note_without_colour_takes_one_per_label(auth_client, db):
     assert paczka.shade is None  # no label: the plain yellow card
     page = auth_client.get("/notatki").text
     assert f"c-{dom.shade}" in page and "▾</span> Rozwiń wszystkie" in page
+    assert f'class="note-chip c-{dom.shade}"' in page and f'class="note-chip c-{rower.shade}"' in page  # chips match the cards
 
 
 def test_active_note_can_be_deleted(auth_client, db):

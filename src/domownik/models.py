@@ -559,16 +559,7 @@ class BoardNote(Base):
         if self.color or not self.label:
             return self.color
         db = object_session(self)
-        if db is None:
-            return None
-        shades = db.info.get("note_label_shades")
-        if shades is None or self.label not in shades:
-            rows = db.execute(
-                select(BoardNote.label).where(BoardNote.label.is_not(None)).group_by(BoardNote.label).order_by(func.min(BoardNote.id))
-            )
-            shades = {lbl: AUTO_SHADES[i % len(AUTO_SHADES)] for i, (lbl,) in enumerate(rows)}
-            db.info["note_label_shades"] = shades
-        return shades.get(self.label)
+        return note_label_shades(db, self.label).get(self.label) if db is not None else None
 
     @property
     def is_list(self) -> bool:
@@ -604,6 +595,22 @@ NOTE_COLORS: dict[str, str] = {
 }
 # colours of labelled notes without their own colour – yellow stays for notes without a label
 AUTO_SHADES = ("blue", "green", "pink", "orange", "purple", "teal", "gray")
+
+
+def note_label_shades(db, label: str | None = None) -> dict[str, str]:
+    """{label: colour}, in the order the labels appeared – a new label never recolours the old ones.
+    Cached for the request (db.info); a label missing from the cache reloads it."""
+    shades = db.info.get("note_label_shades")
+    if shades is None or (label is not None and label not in shades):
+        rows = db.execute(
+            select(BoardNote.label)
+            .where(BoardNote.label.is_not(None))
+            .group_by(BoardNote.label)
+            .order_by(func.min(BoardNote.id))
+        )
+        shades = {lbl: AUTO_SHADES[i % len(AUTO_SHADES)] for i, (lbl,) in enumerate(rows)}
+        db.info["note_label_shades"] = shades
+    return shades
 
 
 DOC_KINDS: dict[str, tuple[str, str]] = {

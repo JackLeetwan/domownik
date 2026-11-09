@@ -17,8 +17,9 @@
 {% if total %}
 <nav class="notes-filter" aria-label="Kategorie notatek">
   <a href="/notatki" role="button" class="{% if k %}outline {% endif %}secondary">Wszystkie</a>
-  {% for l in labels %}<a href="/notatki?k={{ l|urlencode }}" role="button" class="{% if k != l %}outline {% endif %}secondary">{{ l }}</a>{% endfor %}
-  {% if labels %}<a href="/notatki?k={{ NO_LABEL }}" role="button" class="{% if k != NO_LABEL %}outline {% endif %}secondary">Bez kategorii</a>{% endif %}
+  {# a chip in the colour of its notes – the same colour as the cards below #}
+  {% for l in labels %}<a href="/notatki?k={{ l|urlencode }}" class="note-chip{% if label_shades.get(l) %} c-{{ label_shades[l] }}{% endif %}" {% if k == l %}aria-current="true"{% endif %}>{{ l }}</a>{% endfor %}
+  {% if labels %}<a href="/notatki?k={{ NO_LABEL }}" class="note-chip" {% if k == NO_LABEL %}aria-current="true"{% endif %}>Bez kategorii</a>{% endif %}
   {% if total > 3 %}<input type="search" placeholder="Szukaj w notatkach" aria-label="Szukaj w notatkach" data-note-filter>{% endif %}
 </nav>
 {% endif %}
