@@ -12,7 +12,7 @@
   </form>
   <button type="button" class="side-add" hx-get="/dodaj" hx-target="#modal-body">＋ Dodaj</button>
   {# only this middle part scrolls – the brand/search on top and the account footer stay visible #}
-  <div class="side-scroll">
+  <div class="side-scroll" data-scroll-hint>
   <ul class="side-links">
     {% for ln in menu_sidebar(user) %}
     {% set cnt = nav[ln.count] if ln.count else 0 %}
@@ -31,6 +31,8 @@
     {% for z in nav.zones %}<li><a href="/items/{{ z.id }}" title="{{ z.name }}" {% if p == '/items/' ~ z.id %}aria-current="page"{% endif %}><span class="ic">{{ z.display_icon }}</span> <span class="lbl">{{ z.name }}</span></a></li>{% endfor %}
   </ul>
   {% endif %}
+  {# sticky at the bottom while the people/zones are still below the fold (app.js toggles it) #}
+  {% if nav.members or nav.zones %}<button type="button" class="side-more" data-scroll-more hidden>▾ {{ 'Domownicy' if nav.members }}{{ ' · ' if nav.members and nav.zones }}{{ 'Strefy' if nav.zones }}</button>{% endif %}
   </div>
   <div class="side-foot">
     <button type="button" class="link theme-toggle" id="theme-toggle" title="Motyw: automatyczny" aria-label="Przełącz motyw">🌓</button>

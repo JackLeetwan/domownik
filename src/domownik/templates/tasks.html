@@ -18,7 +18,7 @@
 <div class="tasks-tools">
   <button type="button" hx-get="/dodaj/task" hx-target="#modal-body">＋ Zadanie</button>
   {% if categories|length > 1 or kat %}
-  <nav class="cat-chips" aria-label="Kategoria">
+  <nav class="cat-chips" aria-label="Kategoria" data-scroll-hint>
     <a href="/zadania{{ ('?' ~ q_who[1:]) if who == 'me' else '' }}" {% if not kat %}aria-current="true"{% endif %}>Wszystkie</a>
     {% for k, lbl, ic in categories %}<a href="/zadania?kat={{ k }}{{ q_who }}" {% if k == kat %}aria-current="true"{% endif %}>{{ ic }} {{ lbl }}</a>{% endfor %}
   </nav>

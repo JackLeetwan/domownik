@@ -1603,3 +1603,18 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .cat-chips { display: flex; gap: 0.4rem; overflow-x: auto; min-width: 0; flex: 1 1 100%; padding-bottom: 0.2rem; scrollbar-width: none; }
 .cat-chips a { flex: none; white-space: nowrap; padding: 0.25rem 0.7rem; border: 1px solid var(--dm-tile-border); border-radius: 999px; font-size: 0.88rem; text-decoration: none; color: inherit; }
 .cat-chips a[aria-current] { background: var(--pico-primary-background); border-color: var(--pico-primary-background); color: #fff; font-weight: 600; }
+
+/* ---------------------------------------------------------------- UI review fixes (2026-11-09) */
+/* today in the calendar: white on green also on a weekend/holiday (.we/.hol set a muted or red colour) */
+.cal-cell.is-today .cal-num, .cal-cell.is-today.we .cal-num, .cal-cell.is-today.hol .cal-num { background: var(--pico-primary-background); color: #fff; font-weight: 700; }
+/* scroll strips hiding content: fade the hidden edge (app.js sets .more-start / .more-end) */
+.cat-chips.more-end { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent); }
+.cat-chips.more-start { -webkit-mask-image: linear-gradient(to right, transparent, #000 2.5rem); mask-image: linear-gradient(to right, transparent, #000 2.5rem); }
+.cat-chips.more-start.more-end { -webkit-mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent); mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent); }
+.cat-chips a { display: inline-flex; align-items: center; min-height: 2.25rem; }
+/* the drawer: a sticky "▾ Domownicy · Strefy" while those sections are below the fold */
+.side-more { position: sticky; bottom: 0.4rem; display: block; width: 100%; margin: 0.4rem 0 0; padding: 0.4rem 0.6rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+.side-more[hidden] { display: none; }
+/* overdue on top of the dashboard */
+.overdue-top { margin: 0 0 1rem; padding: 0.4rem 0.8rem 0.2rem; border: 1px solid color-mix(in srgb, var(--dm-overdue) 45%, transparent); border-left: 4px solid var(--dm-overdue); border-radius: 12px; background: color-mix(in srgb, var(--dm-overdue) 6%, transparent); }
+.overdue-top .bucket { margin: 0.2rem 0 0.4rem; }

@@ -13,6 +13,15 @@
 </article>
 {% else %}
 {% include "partials/timers.html" %}
+{# overdue first – the most urgent thing must not wait under the timeline and the tiles #}
+{% if buckets.overdue %}
+<section class="agenda overdue-top" id="zalegle" aria-label="Zaległe">
+  <h2 class="bucket bucket-overdue">⚠ Zaległe <small class="muted">({{ buckets.overdue|length }})</small></h2>
+  <ul class="task-list">
+    {% for entry in grouped.overdue %}{% if entry.rows is defined %}{% set g = entry %}{% include "partials/payment_group.html" %}{% else %}{% set row = entry %}{% include "partials/task_row.html" %}{% endif %}{% endfor %}
+  </ul>
+</section>
+{% endif %}
 {% if backup_warning %}<p class="backup-warn" role="status"><small>{{ backup_warning }}</small></p>{% endif %}
 {% if emergency_warning %}<p class="backup-warn" role="status"><small><a href="/na-wypadek#wydruk">{{ emergency_warning }}</a></small></p>{% endif %}
 {% include "partials/timeline.html" %}
@@ -92,7 +101,7 @@
   {% if who == 'me' and not any_assigned %}
   <p class="who-hint"><small>Żadne zadanie nie jest jeszcze przypisane, więc „Moje” pokazuje wszystko. <a href="/przypisania">Ustal, kto czym się zajmuje →</a></small></p>
   {% endif %}
-  {% for key, label in BUCKETS %}
+  {% for key, label in BUCKETS if key != 'overdue' %}
     {% if buckets[key] %}
     <h3 class="bucket bucket-{{ key }}">{{ label }} <small class="muted">({{ buckets[key]|length }})</small></h3>
     {% set entries = grouped[key] %}

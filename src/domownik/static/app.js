@@ -671,6 +671,32 @@
   setInterval(tickTimers, 15000);
   document.addEventListener("htmx:afterSettle", tickTimers);
 
+  // ------------------------------------------------------------------ "there is more" cue on scroll strips
+  // [data-scroll-hint]: .more-start / .more-end fade the edge that hides content (category chips, the drawer);
+  // [data-scroll-more] inside one is shown while its end is out of sight and scrolls there on a tap
+  const scrollHint = (el) => {
+    const x = el.scrollWidth - el.clientWidth > 2, y = el.scrollHeight - el.clientHeight > 2;
+    const pos = x ? el.scrollLeft : el.scrollTop, max = x ? el.scrollWidth - el.clientWidth : el.scrollHeight - el.clientHeight;
+    el.classList.toggle("more-start", (x || y) && pos > 4);
+    el.classList.toggle("more-end", (x || y) && pos < max - 4);
+    const more = el.querySelector("[data-scroll-more]");
+    if (more) more.hidden = !(y && pos < max - 40);
+  };
+  const scrollHints = () => document.querySelectorAll("[data-scroll-hint]").forEach((el) => {
+    const cur = el.querySelector('[aria-current="true"]');  // the chosen chip in view after the page loads
+    if (cur && el.scrollWidth > el.clientWidth && cur.offsetLeft + cur.offsetWidth > el.clientWidth) el.scrollLeft = cur.offsetLeft - 16;
+    scrollHint(el);
+  });
+  document.addEventListener("scroll", (e) => { if (e.target.matches && e.target.matches("[data-scroll-hint]")) scrollHint(e.target); }, { capture: true, passive: true });
+  document.addEventListener("click", (e) => {
+    const more = e.target.closest("[data-scroll-more]");
+    if (more) { const box = more.closest("[data-scroll-hint]"); box.scrollTo({ top: box.scrollHeight, behavior: "smooth" }); }
+    if (e.target.closest("[data-nav-toggle]")) requestAnimationFrame(scrollHints);  // the drawer just opened
+  });
+  window.addEventListener("resize", scrollHints, { passive: true });
+  document.addEventListener("htmx:afterSettle", scrollHints);
+  scrollHints();
+
   // ------------------------------------------------------------------ quick add ("＋")
   // a quick-add form was saved (HX-Trigger: dm-added): close the window, say so, refresh the page under it
   document.addEventListener("dm-added", (e) => {
