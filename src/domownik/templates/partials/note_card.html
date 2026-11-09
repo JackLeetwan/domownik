@@ -3,7 +3,8 @@
 {# On the notes board (data-notes-board) app.js folds the card to its head; the rest is in .note-rest #}
 {% set first_line = (n.body or '').strip().splitlines()[0] if (n.body or '').strip() else '' %}
 {% set first_open = (n.items|rejectattr('d')|map(attribute='t')|first) if n.is_list and n.items else '' %}
-<article class="note-card{% if n.shade %} c-{{ n.shade }}{% endif %}{% if n.pinned and active %} pinned{% endif %}" id="note-{{ n.id }}" data-note-text="{{ n.text|lower }}">
+{% set sh = n.shade %}
+<article {% if sh and sh.startswith('#') %}style="--h: {{ sh }}" {% endif %}class="note-card{% if sh %} c-{{ 'custom' if sh.startswith('#') else sh }}{% endif %}{% if n.pinned and active %} pinned{% endif %}" id="note-{{ n.id }}" data-note-text="{{ n.text|lower }}">
   <div class="note-head" data-note-head>
   {% if n.label or n.private_to_id %}<span class="note-label">{% if n.private_to_id %}🔒 tylko dla Ciebie{% if n.label %} · {% endif %}{% endif %}{{ n.label or '' }}</span>{% endif %}
   {% if n.title %}<h3 class="note-title">{% if n.pinned and active %}📌 {% endif %}{{ n.title }}</h3>{% endif %}

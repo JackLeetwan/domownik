@@ -222,3 +222,24 @@ def test_migration_0033_up_and_down(tmp_path):
             command.downgrade(cfg, "4d8a2e6f1c35")
             assert "note_label_color" not in sa.inspect(conn).get_table_names()
             command.upgrade(cfg, "head")
+
+
+def test_category_colour_from_the_palette(auth_client, db):
+    _add(auth_client, title="Plan FBW", label="Fit")
+    auth_client.post("/notatki/kategoria-kolor", data={"label": "Fit", "custom": "#C0FFEE"})
+    db.info.pop("note_label_shades", None)
+    db.expire_all()
+    assert db.scalar(select(BoardNote)).shade == "#c0ffee"
+    page = auth_client.get("/notatki?k=Fit").text
+    assert 'style="--h: #c0ffee" class="note-chip c-custom"' in page and 'class="note-card c-custom' in page
+    assert 'value="#c0ffee"' in page  # the palette opens on the current colour
+    # a swatch button wins over the palette field the same form also sends
+    auth_client.post("/notatki/kategoria-kolor", data={"label": "Fit", "color": "teal", "custom": "#c0ffee"})
+    db.info.pop("note_label_shades", None)
+    db.expire_all()
+    assert db.scalar(select(BoardNote)).shade == "teal"
+    # anything else than #rrggbb is ignored (no CSS through the style attribute)
+    auth_client.post("/notatki/kategoria-kolor", data={"label": "Fit", "custom": "red;background:url(x)"})
+    db.info.pop("note_label_shades", None)
+    db.expire_all()
+    assert db.scalar(select(BoardNote)).shade not in ("teal", "red;background:url(x)")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
 from urllib.parse import quote
 
@@ -20,6 +21,9 @@ from domownik.security import current_user, verify_csrf
 from domownik.web import is_quick, quick_saved, render
 
 router = APIRouter()
+
+
+HEX_COLOR = re.compile(r"#[0-9a-f]{6}")  # a colour from the palette, stored as is
 
 
 def _redirect(url: str) -> RedirectResponse:
@@ -153,9 +157,10 @@ async def set_label_color(request: Request, db: Session = Depends(get_db), user:
     label = str(form.get("label") or "").strip()[:40]
     if not label:
         raise HTTPException(400, "Brak kategorii")
-    color = str(form.get("color") or "")
+    # a swatch / "↺ automatyczny" button sends color; the palette (<input type=color>) sends only custom
+    color = str(form.get("color") or "") if "color" in form else str(form.get("custom") or "").lower()
     row = db.get(NoteLabelColor, label)
-    if color in NOTE_COLORS:
+    if color in NOTE_COLORS or HEX_COLOR.fullmatch(color):
         if row is None:
             db.add(NoteLabelColor(label=label, color=color))
         else:

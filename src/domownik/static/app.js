@@ -695,6 +695,13 @@
   });
   window.addEventListener("resize", scrollHints, { passive: true });
   document.addEventListener("htmx:afterSettle", scrollHints);
+
+  // [data-autosubmit]: a field that saves itself (the palette of a note category) – "change" fires once
+  // the colour picker is closed, not on every drag
+  document.addEventListener("change", (e) => {
+    const el = e.target.closest && e.target.closest("[data-autosubmit]");
+    if (el && el.form) el.form.requestSubmit();
+  });
   scrollHints();
 
   // ------------------------------------------------------------------ quick add ("＋")
