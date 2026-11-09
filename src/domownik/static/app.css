@@ -642,6 +642,11 @@ form:has(input[name=as_list]:checked) .note-list-hint { display: block; }
 .notes-filter a[role=button] { padding: 0.3rem 0.85rem; font-size: 0.9rem; margin: 0; border-radius: 999px; }
 .note-chip { --nb: #fff7c7; --nbd: #f0e39a; --nfg: #3b3205; --nacc: #6b5600; display: inline-block; padding: 0.3rem 0.85rem; font-size: 0.9rem; line-height: 1.5; border-radius: 999px; border: 1px solid var(--nbd); background: var(--nb); color: var(--nfg); text-decoration: none; }
 .note-chip:hover { border-color: var(--nacc); color: var(--nfg); }
+.label-color { margin: 0.6rem 0 0; }
+.label-color-head { font-size: 0.85rem; margin-right: 0.2rem; }
+.label-color .sw { width: 1.9rem; height: 1.9rem; min-height: 0; padding: 0; margin: 0; }
+.label-color .sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--pico-background-color), 0 0 0 4px var(--pico-primary); }
+.label-color-reset { font-size: 0.85rem; margin-left: 0.3rem; }
 .note-chip[aria-current] { border: 2px solid var(--nacc); padding: calc(0.3rem - 1px) calc(0.85rem - 1px); font-weight: 700; box-shadow: 0 0 0 2px color-mix(in srgb, var(--nacc) 25%, transparent); }
 /* smaller than Pico's field, so its 🔍 (background image) moves left with the text start */
 .notes-filter input[type=search] { flex: 1 1 10rem; margin: 0; height: auto; padding: 0.35rem 0.8rem 0.35rem 2.3rem; background-position: center left 0.8rem; }

@@ -22,6 +22,17 @@
   {% if labels %}<a href="/notatki?k={{ NO_LABEL }}" class="note-chip" {% if k == NO_LABEL %}aria-current="true"{% endif %}>Bez kategorii</a>{% endif %}
   {% if total > 3 %}<input type="search" placeholder="Szukaj w notatkach" aria-label="Szukaj w notatkach" data-note-filter>{% endif %}
 </nav>
+{% if k and k != NO_LABEL and k in labels %}
+{# the colour of the whole category: its chip and its notes without a colour of their own #}
+<form class="note-colors label-color" method="post" action="/notatki/kategoria-kolor">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="label" value="{{ k }}">
+  <span class="label-color-head">Kolor kategorii „{{ k }}”:</span>
+  {% for key, lbl in NOTE_COLORS.items() %}
+  <button type="submit" name="color" value="{{ key }}" class="sw c-{{ key }}" title="{{ lbl }}" aria-label="{{ lbl }}" {% if label_shades.get(k) == key %}aria-pressed="true"{% endif %}></button>
+  {% endfor %}
+  {% if k in custom_label_colors %}<button type="submit" name="color" value="" class="link label-color-reset">↺ automatyczny</button>{% endif %}
+</form>
+{% endif %}
 {% endif %}
 
 {% if notes %}

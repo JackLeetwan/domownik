@@ -15,7 +15,7 @@ from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
 from domownik.domain.tree import Tree
-from domownik.models import NOTE_COLORS, Attachment, BoardNote, Todo, User, note_label_shades
+from domownik.models import NOTE_COLORS, Attachment, BoardNote, NoteLabelColor, Todo, User, note_label_shades
 from domownik.security import current_user, verify_csrf
 from domownik.web import is_quick, quick_saved, render
 
@@ -137,12 +137,33 @@ def notes_page(
             "archive": archive,
             "labels": labels,
             "label_shades": note_label_shades(db),
+            "custom_label_colors": set(db.scalars(select(NoteLabelColor.label))),
             "all_labels": note_labels(active + archive),
             "k": k,
             "NO_LABEL": NO_LABEL,
             "NOTE_COLORS": NOTE_COLORS,
         },
     )
+
+
+@router.post("/notatki/kategoria-kolor", dependencies=[Depends(verify_csrf)])
+async def set_label_color(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """The colour of a whole category – its notes without their own colour and its chip. "" = automatic again."""
+    form = await request.form()
+    label = str(form.get("label") or "").strip()[:40]
+    if not label:
+        raise HTTPException(400, "Brak kategorii")
+    color = str(form.get("color") or "")
+    row = db.get(NoteLabelColor, label)
+    if color in NOTE_COLORS:
+        if row is None:
+            db.add(NoteLabelColor(label=label, color=color))
+        else:
+            row.color = color
+    elif row is not None:
+        db.delete(row)
+    db.commit()
+    return _redirect(f"/notatki?k={quote(label)}")
 
 
 @router.post("/notatki", dependencies=[Depends(verify_csrf)])

@@ -593,6 +593,15 @@ NOTE_COLORS: dict[str, str] = {
     "purple": "Fioletowa",
     "teal": "Turkusowa",
 }
+class NoteLabelColor(Base):
+    """The colour of a whole note category ("Fit" – pink), chosen on the notes board; overrides AUTO_SHADES."""
+
+    __tablename__ = "note_label_color"
+
+    label: Mapped[str] = mapped_column(String(40), primary_key=True)
+    color: Mapped[str] = mapped_column(String(12))
+
+
 # colours of labelled notes without their own colour – yellow stays for notes without a label
 AUTO_SHADES = ("blue", "green", "pink", "orange", "purple", "teal", "gray")
 
@@ -609,6 +618,7 @@ def note_label_shades(db, label: str | None = None) -> dict[str, str]:
             .order_by(func.min(BoardNote.id))
         )
         shades = {lbl: AUTO_SHADES[i % len(AUTO_SHADES)] for i, (lbl,) in enumerate(rows)}
+        shades |= {c.label: c.color for c in db.scalars(select(NoteLabelColor)) if c.label in shades}  # set by hand
         db.info["note_label_shades"] = shades
     return shades
 

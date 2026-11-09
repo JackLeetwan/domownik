@@ -180,3 +180,45 @@ def test_active_note_can_be_deleted(auth_client, db):
     assert r.status_code in (303, 200)
     db.expire_all()
     assert db.scalar(select(BoardNote)) is None
+
+
+def test_whole_category_gets_a_colour(auth_client, db):
+    _add(auth_client, title="Plan FBW", label="Fit")
+    _add(auth_client, title="Kawa", label="Fit", color="blue")  # its own colour stays
+    _add(auth_client, title="Lampy", label="Dom")
+    page = auth_client.get("/notatki?k=Fit").text
+    assert "Kolor kategorii „Fit”" in page and "↺ automatyczny" not in page
+
+    r = auth_client.post("/notatki/kategoria-kolor", data={"label": "Fit", "color": "pink"}, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/notatki?k=Fit"
+    db.expire_all()
+    plan, kawa, lampy = db.scalars(select(BoardNote).order_by(BoardNote.id)).all()
+    db.info.pop("note_label_shades", None)
+    assert (plan.shade, kawa.shade) == ("pink", "blue")
+    assert lampy.shade != "pink"  # Dom keeps its automatic colour
+    page = auth_client.get("/notatki?k=Fit").text
+    assert 'class="note-chip c-pink"' in page and "↺ automatyczny" in page
+
+    auth_client.post("/notatki/kategoria-kolor", data={"label": "Fit", "color": ""})  # back to automatic
+    db.info.pop("note_label_shades", None)
+    db.expire_all()
+    assert db.get(BoardNote, plan.id).shade != "pink"
+
+
+def test_migration_0033_up_and_down(tmp_path):
+    import sqlalchemy as sa
+    from alembic import command
+
+    from domownik import cli
+    from domownik.db import make_engine
+
+    eng = make_engine(f"sqlite:///{tmp_path / 'm.sqlite'}")
+    cfg = cli.alembic_config()
+    with eng.connect() as conn:
+        with conn.begin():
+            cfg.attributes["connection"] = conn
+            command.upgrade(cfg, "head")
+            conn.execute(sa.text("INSERT INTO note_label_color (label, color) VALUES ('Fit', 'pink')"))
+            command.downgrade(cfg, "4d8a2e6f1c35")
+            assert "note_label_color" not in sa.inspect(conn).get_table_names()
+            command.upgrade(cfg, "head")
