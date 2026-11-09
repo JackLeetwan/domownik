@@ -322,10 +322,14 @@ def propose(db: Session, lines: list[Line], today: date) -> Preview:
                 for tx in booked
                 if tx.id not in used_tx
                 and (tx.amount_gr > 0) == income
-                and abs(tx.amount_gr) == abs(ln.amount_gr)
+                and (
+                    abs(tx.amount_gr) == abs(ln.amount_gr)
+                    # a task ticked off by hand books the planned 1 056 zł, the bank says 1 055,60
+                    or (tx.completion_id is not None and _close(ln.amount_gr, tx.amount_gr))
+                )
                 and abs((tx.booked_on - ln.booked_on).days) <= 4
             ),
-            key=lambda tx: abs((tx.booked_on - ln.booked_on).days),
+            key=lambda tx: (abs(tx.amount_gr) != abs(ln.amount_gr), abs((tx.booked_on - ln.booked_on).days)),
             default=None,
         )
         if dup is not None:
@@ -442,6 +446,10 @@ def book(db: Session, lines: list[tuple[Line, str, bool]], *, user, today: date)
         if kind == "dup" and obj_id:
             tx = db.get(Transaction, obj_id)
             res.linked += tx is not None
+            if tx is not None and tx.completion_id is not None and abs(tx.amount_gr) != abs(ln.amount_gr):
+                tx.amount_gr = -abs(ln.amount_gr) if tx.amount_gr < 0 else abs(ln.amount_gr)  # the bank knows
+                if tx.completion is not None:
+                    tx.completion.actual_amount_gr = abs(ln.amount_gr)
         elif kind == "task" and obj_id:
             task = db.get(Task, obj_id)
             # the preview may be stale: ticked off by hand meanwhile → the task moved on, do not pay it twice

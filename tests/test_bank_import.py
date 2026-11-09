@@ -105,6 +105,23 @@ def setup(db):
     return {"food": food, "health": health, "fuel": fuel, "lease": lease, "salary": salary, "manual": manual}
 
 
+def test_task_ticked_by_hand_with_the_planned_amount_is_the_same_payment(db, setup):
+    from domownik.services import complete_task
+
+    lease = setup["lease"]
+    complete_task(db, lease, user=None, done_on=date(2026, 11, 12), amount_gr=125000, km=None, vendor=None, notes=None)
+    db.commit()
+    paid = db.scalar(select(Transaction).where(Transaction.completion_id.is_not(None)))
+    head = "#Data operacji;#Opis operacji;#Rachunek;#Kategoria;#Kwota;\n"
+    lines = bankimport.parse_statement((head + '2026-11-10;"PRZELEW RATA";"eKonto 1";"Opłaty";-1 249,60 PLN;').encode())
+    pv = bankimport.propose(db, lines, date(2026, 11, 20))
+    assert [p.choice for p in pv.proposals] == [f"dup:{paid.id}"]
+    bankimport.book(db, [(lines[0], f"dup:{paid.id}", False)], user=None, today=date(2026, 11, 20))
+    db.refresh(paid)
+    assert paid.amount_gr == -124960 and paid.completion.actual_amount_gr == 124960
+    assert db.scalar(select(func.count()).select_from(Transaction)) == 2  # the manual one + this payment
+
+
 def test_proposals(db, setup):
     pv = bankimport.propose(db, bankimport.parse_statement(raw()), date(2026, 11, 20))
     by_desc = [(p.line.description, p.choice) for p in pv.proposals]
