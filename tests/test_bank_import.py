@@ -57,6 +57,14 @@ def test_parse_mbank_and_generic():
         bankimport.parse_statement(b"cos;innego\n1;2\n")
 
 
+def test_pending_card_payment_is_the_same_line_once_settled():
+    row = '2026-11-08;"PARKING  ZAKUP PRZY UŻYCIU KARTY W KRAJU {}";"eKonto 1111";"Parking";-7,00 PLN;'
+    head = "#Data operacji;#Opis operacji;#Rachunek;#Kategoria;#Kwota;\n"
+    pending = bankimport.parse_statement((head + row.format("transakcja nierozliczona")).encode())
+    settled = bankimport.parse_statement((head + row.format("")).encode())
+    assert pending[0].ref == settled[0].ref and "nierozliczona" not in pending[0].description
+
+
 def test_amounts_and_merchant_key():
     assert bankimport.parse_amount("-1 234,56 PLN") == -123456
     assert bankimport.parse_amount("1.234,50") == 123450

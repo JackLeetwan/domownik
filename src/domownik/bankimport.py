@@ -25,7 +25,9 @@ from sqlalchemy.orm import Session
 from domownik import budget
 from domownik.models import BankLine, BankRule, BudgetCategory, RecurringIncome, Task, Transaction
 
-MAX_LINES = 1000
+MAX_LINES = 5000  # a year of one account is ~1100 lines
+# mBank marks a card payment not settled yet; the next statement shows the same payment without it
+PENDING = re.compile(r"\s*transakcja nierozliczona\s*", re.I)
 
 # ---------------------------------------------------------------- parsing
 
@@ -143,7 +145,7 @@ def parse_statement(raw: bytes) -> list[Line]:
             continue
         parts = []
         for i in c_desc:
-            part = re.sub(r"\s+", " ", row[i].strip().strip("'\"")) if i < len(row) else ""
+            part = re.sub(r"\s+", " ", PENDING.sub(" ", row[i]).strip().strip("'\"")) if i < len(row) else ""
             if part and part not in parts:
                 parts.append(part)
         desc = " · ".join(parts)[:300] or "(bez opisu)"
