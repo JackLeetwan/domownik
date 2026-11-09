@@ -24,7 +24,7 @@
 {% endif %}
 
 {% if notes %}
-{% if notes|length > 1 %}<p class="notes-fold"><button type="button" class="link" data-notes-all="open">Rozwiń wszystkie</button> · <button type="button" class="link" data-notes-all="close">Zwiń wszystkie</button></p>{% endif %}
+{% if notes|length > 1 %}<p class="notes-fold"><button type="button" class="link" data-notes-all="open"><span aria-hidden="true">▾</span> Rozwiń wszystkie</button> · <button type="button" class="link" data-notes-all="close"><span aria-hidden="true">▸</span> Zwiń wszystkie</button></p>{% endif %}
 <div class="notes-grid" data-notes-grid data-notes-board>{% for n in notes %}{% include "partials/note_card.html" %}{% endfor %}</div>
 <p class="muted" data-notes-none hidden>Nic nie pasuje.</p>
 {% elif total %}

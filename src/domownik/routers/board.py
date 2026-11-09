@@ -80,7 +80,7 @@ def _fill(n: BoardNote, form, user: User, *, has_photos: bool = False) -> None:
     if not (n.title or n.body or n.items or has_photos):  # a photo alone is a note too
         raise HTTPException(400, "Notatka jest pusta")
     color = form.get("color")
-    n.color = color if color in NOTE_COLORS and color != "yellow" else None
+    n.color = color if color in NOTE_COLORS else None  # "" = by its label
     n.label = str(form.get("label") or "").strip()[:40] or None
     n.pinned = bool(form.get("pinned"))
     n.valid_until = _date(form.get("valid_until"))

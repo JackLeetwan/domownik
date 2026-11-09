@@ -3,7 +3,7 @@
 {# On the notes board (data-notes-board) app.js folds the card to its head; the rest is in .note-rest #}
 {% set first_line = (n.body or '').strip().splitlines()[0] if (n.body or '').strip() else '' %}
 {% set first_open = (n.items|rejectattr('d')|map(attribute='t')|first) if n.is_list and n.items else '' %}
-<article class="note-card{% if n.color %} c-{{ n.color }}{% endif %}{% if n.pinned and active %} pinned{% endif %}" id="note-{{ n.id }}" data-note-text="{{ n.text|lower }}">
+<article class="note-card{% if n.shade %} c-{{ n.shade }}{% endif %}{% if n.pinned and active %} pinned{% endif %}" id="note-{{ n.id }}" data-note-text="{{ n.text|lower }}">
   <div class="note-head" data-note-head>
   {% if n.label or n.private_to_id %}<span class="note-label">{% if n.private_to_id %}🔒 tylko dla Ciebie{% if n.label %} · {% endif %}{% endif %}{{ n.label or '' }}</span>{% endif %}
   {% if n.title %}<h3 class="note-title">{% if n.pinned and active %}📌 {% endif %}{{ n.title }}</h3>{% endif %}
@@ -61,6 +61,7 @@
       hx-post="/notatki/{{ n.id }}/zdjecia" hx-encoding="multipart/form-data" hx-trigger="change" hx-target="#note-{{ n.id }}" hx-swap="outerHTML"></label>
     {% if n.is_list and n.items_done %}<button type="button" class="link" hx-post="/notatki/{{ n.id }}/wyczysc" hx-target="#note-{{ n.id }}" hx-swap="outerHTML">Usuń odhaczone</button>{% endif %}
     <form method="post" action="/notatki/{{ n.id }}/archive" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">✓ Do archiwum</button></form>
+    <form method="post" action="/notatki/{{ n.id }}/delete" class="inline" hx-confirm="Usunąć notatkę „{{ n.title or 'bez tytułu' }}” na zawsze?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link note-del">🗑 Usuń</button></form>
     {% else %}
     <form method="post" action="/notatki/{{ n.id }}/archive" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">↶ Przywróć</button></form>
     <form method="post" action="/notatki/{{ n.id }}/delete" class="inline" hx-confirm="Usunąć notatkę na zawsze?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">Usuń</button></form>

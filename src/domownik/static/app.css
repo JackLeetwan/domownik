@@ -572,6 +572,9 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .note-card.c-blue { --nb: #dfeefe; --nbd: #a9cdf3; --nfg: #11304f; --nacc: #1f5a96; }
 .note-card.c-pink { --nb: #fde4ee; --nbd: #f2b3cb; --nfg: #4a1528; --nacc: #9b2a55; }
 .note-card.c-gray { --nb: #eef0f2; --nbd: #cfd4d9; --nfg: #2a2f35; --nacc: #4c5560; }
+.note-card.c-orange { --nb: #ffe9d6; --nbd: #f5c39a; --nfg: #4a2408; --nacc: #9a4a0c; }
+.note-card.c-purple { --nb: #ece4fb; --nbd: #c9b6ef; --nfg: #2e1a52; --nacc: #5f3aa6; }
+.note-card.c-teal { --nb: #d9f3f0; --nbd: #9fd9d1; --nfg: #0f3833; --nacc: #1d6b61; }
 .note-card.pinned { box-shadow: inset 0 0 0 2px var(--nbd); }
 .note-card .note-title { margin: 0; font-size: 1.02rem; color: var(--nfg); overflow-wrap: anywhere; }
 .note-card .note-body { white-space: pre-line; overflow-wrap: anywhere; }
@@ -628,6 +631,10 @@ form:has(input[name=as_list]:checked) .note-list-hint { display: block; }
 .note-colors .c-blue { --nb: #dfeefe; --nbd: #a9cdf3; }
 .note-colors .c-pink { --nb: #fde4ee; --nbd: #f2b3cb; }
 .note-colors .c-gray { --nb: #eef0f2; --nbd: #cfd4d9; }
+.note-colors .c-orange { --nb: #ffe9d6; --nbd: #f5c39a; }
+.note-colors .c-purple { --nb: #ece4fb; --nbd: #c9b6ef; }
+.note-colors .c-teal { --nb: #d9f3f0; --nbd: #9fd9d1; }
+.note-colors .sw.c-auto { background: conic-gradient(#a9cdf3 0 25%, #b9e0a8 0 50%, #f2b3cb 0 75%, #f5c39a 0); border-color: var(--pico-muted-border-color); }
 .note-colors .sw { display: inline-block; width: 1.9rem; height: 1.9rem; border-radius: 50%; border: 2px solid var(--nbd); background: var(--nb); cursor: pointer; }
 .note-colors input:checked + .sw { box-shadow: 0 0 0 2px var(--pico-background-color), 0 0 0 4px var(--pico-primary); }
 .note-colors input:focus-visible + .sw { outline: 2px solid var(--pico-primary); outline-offset: 2px; }
@@ -641,6 +648,9 @@ form:has(input[name=as_list]:checked) .note-list-hint { display: block; }
   :root:not([data-theme="light"]) .c-blue { --nb: #172a40; --nbd: #2b4a6d; --nfg: #d4e6fb; --nacc: #8cc0f5; }
   :root:not([data-theme="light"]) .c-pink { --nb: #3d1a29; --nbd: #68304a; --nfg: #f8d6e4; --nacc: #f19ac0; }
   :root:not([data-theme="light"]) .c-gray { --nb: #2a2e33; --nbd: #444b53; --nfg: #e3e6e9; --nacc: #b6bec7; }
+  :root:not([data-theme="light"]) .c-orange { --nb: #3d2614; --nbd: #6a4022; --nfg: #f9dfc7; --nacc: #f5b07a; }
+  :root:not([data-theme="light"]) .c-purple { --nb: #2a1f42; --nbd: #47366e; --nfg: #e3d9f7; --nacc: #b9a0f0; }
+  :root:not([data-theme="light"]) .c-teal { --nb: #12332f; --nbd: #23564f; --nfg: #cdeee9; --nacc: #78d3c6; }
   :root:not([data-theme="light"]) .note-card textarea, :root:not([data-theme="light"]) .note-card input, :root:not([data-theme="light"]) .note-card select { background: color-mix(in srgb, var(--nb) 70%, #000); }
 }
 :root[data-theme="dark"] .note-card, :root[data-theme="dark"] .note-colors .c-yellow { --nb: #3a3418; --nbd: #57491c; --nfg: #f3e9b8; --nacc: #f3d36b; }
@@ -648,6 +658,9 @@ form:has(input[name=as_list]:checked) .note-list-hint { display: block; }
 :root[data-theme="dark"] .c-blue { --nb: #172a40; --nbd: #2b4a6d; --nfg: #d4e6fb; --nacc: #8cc0f5; }
 :root[data-theme="dark"] .c-pink { --nb: #3d1a29; --nbd: #68304a; --nfg: #f8d6e4; --nacc: #f19ac0; }
 :root[data-theme="dark"] .c-gray { --nb: #2a2e33; --nbd: #444b53; --nfg: #e3e6e9; --nacc: #b6bec7; }
+:root[data-theme="dark"] .c-orange { --nb: #3d2614; --nbd: #6a4022; --nfg: #f9dfc7; --nacc: #f5b07a; }
+:root[data-theme="dark"] .c-purple { --nb: #2a1f42; --nbd: #47366e; --nfg: #e3d9f7; --nacc: #b9a0f0; }
+:root[data-theme="dark"] .c-teal { --nb: #12332f; --nbd: #23564f; --nfg: #cdeee9; --nacc: #78d3c6; }
 :root[data-theme="dark"] .note-card textarea, :root[data-theme="dark"] .note-card input, :root[data-theme="dark"] .note-card select { background: color-mix(in srgb, var(--nb) 70%, #000); }
 .notes-archive .note-card { opacity: 0.7; }
 /* quick add of a todo: one field + "Dodaj", the rest folded under "Więcej opcji" */

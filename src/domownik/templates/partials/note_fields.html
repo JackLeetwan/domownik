@@ -14,8 +14,9 @@
   <input type="file" name="files" multiple accept="image/*,.heic"></label>
 <fieldset class="note-colors">
   <legend>Kolor</legend>
+  <label title="Wg kategorii"><input type="radio" name="color" value="" {% if not (n and n.color) %}checked{% endif %} aria-label="Wg kategorii"><span class="sw c-auto"></span></label>
   {% for key, lbl in NOTE_COLORS.items() %}
-  <label title="{{ lbl }}"><input type="radio" name="color" value="{{ key }}" {% if (n.color if n else none) == key or (key == 'yellow' and not (n and n.color)) %}checked{% endif %} aria-label="{{ lbl }}"><span class="sw c-{{ key }}"></span></label>
+  <label title="{{ lbl }}"><input type="radio" name="color" value="{{ key }}" {% if n and n.color == key %}checked{% endif %} aria-label="{{ lbl }}"><span class="sw c-{{ key }}"></span></label>
   {% endfor %}
 </fieldset>
 <div class="note-opts">

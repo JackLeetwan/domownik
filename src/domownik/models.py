@@ -16,8 +16,9 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    select,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, object_session, relationship
 
 from domownik.domain import recurrence as _recurrence
 
@@ -529,7 +530,7 @@ class BoardNote(Base):
     body: Mapped[str] = mapped_column(Text)
     # checklist note: [{"t": "mleko", "d": false}, …] – None for a plain text note
     items: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON)
-    color: Mapped[str | None] = mapped_column(String(12))  # NOTE_COLORS key; None = yellow
+    color: Mapped[str | None] = mapped_column(String(12))  # NOTE_COLORS key; None = by its label (see shade)
     label: Mapped[str | None] = mapped_column(String(40))  # free category ("Rachunki", "Wakacje")
     # visible only to this account (None = shared with the household) – see db.private_filter
     private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
@@ -551,6 +552,23 @@ class BoardNote(Base):
 
     def is_active(self, today: date) -> bool:
         return not self.archived and (self.valid_until is None or self.valid_until >= today)
+
+    @property
+    def shade(self) -> str | None:
+        """The card colour: the chosen one, else one per label (in the order the labels appeared), else yellow."""
+        if self.color or not self.label:
+            return self.color
+        db = object_session(self)
+        if db is None:
+            return None
+        shades = db.info.get("note_label_shades")
+        if shades is None or self.label not in shades:
+            rows = db.execute(
+                select(BoardNote.label).where(BoardNote.label.is_not(None)).group_by(BoardNote.label).order_by(func.min(BoardNote.id))
+            )
+            shades = {lbl: AUTO_SHADES[i % len(AUTO_SHADES)] for i, (lbl,) in enumerate(rows)}
+            db.info["note_label_shades"] = shades
+        return shades.get(self.label)
 
     @property
     def is_list(self) -> bool:
@@ -580,7 +598,12 @@ NOTE_COLORS: dict[str, str] = {
     "blue": "Niebieska",
     "pink": "Różowa",
     "gray": "Szara",
+    "orange": "Pomarańczowa",
+    "purple": "Fioletowa",
+    "teal": "Turkusowa",
 }
+# colours of labelled notes without their own colour – yellow stays for notes without a label
+AUTO_SHADES = ("blue", "green", "pink", "orange", "purple", "teal", "gray")
 
 
 DOC_KINDS: dict[str, tuple[str, str]] = {

@@ -154,3 +154,28 @@ def test_notes_board_cards_have_a_foldable_head(auth_client, db):
     page = auth_client.get("/notatki").text
     assert "data-notes-board" in page and page.count("data-note-head") == 2 and "data-notes-all" in page
     assert '<span class="np-text">Bez tytułu – pierwsza linia</span>' in page
+
+
+def test_note_without_colour_takes_one_per_label(auth_client, db):
+    _add(auth_client, title="Lampy", label="Dom")
+    _add(auth_client, title="Rower", label="Hobby")
+    _add(auth_client, title="Gry", label="Hobby")
+    _add(auth_client, title="Wi-Fi", label="Dom", color="yellow")
+    _add(auth_client, title="Paczka")
+    dom, rower, gry, wifi, paczka = db.scalars(select(BoardNote).order_by(BoardNote.id)).all()
+    assert dom.shade and rower.shade and dom.shade != rower.shade  # a colour per label
+    assert gry.shade == rower.shade
+    assert (wifi.color, wifi.shade) == ("yellow", "yellow")  # a chosen colour wins, yellow too
+    assert paczka.shade is None  # no label: the plain yellow card
+    page = auth_client.get("/notatki").text
+    assert f"c-{dom.shade}" in page and "▾</span> Rozwiń wszystkie" in page
+
+
+def test_active_note_can_be_deleted(auth_client, db):
+    _add(auth_client, title="Do wyrzucenia")
+    n = db.scalar(select(BoardNote))
+    assert f'action="/notatki/{n.id}/delete"' in auth_client.get("/notatki").text  # not only in the archive
+    r = auth_client.post(f"/notatki/{n.id}/delete", follow_redirects=False)
+    assert r.status_code in (303, 200)
+    db.expire_all()
+    assert db.scalar(select(BoardNote)) is None
