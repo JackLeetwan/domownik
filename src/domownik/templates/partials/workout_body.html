@@ -7,10 +7,14 @@
 
   {% if partner_views or waiting %}{% include "partials/workout_partner.html" %}
   {% elif can_invite %}
-  <form method="post" action="/forma/trening/{{ w.id }}/zapros" class="wo-invite">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    {% for u in can_invite %}<button type="submit" name="razem" value="{{ u.id }}" class="outline secondary small">👫 Zaproś: {{ u.name }}</button>{% endfor %}
-  </form>
+  <details class="wo-invite">
+    <summary role="button" class="outline secondary">👫 Zaproś do treningu</summary>
+    <form method="post" action="/forma/trening/{{ w.id }}/zapros">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <p class="muted"><small>Kogo? Dostanie powiadomienie i dołączy jednym dotknięciem. Widzicie u siebie tylko „2/3”, bez ciężarów.</small></p>
+      {% for u in can_invite %}<button type="submit" name="razem" value="{{ u.id }}" class="outline">{{ u.name }}</button>{% endfor %}
+    </form>
+  </details>
   {% endif %}
 
   {% if rest_ms %}

@@ -158,15 +158,14 @@ def _login(client, email, password):
 
 def test_http_flow(auth_client, db, user, paula, fbw, sent):
     _subscribe(db, paula)
-    r = auth_client.get("/forma")
-    assert "razem: Paula" in r.text
-    r = auth_client.post(
-        "/forma/trening", data={"plan_id": str(fbw[0].id), "razem": str(paula.id)}, follow_redirects=False
-    )
+    r = auth_client.post("/forma/trening", data={"plan_id": str(fbw[0].id)}, follow_redirects=False)
     assert r.status_code == 303
     w = db.query(Workout).filter_by(user_id=user.id).one()
     page = auth_client.get(f"/forma/trening/{w.id}").text
-    assert "Czekam na: <b>Paula</b>" in page
+    assert "Zaproś do treningu" in page and f'name="razem" value="{paula.id}"' in page
+    auth_client.post(f"/forma/trening/{w.id}/zapros", data={"razem": str(paula.id)})
+    page = auth_client.get(f"/forma/trening/{w.id}").text
+    assert "Czekam na: <b>Paula</b>" in page and "Zaproś do treningu" not in page
     url = sent[-1][1]["url"]
 
     # log a set as Jan before she joins – she must never see the weight

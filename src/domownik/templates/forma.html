@@ -21,10 +21,6 @@
   {% elif next_plan %}
   <form method="post" action="/forma/trening"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="plan_id" value="{{ next_plan.id }}">
     <button type="submit" class="tr-go">▶ Zacznij {{ next_plan.name }}</button></form>
-  {% if partners|length == 1 %}{% set u = partners[0] %}
-  <form method="post" action="/forma/trening" class="tr-together"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="plan_id" value="{{ next_plan.id }}"><input type="hidden" name="razem" value="{{ u.id }}">
-    <button type="submit" class="outline tr-go-together">👫 {{ next_plan.name }} razem: {{ u.name }}</button></form>
-  {% elif partners %}<a href="/forma/trening/nowy" role="button" class="outline tr-go-together">👫 Trening razem…</a>{% endif %}
   {% endif %}
   <a href="/forma/trening/nowy" class="tr-other">Inny plan albo trening na wyjeździe ›</a>
 </section>
