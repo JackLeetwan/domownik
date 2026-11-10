@@ -593,6 +593,8 @@ NOTE_COLORS: dict[str, str] = {
     "purple": "Fioletowa",
     "teal": "Turkusowa",
 }
+
+
 class NoteLabelColor(Base):
     """The colour of a whole note category ("Fit" – pink), chosen on the notes board; overrides AUTO_SHADES."""
 
@@ -1224,3 +1226,44 @@ class EmergencyPrint(Base):
     user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
 
     user: Mapped[User | None] = relationship()
+
+
+class Supplement(Base):
+    """A supplement one person takes every day ("Kreatyna 5 g o 8:00") – strictly private to its owner.
+
+    Stock is counted in the units of per_take (capsules, portions): each ✓ takes per_take off, a bought pack
+    adds pack_size. pushed_on / again_on: the day the reminder at `time` / the second one went out (or was
+    skipped), so the minute job sends each once a day.
+    """
+
+    __tablename__ = "supplement"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(60))
+    dose: Mapped[str | None] = mapped_column(String(40))  # "5 g", "1 kaps. 2000 IU"
+    time: Mapped[str | None] = mapped_column(String(5))  # "08:00"; None = no push, just the checklist
+    per_take: Mapped[float] = mapped_column(default=1, server_default="1")
+    pack_size: Mapped[float | None]
+    stock: Mapped[float | None]
+    restock_days: Mapped[int] = mapped_column(Integer, default=10, server_default="10")
+    restock_listed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    started_on: Mapped[date] = mapped_column(Date)  # the streak counts from here (resume sets it again)
+    pushed_on: Mapped[date | None] = mapped_column(Date)
+    again_on: Mapped[date | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    user: Mapped[User] = relationship()
+
+
+class SupplementDose(Base):
+    """✓ Wzięte – one per supplement and day."""
+
+    __tablename__ = "supplement_dose"
+    __table_args__ = (UniqueConstraint("supplement_id", "taken_on"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    supplement_id: Mapped[int] = mapped_column(ForeignKey("supplement.id", ondelete="CASCADE"), index=True)
+    taken_on: Mapped[date] = mapped_column(Date)
+    taken_at: Mapped[datetime] = mapped_column(DateTime)

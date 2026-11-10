@@ -63,8 +63,10 @@ PUBLIC = {
     ("POST", "/n/done/{token}"),  # signed token from the push notification (the service worker has no session)
     ("GET", "/n/timer/{token}/{action}"),  # does nothing on GET
     ("POST", "/n/timer/{token}/{action}"),  # timer buttons in the push – signed token, like /n/done
+    ("GET", "/n/supl/{token}"),  # does nothing on GET
+    ("POST", "/n/supl/{token}"),  # "✓ Wzięte" in the supplement push – signed token
 }
-NO_CSRF = {("POST", "/n/done/{token}"), ("POST", "/n/timer/{token}/{action}")}
+NO_CSRF = {("POST", "/n/done/{token}"), ("POST", "/n/timer/{token}/{action}"), ("POST", "/n/supl/{token}")}
 
 
 @pytest.fixture(autouse=True)

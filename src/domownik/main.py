@@ -29,6 +29,7 @@ from domownik.routers import (
     dashboard,
     documents,
     emergency,
+    forma,
     goals,
     inbox,
     items,
@@ -60,7 +61,7 @@ def _tick() -> None:
 
 
 def _timer_tick() -> None:
-    from domownik import timers
+    from domownik import supplements, timers
     from domownik.db import session_factory
 
     try:
@@ -68,6 +69,11 @@ def _timer_tick() -> None:
             timers.run(db)
     except Exception:
         log.exception("timer tick failed")
+    try:
+        with session_factory()() as db:
+            supplements.run(db)
+    except Exception:  # separately: a broken supplement push must not stop the timers
+        log.exception("supplement tick failed")
 
 
 @asynccontextmanager
@@ -167,6 +173,7 @@ def create_app() -> FastAPI:
     app.include_router(inbox.router)
     app.include_router(meters.router)
     app.include_router(timers.router)
+    app.include_router(forma.router)
 
     @app.exception_handler(LoginRequired)
     async def _login_required(request: Request, _exc: LoginRequired):

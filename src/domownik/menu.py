@@ -28,6 +28,7 @@ LINKS: tuple[Link, ...] = (
     Link("zadania", "/zadania", "📋", "Zadania"),
     Link("do-zrobienia", "/do-zrobienia", "☐", "Do zrobienia", "todos"),
     Link("punkty", "/punkty", "⭐", "Punkty", "points"),
+    Link("forma", "/forma", "💪", "Forma"),
     Link("zdjecia", "/zdjecia", "📥", "Do rozpoznania", "inbox"),
     Link("kontakty", "/kontakty", "📇", "Kontakty"),
     Link("budzet", "/budzet", "💰", "Budżet"),

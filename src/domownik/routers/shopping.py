@@ -242,6 +242,9 @@ async def finish(request: Request, db: Session = Depends(get_db), user: User = D
     bought = [i for i in open_items(db) if i.checked_at]
     for i in bought:
         i.bought_on = t
+    from domownik.supplements import bought_on_list
+
+    bought_on_list(db, bought)  # 💊 put there for running out → the pack is in stock again
     if form.get("to_pantry"):
         from domownik.routers.kitchen import bought_to_pantry
 

@@ -1650,3 +1650,26 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 /* overdue on top of the dashboard */
 .overdue-top { margin: 0 0 1rem; padding: 0.4rem 0.8rem 0.2rem; border: 1px solid color-mix(in srgb, var(--dm-overdue) 45%, transparent); border-left: 4px solid var(--dm-overdue); border-radius: 12px; background: color-mix(in srgb, var(--dm-overdue) 6%, transparent); }
 .overdue-top .bucket { margin: 0.2rem 0 0.4rem; }
+
+/* 💊 supplements – the card (dashboard, /forma) and the list */
+.supl-card { margin: 0 0 1rem; padding: 0.6rem 0.9rem; border-radius: 12px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); display: grid; gap: 0.45rem; }
+.supl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.supl-head a { text-decoration: none; color: inherit; }
+.supl-group { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; }
+.supl-time { font-variant-numeric: tabular-nums; min-width: 3.2rem; color: var(--pico-muted-color); font-size: 0.9em; }
+.supl-items { display: flex; flex-wrap: wrap; gap: 0.4rem; flex: 1; }
+.supl-chip { margin: 0; padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.95em; width: auto; background: transparent; color: inherit; border: 1px solid var(--dm-tile-border); }
+.supl-chip.done { background: var(--pico-primary-background); color: var(--pico-primary-inverse); border-color: transparent; }
+.supl-chip small { opacity: 0.75; }
+.supl-all { margin: 0; width: auto; }
+.supl-done { margin: 0; color: var(--pico-muted-color); }
+.supl-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0 0.75rem; }
+.supl-edit { width: auto; margin: 0; }
+.supl-list details.supl-edit > summary[role=button] { display: inline-block; width: auto; padding: 0.25rem 0.75rem; font-size: 0.85em; margin: 0; }
+.supl-list details.supl-edit > summary[role=button]::after { display: none; }
+.supl-edit[open] { width: 100%; }
+.supl-buy { margin-top: 0.5rem; }
+.supl-more { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.supl-low { color: var(--dm-overdue); font-weight: 600; }
+.supl-suggest button { width: auto; margin: 0 0.25rem 0.25rem 0; }
+.supl-list > li > span:first-child { flex: 1 1 100%; }

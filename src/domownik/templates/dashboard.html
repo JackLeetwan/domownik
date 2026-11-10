@@ -22,6 +22,8 @@
   </ul>
 </section>
 {% endif %}
+{# 💊 own supplements – only once one of them is due (its hour has come) and still not taken #}
+{% if supl_due %}{% set card_where = "pulpit" %}{% include "partials/supplements_today.html" %}{% endif %}
 {% if backup_warning %}<p class="backup-warn" role="status"><small>{{ backup_warning }}</small></p>{% endif %}
 {% if emergency_warning %}<p class="backup-warn" role="status"><small><a href="/na-wypadek#wydruk">{{ emergency_warning }}</a></small></p>{% endif %}
 {% include "partials/timeline.html" %}

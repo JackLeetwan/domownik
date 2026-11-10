@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Forma · Domownik{% endblock %}
+{% block content %}
+<header class="item-head"><h1>💪 Forma</h1></header>
+<p class="muted"><small>🔒 Widzisz to tylko Ty – nikt z domowników nie ma tu wglądu.</small></p>
+
+<h2>💊 Suplementy</h2>
+{% if supplements %}
+{% include "partials/supplements_today.html" %}
+
+<ul class="pts-list supl-list">
+  {% for s in supplements %}{% set left = days_left(s) %}
+  <li id="s{{ s.id }}">
+    <span>
+      <b>{{ s.name }}</b>{% if s.dose %} {{ s.dose }}{% endif %}
+      <small class="muted">· {% if s.time %}🔔 {{ s.time }}{% else %}bez przypomnienia{% endif %}
+      {% if left is not none %}· <span class="{% if left <= s.restock_days %}supl-low{% endif %}">zapas na {{ left }} {{ 'dzień' if left == 1 else 'dni' }}</span>{% if s.restock_listed %} · 🛒 na liście zakupów{% endif %}{% endif %}</small>
+    </span>
+    <details class="supl-edit">
+      <summary role="button" class="outline secondary small">Edytuj</summary>
+      <form hx-post="/forma/suplementy/{{ s.id }}" hx-target="#supl-error-{{ s.id }}" hx-swap="innerHTML" class="pts-form">
+        <div class="supl-fields">
+          <label>Nazwa <input name="name" required maxlength="60" value="{{ s.name }}"></label>
+          <label>Dawka <input name="dose" maxlength="40" value="{{ s.dose or '' }}" placeholder="5 g"></label>
+          <label>Godzina <input name="time" type="time" value="{{ s.time or '' }}"></label>
+          <label>Na raz <small class="muted">(szt./porcji)</small> <input name="per_take" inputmode="decimal" value="{{ fmt(s.per_take) }}"></label>
+          <label>Opakowanie <small class="muted">(szt./porcji)</small> <input name="pack_size" inputmode="decimal" value="{{ fmt(s.pack_size) }}"></label>
+          <label>Zostało <small class="muted">(szt./porcji)</small> <input name="stock" inputmode="decimal" value="{{ fmt(s.stock) }}"></label>
+          <label>Na zakupy przy <small class="muted">(dni zapasu)</small> <input name="restock_days" type="number" min="0" max="90" value="{{ s.restock_days }}"></label>
+        </div>
+        <div id="supl-error-{{ s.id }}"></div>
+        <button type="submit" class="small">Zapisz</button>
+      </form>
+      <form hx-post="/forma/suplementy/{{ s.id }}/kupione" hx-target="#supl-error-{{ s.id }}" hx-swap="innerHTML" class="pts-form supl-buy">
+        <div class="supl-fields">
+          <label>Kupione opakowania <input name="packs" type="number" min="1" max="20" value="1"></label>
+          <label>Cena [zł] <small class="muted">(do budżetu: Zdrowie)</small> <input name="price" inputmode="decimal" placeholder="opcjonalnie"></label>
+        </div>
+        <button type="submit" class="small secondary"{% if not s.pack_size %} disabled title="Najpierw wpisz wielkość opakowania"{% endif %}>🛍️ Kupione</button>
+      </form>
+      <span class="supl-more">
+        <form method="post" action="/forma/suplementy/{{ s.id }}/wstrzymaj" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline secondary">⏸ Wstrzymaj</button></form>
+        <form method="post" action="/forma/suplementy/{{ s.id }}/usun" class="inline" hx-confirm="Usunąć „{{ s.name }}” razem z historią?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline secondary">Usuń</button></form>
+      </span>
+    </details>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">Dodaj, co bierzesz codziennie. O wybranej godzinie przyjdzie push z „✓ Wzięte”, a jeśli nie odhaczysz – drugi wieczorem. Gdy kończy się zapas, suplement sam trafi na listę zakupów.</p>
+{% endif %}
+
+{% if paused %}
+<h3>⏸ Wstrzymane</h3>
+<ul class="pts-list">
+  {% for s in paused %}
+  <li id="s{{ s.id }}"><span>{{ s.name }}{% if s.dose %} <small class="muted">{{ s.dose }}</small>{% endif %}</span>
+    <form method="post" action="/forma/suplementy/{{ s.id }}/wznow" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline">▶ Wznów</button></form></li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<details class="pts-add" {% if not supplements %}open{% endif %}>
+  <summary role="button" class="outline">＋ Dodaj suplement</summary>
+  {% if suggestions %}
+  <p class="supl-suggest"><small class="muted">Szybko:</small>
+    {% for n, d in suggestions %}<button type="button" class="small outline secondary" onclick="const f=this.closest('details').querySelector('form');f.name.value='{{ n }}';f.dose.value='{{ d }}';f.time.focus()">{{ n }}</button> {% endfor %}
+  </p>
+  {% endif %}
+  <form hx-post="/forma/suplementy" hx-target="#supl-error" hx-swap="innerHTML" class="pts-form">
+    <div class="supl-fields">
+      <label>Nazwa <input name="name" required maxlength="60" placeholder="np. Kreatyna"></label>
+      <label>Dawka <input name="dose" maxlength="40" placeholder="5 g"></label>
+      <label>Godzina przypomnienia <input name="time" type="time" value="08:00"></label>
+      <label>Na raz <small class="muted">(szt./porcji)</small> <input name="per_take" inputmode="decimal" value="1"></label>
+      <label>Opakowanie <small class="muted">(szt./porcji, opcjonalnie)</small> <input name="pack_size" inputmode="decimal" placeholder="np. 120"></label>
+      <label>Zostało teraz <small class="muted">(puste = pełne)</small> <input name="stock" inputmode="decimal"></label>
+    </div>
+    <div id="supl-error"></div>
+    <button type="submit" class="small">Dodaj</button>
+  </form>
+</details>
+{% endblock %}

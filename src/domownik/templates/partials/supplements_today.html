@@ -1,0 +1,25 @@
+{# 💊 today's supplements – on the dashboard (only while something is open) and at the top of /forma #}
+<section id="supl-today" class="supl-card" aria-label="Suplementy dziś">
+  <div class="supl-head">
+    <strong><a href="/forma">💊 Suplementy dziś</a></strong>
+    {% if supl_streak %}<small class="muted">🔥 seria {{ supl_streak }} {{ 'dzień' if supl_streak == 1 else 'dni' }}</small>{% endif %}
+  </div>
+  {% if not supl_open %}
+  <p class="supl-done">✓ Wszystko wzięte{% if supl_streak %} – trzymaj serię!{% endif %}</p>
+  {% endif %}
+  {% for g in supl_groups %}
+  <div class="supl-group">
+    <span class="supl-time">{{ g.time or 'w ciągu dnia' }}</span>
+    <span class="supl-items">
+      {% for s, done in g.rows %}
+      <button type="button" class="supl-chip{% if done %} done{% endif %}" aria-pressed="{{ 'true' if done else 'false' }}"
+        hx-post="/forma/suplementy/{{ s.id }}/wziete" hx-vals='{"where": "{{ card_where }}"}' hx-target="#supl-today" hx-swap="outerHTML"
+        title="{{ 'Cofnij' if done else 'Wzięte' }}: {{ s.name }}">{{ '✓' if done else '○' }} {{ s.name }}{% if s.dose %} <small>{{ s.dose }}</small>{% endif %}</button>
+      {% endfor %}
+    </span>
+    {% if g.open|length > 1 %}
+    <button type="button" class="small supl-all" hx-post="/forma/suplementy/wziete-wszystkie" hx-vals='{{ {"time": g.time or "", "where": card_where}|tojson }}' hx-target="#supl-today" hx-swap="outerHTML">✓ Wszystkie</button>
+    {% endif %}
+  </div>
+  {% endfor %}
+</section>

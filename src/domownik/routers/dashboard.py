@@ -12,6 +12,7 @@ from domownik.config import now, today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
 from domownik.models import CATEGORIES, MEMBER_KINDS, Item, User
+from domownik.routers.forma import card_context as supl_card
 from domownik.routers.shopping import open_items
 from domownik.routers.timers import card_context as timer_card
 from domownik.security import current_user, verify_csrf
@@ -87,7 +88,8 @@ def dashboard(
             "backup_warning": services.backup_warning(t),
             "emergency_warning": _emergency_warning(db),
         }
-        | timer_card(db),
+        | timer_card(db)
+        | supl_card(db, user),
     )
 
 
