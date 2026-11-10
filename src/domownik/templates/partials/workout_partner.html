@@ -1,0 +1,12 @@
+{# 👫 training together: the partner's progress (counts only), polled every few seconds; data-sig changes
+   when one's own list of exercises was changed by the partner – app.js then reloads the workout #}
+<div id="wo-partner" class="wo-partner" data-sig="{{ sig }}"{% if live_together %} hx-get="/forma/trening/{{ w.id }}/razem" hx-trigger="every 6s" hx-swap="outerHTML"{% endif %}>
+  {% for v in partner_views %}
+  <p class="wo-partner-line"><span>👫 <b>{{ v.name }}</b> {% if v.finished %}· ✓ po treningu{% elif v.current %}· teraz: {{ v.current }}{% endif %}</span><small class="muted">{{ v.done }}/{{ v.total }} serii</small></p>
+  {% for slot, sv in v.slots.items() %}<span hidden data-badge-src="{{ v.workout_id }}-{{ slot }}" data-done="{{ 1 if sv.done >= sv.sets else 0 }}">{{ v.name }}{% if sv.other_exercise %}: {{ sv.name }}{% endif %} {{ sv.text }}{% if v.current_slot == slot %} · teraz{% endif %}</span>{% endfor %}
+  {% endfor %}
+  {% for u in waiting %}
+  <p class="wo-partner-line muted"><span>👫 Czekam na: <b>{{ u.name }}</b></span>
+    <form method="post" action="/forma/trening/{{ w.id }}/zapros" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="razem" value="{{ u.id }}"><button type="submit" class="link small">Wyślij jeszcze raz</button></form></p>
+  {% endfor %}
+</div>

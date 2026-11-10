@@ -1328,6 +1328,21 @@ class PlanItem(Base):
     exercise: Mapped[Exercise] = relationship()
 
 
+class WorkoutGroup(Base):
+    """👫 A training together: who started it and whom they invited. Each member has their own Workout –
+    the sets and weights stay private; the partner sees only the exercises and "2/3"."""
+
+    __tablename__ = "workout_group"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    invited: Mapped[list[int]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    workouts: Mapped[list[Workout]] = relationship(back_populates="group", order_by="Workout.id")
+    created_by: Mapped[User | None] = relationship()
+
+
 class Workout(Base):
     """One training of one person – private. equipment: what was at hand (None = a full gym)."""
 
@@ -1344,8 +1359,12 @@ class Workout(Base):
     note: Mapped[str | None] = mapped_column(String(300))
     rest_until: Mapped[datetime | None] = mapped_column(DateTime, index=True)  # the rest after a set ends then
     rest_pushed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    # 👫 trained together: the workouts of one group share the order of exercises (WorkoutExercise.slot)
+    group_id: Mapped[int | None] = mapped_column(ForeignKey("workout_group.id", ondelete="SET NULL"), index=True)
 
     plan: Mapped[WorkoutPlan | None] = relationship()
+    group: Mapped[WorkoutGroup | None] = relationship(back_populates="workouts")
+    user: Mapped[User] = relationship()
     exercises: Mapped[list[WorkoutExercise]] = relationship(
         back_populates="workout", cascade="all, delete-orphan", order_by="WorkoutExercise.position"
     )
@@ -1367,6 +1386,8 @@ class WorkoutExercise(Base):
     rest_seconds: Mapped[int] = mapped_column(Integer, default=90)
     superset: Mapped[int | None] = mapped_column(Integer)
     swapped_from_id: Mapped[int | None] = mapped_column(ForeignKey("exercise.id", ondelete="SET NULL"))
+    # in a workout trained together: the same slot is "the same place in the order" in the partner's workout
+    slot: Mapped[int | None] = mapped_column(Integer)
 
     workout: Mapped[Workout] = relationship(back_populates="exercises")
     exercise: Mapped[Exercise] = relationship(foreign_keys=[exercise_id])

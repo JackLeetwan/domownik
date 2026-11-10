@@ -1,9 +1,17 @@
 {# the workout screen – swapped as a whole after every set (hx-target="#workout") #}
-<div id="workout" class="wo">
+<div id="workout" class="wo" data-sig="{{ sig }}">
   <header class="wo-head">
     <h1>🏋️ {{ w.plan.name if w.plan else 'Trening' }}</h1>
     <p class="muted"><small>{{ w.day|d(weekday=True) }}{% if w.equipment %} · 🧳 wyjazd / dom{% endif %} · {{ progress[0] }}/{{ progress[1] }} serii{% if w.finished_at %} · ✓ zakończony{% endif %}</small></p>
   </header>
+
+  {% if partner_views or waiting %}{% include "partials/workout_partner.html" %}
+  {% elif can_invite %}
+  <form method="post" action="/forma/trening/{{ w.id }}/zapros" class="wo-invite">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% for u in can_invite %}<button type="submit" name="razem" value="{{ u.id }}" class="outline secondary small">👫 Zaproś: {{ u.name }}</button>{% endfor %}
+  </form>
+  {% endif %}
 
   {% if rest_ms %}
   <div class="wo-rest" data-rest-ends="{{ rest_ms }}" role="status">
@@ -18,6 +26,7 @@
   <article id="we{{ we.id }}" class="wo-ex{% if r.current %} current{% endif %}{% if r.complete %} complete{% endif %}">
     <div class="wo-ex-head">
       <h2>{% if r.complete %}✓ {% endif %}{{ ex.name }}</h2>
+      {% for pid, name, slots in partner_slots %}{% set sv = slots.get(we.slot) %}{% if sv %}<span class="wo-partner-badge{% if sv.done >= sv.sets %} done{% endif %}" data-badge="{{ pid }}-{{ we.slot }}">{{ name }}{% if sv.other_exercise %}: {{ sv.name }}{% endif %} {{ sv.text }}</span>{% endif %}{% endfor %}
       <small class="muted">{{ we.sets }} × {% if ex.kind == 'time' %}{{ we.seconds or 30 }} s{% elif we.reps_min and we.reps_max and we.reps_min != we.reps_max %}{{ we.reps_min }}–{{ we.reps_max }}{% else %}{{ we.reps_max or we.reps_min or '?' }}{% endif %}{% if we.rest_seconds %} · przerwa {{ we.rest_seconds }} s{% endif %}{% if we.swapped_from %} · zamiast: {{ we.swapped_from.name }}{% endif %}</small>
     </div>
     {% if r.sug.last or r.sug.note %}

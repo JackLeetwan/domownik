@@ -31,6 +31,18 @@
     <label>Dzień treningu <input type="date" name="day" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}"></label>
   </details>
 
+  {% if partners %}
+  <h2 class="wst-q">4. Z kim?</h2>
+  <div class="wst-two">
+    <label class="choice"><input type="radio" name="razem" value="" checked>
+      <span><b>🙋 Solo</b><small>Tylko Twój trening.</small></span></label>
+    {% for u in partners %}
+    <label class="choice"><input type="radio" name="razem" value="{{ u.id }}">
+      <span><b>👫 Razem: {{ u.name }}</b><small>Dostanie powiadomienie i dołączy jednym dotknięciem. Widzicie u siebie tylko „2/3”, bez ciężarów.</small></span></label>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <button type="submit" class="wst-go">▶ Zacznij</button>
 </form>
 {% endblock %}

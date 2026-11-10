@@ -701,9 +701,29 @@
   };
   setInterval(tickRest, 1000);
   document.addEventListener("htmx:afterSettle", tickRest);
+  // 👫 training together: #wo-partner is polled; its counts go into the badges by each exercise, and when the
+  // partner changed the shared list (data-sig differs) the workout reloads – not while typing a set
+  let quietReload = false;
+  document.addEventListener("htmx:afterSettle", (e) => {
+    const strip = e.detail.elt;
+    if (!strip || strip.id !== "wo-partner") return;
+    strip.querySelectorAll("[data-badge-src]").forEach((src) => {
+      const badge = document.querySelector(`[data-badge="${src.dataset.badgeSrc}"]`);
+      if (!badge) return;
+      badge.textContent = src.textContent;
+      badge.classList.toggle("done", src.dataset.done === "1");
+    });
+    const wo = document.getElementById("workout");
+    const typing = wo && wo.contains(document.activeElement) && document.activeElement.matches("input");
+    if (wo && strip.dataset.sig && wo.dataset.sig !== strip.dataset.sig && !typing && typeof htmx !== "undefined") {
+      quietReload = true;
+      htmx.ajax("GET", location.pathname, { target: "#workout", swap: "outerHTML" });
+    }
+  });
   // after a set the next one to do is in view
   document.addEventListener("htmx:afterSettle", (e) => {
     if (!e.detail.elt || e.detail.elt.id !== "workout") return;
+    if (quietReload) { quietReload = false; return; }
     const cur = document.querySelector(".wo-ex.current");
     if (cur) cur.scrollIntoView({ block: "nearest", behavior: "smooth" });
   });

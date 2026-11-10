@@ -1746,7 +1746,7 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 
 .pick-chips { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.25rem; }
 .pick-chips .chip { white-space: nowrap; }
-.pick-chips .chip.on { background: var(--pico-primary-background); color: var(--pico-primary-inverse); border-color: transparent; }
+.pick-chips .chip.on, .pick-for .chip.on { background: var(--pico-primary-background); color: var(--pico-primary-inverse); border-color: transparent; }
 .pick-head { font-size: 1rem; margin: 1rem 0 0.25rem; }
 .pick-list { list-style: none; padding: 0; margin: 0; }
 .pick-list li { list-style: none; margin: 0; }
@@ -1834,3 +1834,18 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .body-side img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; display: block; }
 .body-nophoto { display: grid; place-items: center; aspect-ratio: 3 / 4; border-radius: 8px; border: 1px dashed var(--dm-tile-border); text-align: center; padding: 0.5rem; }
 .body-side figcaption { margin-top: 0.3rem; }
+
+/* 👫 training together */
+.wo-partner { margin: 0 0 0.75rem; padding: 0.5rem 0.75rem; border-radius: 10px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }
+.wo-partner:empty { display: none; }
+.wo-partner-line { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; margin: 0; }
+.wo-partner-line + .wo-partner-line { margin-top: 0.3rem; }
+.wo-partner-line form, .wo-partner-line button { margin: 0; }
+.wo-partner-badge { display: inline-block; margin: 0.15rem 0 0.2rem; padding: 0.05rem 0.5rem; border-radius: 999px; font-size: 0.8rem; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }
+.wo-partner-badge.done { border-color: var(--pico-primary); color: var(--pico-primary); }
+.wo-invite { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.75rem; }
+.wo-invite button { width: auto; margin: 0; }
+.tr-card form { margin-bottom: 0; }
+.tr-go-together { width: 100%; margin: 0.5rem 0 0; }
+.tr-join { width: 100%; margin-bottom: 0.5rem; }
+.pick-for { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; }

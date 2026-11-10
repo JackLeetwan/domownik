@@ -11,10 +11,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from domownik import together
 from domownik import training as tr
-from domownik.config import get_settings, today
+from domownik.config import get_settings, now, today
 from domownik.db import get_db
-from domownik.models import Exercise, PlanItem, User, Workout, WorkoutExercise, WorkoutPlan, WorkoutSet
+from domownik.models import Exercise, PlanItem, User, Workout, WorkoutExercise, WorkoutGroup, WorkoutPlan, WorkoutSet
 from domownik.security import current_user, verify_csrf
 from domownik.web import is_htmx, render
 
@@ -74,6 +75,8 @@ def section_context(db: Session, user: User) -> dict:
         "plans": tr.plans(db),
         "recent": [w for w in tr.mine(db, user, limit=8) if w.finished_at is not None][:5],
         "today": t,
+        "invites": together.open_invites(db, user, t),
+        "partners": together.partners(db, user),
     }
 
 
@@ -104,6 +107,7 @@ def start_page(request: Request, db: Session = Depends(get_db), user: User = Dep
             "next_plan": tr.next_plan(db, user),
             "today": today(),
             "away_labels": [tr.equipment_label(e).lower() for e in tr.away_equipment()],
+            "partners": together.partners(db, user),
         },
     )
 
@@ -118,8 +122,17 @@ async def start(request: Request, db: Session = Depends(get_db), user: User = De
     if running is not None and (day is None or day == today()) and running.day == today():
         return _go(f"/forma/trening/{running.id}")  # one going today already – back to it
     w = tr.start(db, user, plan, day=day, away=form.get("where") == "away" or bool(form.get("away")))
+    invitees = _invitees(db, user, form)
+    if invitees and w.day == today():
+        db.commit()
+        together.invite(db, w, invitees)
     db.commit()
     return _go(f"/forma/trening/{w.id}")
+
+
+def _invitees(db: Session, user: User, form) -> list[User]:
+    ids = {str(v) for v in form.getlist("razem")}
+    return [u for u in together.partners(db, user) if str(u.id) in ids]
 
 
 # ---------------------------------------------------------------- the workout screen
@@ -145,7 +158,8 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
             }
         )
     rest_ms = None
-    if w.rest_until is not None and w.finished_at is None:
+    stale = now().replace(tzinfo=None) - timedelta(minutes=10)
+    if w.rest_until is not None and w.finished_at is None and w.rest_until > stale:  # not a rest from hours ago
         rest_ms = int(w.rest_until.replace(tzinfo=tz).timestamp() * 1000)
     total = sum(we.sets for we in w.exercises)
     done = sum(min(len(we.done), we.sets) for we in w.exercises)
@@ -159,6 +173,21 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
         "errors": errors or {},
         "fmt_kg": tr.fmt_kg,
         "superset_letter": lambda n: "ABCDEFGH"[(n - 1) % 8] if n else "",
+    } | _together(db, user, w)
+
+
+def _together(db: Session, user: User, w: Workout) -> dict:
+    views = together.views(w)
+    live = w.finished_at is None and w.day == today()
+    return {
+        "partner_views": views,
+        "partner_slots": [(v.workout_id, v.name, v.slots) for v in views],
+        "waiting": together.waiting_for(db, w) if live else [],
+        "can_invite": [u for u in together.partners(db, user) if u.id not in (w.group.invited if w.group else [])]
+        if live
+        else [],
+        "sig": together.signature(w),
+        "live_together": live and w.group is not None,
     }
 
 
@@ -171,7 +200,54 @@ def _show(request: Request, db: Session, user: User, w: Workout, errors: dict | 
 
 @router.get("/trening/{workout_id:int}")
 def workout_page(workout_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    return render(request, "workout.html", _screen(db, user, _workout(db, user, workout_id)))
+    return _show(request, db, user, _workout(db, user, workout_id))
+
+
+@router.get("/trening/{workout_id:int}/razem")
+def partner_strip(workout_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """👫 polled every few seconds: how far the partner is (counts only) + the signature of one's own list."""
+    w = _workout(db, user, workout_id)
+    return render(request, "partials/workout_partner.html", {"user": user, "w": w} | _together(db, user, w))
+
+
+@router.post("/trening/{workout_id:int}/zapros", dependencies=[Depends(verify_csrf)])
+async def invite(workout_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    w = _workout(db, user, workout_id)
+    form = await request.form()
+    invitees = _invitees(db, user, form)
+    if invitees and w.finished_at is None and w.day == today():
+        together.invite(db, w, invitees)
+    db.commit()
+    return _go(f"/forma/trening/{w.id}")
+
+
+def _join(request: Request, db: Session, user: User, group_id: int, replace: bool):
+    g = db.get(WorkoutGroup, group_id)
+    if g is None:
+        raise HTTPException(404, "Nie ma takiego treningu")
+    try:
+        w = together.join(db, g, user, today=today(), at=now().replace(tzinfo=None), replace=replace)
+    except together.Busy as busy:
+        db.rollback()
+        return render(request, "workout_join.html", {"user": user, "g": g, "own": busy.workout, "error": ""})
+    except ValueError as exc:
+        db.rollback()
+        return render(request, "workout_join.html", {"user": user, "g": g, "own": None, "error": str(exc)})
+    db.commit()
+    return _go(f"/forma/trening/{w.id}")
+
+
+@router.get("/razem/{group_id:int}")
+def join(group_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """The link in the invitation push: opening it joins (one tap). Harmless to open twice."""
+    return _join(request, db, user, group_id, replace=False)
+
+
+@router.post("/razem/{group_id:int}/dolacz", dependencies=[Depends(verify_csrf)])
+def join_finishing_own(
+    group_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    return _join(request, db, user, group_id, replace=True)
 
 
 def _num(raw, *, integer: bool = False, label: str) -> float | int | None:
@@ -236,7 +312,7 @@ def skip_rest(workout_id: int, request: Request, db: Session = Depends(get_db), 
 @router.post("/trening/{workout_id:int}/cw/{we_id:int}/usun", dependencies=[Depends(verify_csrf)])
 def remove_exercise(workout_id: int, we_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     w = _workout(db, user, workout_id)
-    w.exercises.remove(_we(w, we_id))
+    together.remove(db, w, _we(w, we_id))
     db.commit()
     return _go(f"/forma/trening/{w.id}")
 
@@ -300,12 +376,16 @@ def swap_page(
     we_id: int,
     request: Request,
     wszystko: int = 0,
+    dla: str = "",
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
     w = _workout(db, user, workout_id)
     we = _we(w, we_id)
     eq = None if wszystko else tr.allowed(w)
+    shared = bool(together.others(w))
+    dla = "ja" if dla == "ja" or not shared else "oboje"
+    base = f"/forma/trening/{w.id}/cw/{we.id}/zamien"
     same, muscle = tr.substitutes(db, we.exercise, eq)
     return render(
         request,
@@ -314,7 +394,10 @@ def swap_page(
             user,
             title=f"Zamiast: {we.exercise.name}",
             back=f"/forma/trening/{w.id}#we{we.id}",
-            action=f"/forma/trening/{w.id}/cw/{we.id}/zamien/",
+            action=f"{base}/",
+            action_query=f"?dla={dla}" if shared else "",
+            for_whom=(dla, f"{base}?{'wszystko=1&' if wszystko else ''}dla=") if shared else None,
+            partner_names=", ".join(o.user.name for o in together.others(w)),
             sections=[
                 (f"Ten sam ruch – {tr.pattern_label(we.exercise.pattern).lower()}", same),
                 (f"Ta sama partia – {tr.muscle_label(we.exercise.muscle).lower()}", muscle),
@@ -327,11 +410,16 @@ def swap_page(
 
 @router.post("/trening/{workout_id:int}/cw/{we_id:int}/zamien/{exercise_id:int}", dependencies=[Depends(verify_csrf)])
 def swap(
-    workout_id: int, we_id: int, exercise_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+    workout_id: int,
+    we_id: int,
+    exercise_id: int,
+    dla: str = "",
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
 ):
     w = _workout(db, user, workout_id)
     we = _we(w, we_id)
-    tr.swap(db, we, _exercise(db, exercise_id))
+    together.swap(db, w, we, _exercise(db, exercise_id), both=dla != "ja")
     db.commit()
     return _go(f"/forma/trening/{w.id}#we{we.id}")
 
@@ -368,7 +456,7 @@ def add_page(
 @router.post("/trening/{workout_id:int}/dodaj/{exercise_id:int}", dependencies=[Depends(verify_csrf)])
 def add(workout_id: int, exercise_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     w = _workout(db, user, workout_id)
-    we = tr.add_exercise(db, w, _exercise(db, exercise_id))
+    we = together.add(db, w, _exercise(db, exercise_id))
     db.commit()
     return _go(f"/forma/trening/{w.id}#we{we.id}")
 

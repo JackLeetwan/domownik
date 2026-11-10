@@ -13,11 +13,18 @@
   {% if week.days_since is not none %}  <div class="tr-fresh"><span style="width: {{ (week.freshness * 100)|round|int }}%" class="{% if week.days_since is none or week.days_since > week.gap_days %}late{% elif week.freshness >= 0.75 %}soon{% endif %}"></span></div>{% endif %}
   <p class="muted tr-last"><small>{% if week.days_since is none %}Jeszcze żadnego treningu.{% elif week.days_since == 0 %}Ostatni: dziś 💪{% elif week.days_since == 1 %}Ostatni: wczoraj{% else %}Ostatni: {{ week.days_since }} dni temu{% endif %}</small></p>
 
+  {% for g, host in invites %}
+  <a href="/forma/razem/{{ g.id }}" role="button" class="tr-go tr-join">👫 Dołącz: {{ host.user.name }} – {{ host.plan.name if host.plan else 'trening' }}</a>
+  {% endfor %}
   {% if running %}
   <a href="/forma/trening/{{ running.id }}" role="button" class="tr-go">▶ Wróć do treningu{% if running.plan %}: {{ running.plan.name }}{% endif %}</a>
   {% elif next_plan %}
   <form method="post" action="/forma/trening"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="plan_id" value="{{ next_plan.id }}">
     <button type="submit" class="tr-go">▶ Zacznij {{ next_plan.name }}</button></form>
+  {% if partners|length == 1 %}{% set u = partners[0] %}
+  <form method="post" action="/forma/trening" class="tr-together"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="plan_id" value="{{ next_plan.id }}"><input type="hidden" name="razem" value="{{ u.id }}">
+    <button type="submit" class="outline tr-go-together">👫 {{ next_plan.name }} razem: {{ u.name }}</button></form>
+  {% elif partners %}<a href="/forma/trening/nowy" role="button" class="outline tr-go-together">👫 Trening razem…</a>{% endif %}
   {% endif %}
   <a href="/forma/trening/nowy" class="tr-other">Inny plan albo trening na wyjeździe ›</a>
 </section>
@@ -26,7 +33,7 @@
 <h3 class="supl-sub">Ostatnie treningi</h3>
 <ul class="supl-rows">
   {% for w in recent %}{% set n = w.exercises|map(attribute='done')|map('length')|sum %}
-  <li><a class="supl-row" href="/forma/trening/{{ w.id }}"><span class="supl-row-main"><b>{{ w.plan.name if w.plan else 'Trening' }}</b><small class="muted">{{ w.day|d(weekday=True) }} · {{ w.exercises|length }} ćw. · {{ n }} serii{% if w.equipment %} · 🧳{% endif %}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
+  <li><a class="supl-row" href="/forma/trening/{{ w.id }}"><span class="supl-row-main"><b>{{ w.plan.name if w.plan else 'Trening' }}</b><small class="muted">{{ w.day|d(weekday=True) }} · {{ w.exercises|length }} ćw. · {{ n }} serii{% if w.equipment %} · 🧳{% endif %}{% if w.group_id %} · 👫{% endif %}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
   {% endfor %}
 </ul>
 {% endif %}

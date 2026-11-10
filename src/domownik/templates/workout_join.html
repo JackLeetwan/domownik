@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Trening razem · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma" class="home-link">← Forma</a></li></ul></nav>
+<header class="item-head"><h1>👫 Trening razem</h1></header>
+{% if error %}
+<p>{{ error }}.</p>
+<a href="/forma" role="button" class="outline">Wróć do Formy</a>
+{% else %}
+<p>Masz już swój trening w toku{% if own.plan %} ({{ own.plan.name }}){% endif %} z zapisanymi seriami.</p>
+<form method="post" action="/forma/razem/{{ g.id }}/dolacz">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit">Zakończ swój i dołącz</button>
+</form>
+<p class="muted"><small>Zapisane serie zostają w historii jako osobny trening.</small></p>
+<a href="/forma/trening/{{ own.id }}" role="button" class="outline secondary">Wróć do swojego</a>
+{% endif %}
+{% endblock %}
