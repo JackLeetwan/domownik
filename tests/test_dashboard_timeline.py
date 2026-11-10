@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
-from pathlib import Path
 
 from domownik import services
 from domownik.config import today
@@ -168,16 +167,3 @@ def test_dashboard_short_later_not_collapsed(auth_client, db):
 def test_bin_range_month_end():
     assert services._bin_range(date(2026, 12, 31), "month") == (date(2026, 12, 1), date(2026, 12, 31))
     assert services._bin_range(date(2026, 2, 3), "month") == (date(2026, 2, 1), date(2026, 2, 28))
-
-
-def test_phone_timeline_has_a_strip_and_a_full_screen_with_every_control(auth_client, db):
-    """Phones show a short strip (tl-compact, set by app.js) – the full screen keeps the zoom, "Dziś" and zone lanes."""
-    _task(db, _home(db), "Prąd", today() + timedelta(days=3))
-    html = auth_client.get("/").text
-    card = html[html.index('class="timeline-card"'):]
-    card = card[: card.index("</section>")]
-    for part in ("data-tl-open", "data-tl-close", "data-lanes", "data-today", 'data-range="365"', 'class="tl-peek-hit"'):
-        assert part in card, part
-    css = (Path(__file__).parents[1] / "src/domownik/static/app.css").read_text()
-    # the lanes switch is no longer hidden on phones
-    assert ".timeline-actions .switch { display: none; }" not in css

@@ -1,13 +1,4 @@
-<section class="timeline-card" data-item="{{ timeline_item or '' }}" aria-label="Oś czasu">
-  {# phones: a short strip with the coming weeks; a tap opens the whole timeline on the full screen #}
-  <div class="tl-peek-head">
-    <span class="tl-peek-title">Oś czasu</span>
-    <button type="button" class="outline secondary tl-open" data-tl-open>Powiększ ⤢</button>
-  </div>
-  <div class="tl-full-head">
-    <h2>Oś czasu</h2>
-    <button type="button" class="outline secondary tl-close" data-tl-close aria-label="Zamknij oś czasu">✕</button>
-  </div>
+<section class="timeline-card" data-item="{{ timeline_item or '' }}">
   <div class="timeline-toolbar">
     <div role="group" class="zoom">
       <button type="button" class="outline secondary" data-range="30">1 mies.</button>
@@ -20,10 +11,7 @@
       <label class="switch" title="Każda strefa w osobnym wierszu osi"><input type="checkbox" role="switch" data-lanes> Wiersz na strefę</label>
     </div>
   </div>
-  <div class="tl-stage">
-    <div id="timeline" class="timeline" aria-label="Oś czasu zadań"></div>
-    <div class="tl-peek-hit" data-tl-open aria-hidden="true"></div>
-  </div>
+  <div id="timeline" class="timeline" aria-label="Oś czasu zadań"></div>
   <p class="timeline-status muted" data-timeline-status role="status">Ładowanie osi czasu…</p>
   <p class="timeline-legend muted">
     <span class="tl-key"><span class="dot overdue"></span> zaległe</span>

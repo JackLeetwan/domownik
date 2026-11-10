@@ -185,36 +185,12 @@ body div.vis-tooltip { font-family: var(--pico-font-family); font-size: 0.82rem;
   .timeline-toolbar { margin-bottom: 0.25rem; gap: 0.35rem; }
   .timeline-toolbar button { padding: 0.2rem 0.55rem; font-size: 0.8rem; }
   .timeline-toolbar { flex-wrap: nowrap; }
+  .timeline-actions .switch { display: none; }
   .timeline-card .vis-item .tl-label { max-width: 11ch; }
   .timeline-card .vis-item.tl-urgent .tl-label { max-width: 18ch; }
   .timeline-legend { font-size: 0.72rem; gap: 0.1rem 0.6rem; margin-top: 0.25rem; }
   .timeline-legend .tl-key-long { display: none; }
 }
-/* phones: the timeline is a short strip of dots (tl-compact) – the list below stays on the first screen;
-   "Powiększ" or a tap on the strip opens the whole timeline with every control on the full screen (tl-full) */
-.tl-peek-head, .tl-full-head, .tl-peek-hit { display: none; }
-.tl-stage { position: relative; }
-.timeline-card.tl-compact .tl-peek-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.15rem; }
-.tl-peek-title { font-weight: 600; font-size: 0.9rem; }
-.timeline-card .tl-open { padding: 0.15rem 0.6rem; font-size: 0.8rem; margin: 0; width: auto; }
-.timeline-card.tl-compact .timeline-toolbar, .timeline-card.tl-compact .timeline-legend { display: none; }
-.timeline-card.tl-compact .tl-peek-hit { display: block; position: absolute; inset: 0; z-index: 3; cursor: pointer; }
-.timeline-card.tl-compact .timeline { min-height: 0; }
-.timeline-card.tl-compact .vis-item .vis-item-content { display: none; }
-.timeline-card.tl-compact .vis-item .vis-dot { border-width: 4px; }
-.timeline-card.tl-full { position: fixed; inset: 0; z-index: 45; margin: 0; border-radius: 0; border: 0; overflow-y: auto; overscroll-behavior: contain;
-  padding: calc(0.6rem + env(safe-area-inset-top)) 0.75rem calc(0.75rem + env(safe-area-inset-bottom)); background: var(--pico-background-color); }
-.timeline-card.tl-full .tl-full-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-.tl-full-head h2 { margin: 0; font-size: 1.15rem; }
-.timeline-card .tl-close { width: auto; margin: 0; padding: 0.3rem 0.8rem; }
-.timeline-card.tl-full .timeline-toolbar { flex-wrap: wrap; row-gap: 0.5rem; }
-.timeline-card.tl-full .timeline-toolbar .zoom { width: 100%; display: flex; }
-.timeline-card.tl-full .timeline-toolbar .zoom > button { flex: 1; }
-.timeline-card.tl-full .timeline-actions { width: 100%; justify-content: space-between; }
-.timeline-card.tl-full .vis-item .tl-label { max-width: 16ch; }
-.timeline-card.tl-full .vis-item.tl-urgent .tl-label { max-width: 24ch; }
-.timeline-card.tl-full .vis-labelset .vis-label .vis-inner { font-size: 0.75rem; padding: 0.2rem 0.3rem; max-width: 6.5rem; white-space: normal; }
-html.tl-lock, html.tl-lock body { overflow: hidden; }
 .bundle-list { list-style: none; padding: 0; margin: 0; }
 .bundle-list li { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.45rem 0; border-bottom: 1px solid var(--dm-tile-border); list-style: none; }
 .bundle-list a { display: flex; flex-direction: column; text-decoration: none; color: inherit; min-width: 0; }
