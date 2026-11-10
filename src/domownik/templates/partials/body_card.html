@@ -5,9 +5,16 @@
     <span><b>{{ bfmt(body.avg) }} kg</b> <small class="muted">średnia z {{ body.avg_n }} {{ 'ważenia' if body.avg_n == 1 else 'ważeń' }}{% if body.stale %} do {{ body.last.day|d }}{% else %} w 7 dni{% endif %}</small></span>
   </div>
   <p class="body-facts"><small>
-    {% if body.change is not none %}<span>{{ '↑' if body.change > 0.05 else ('↓' if body.change < -0.05 else '→') }} {{ bfmt(body.change, signed=True) }} kg w 4 tyg.{% if body.per_week|abs >= 0.05 %} <span class="muted">({{ bfmt(body.per_week, signed=True) }}/tydz.)</span>{% endif %}</span>{% endif %}
+    {% if body.change is not none %}<span>{{ '↑' if body.change > 0.05 else ('↓' if body.change < -0.05 else '→') }} {{ bfmt(body.change, signed=True) }} kg w 4 tyg.{% if not body.pace and body.per_week|abs >= 0.05 %} <span class="muted">({{ bfmt(body.per_week, signed=True) }}/tydz.)</span>{% endif %}</span>{% endif %}
     {% if body.to_goal is not none %}<span>🎯 {% if body.to_goal|abs < 0.3 %}cel {{ bfmt(body.goal) }} kg osiągnięty{% else %}do celu {{ bfmt(body.to_goal|abs) }} kg{% endif %}</span>{% endif %}
   </small></p>
+  {% set pc = body.pace %}{% if pc %}
+  <p class="body-pace body-pace-{{ pc.verdict }}"><small>
+    <span>Tempo: <b>{{ bfmt(pc.per_week, signed=True) }} kg/tydz.</b> {% if pc.verdict == 'ok' %}✓ dobre{% elif pc.verdict == 'slow' %}· za wolno{% elif pc.verdict == 'fast' %}· za szybko{% else %}· w złą stronę{% endif %}</span>
+    {% if pc.eta_text %}<span class="muted">Cel osiągniesz {{ pc.eta_text }}</span>{% endif %}
+    {% if pc.hint %}<span class="body-pace-hint">{{ pc.hint }}</span>{% endif %}
+  </small></p>
+  {% endif %}
   {% else %}
   <p class="muted"><small>Waż się rano, po toalecie i przed jedzeniem, ile razy w tygodniu chcesz. Waga skacze z dnia na dzień o 1–2 kg, więc liczy się średnia z 7 dni.</small></p>
   {% endif %}

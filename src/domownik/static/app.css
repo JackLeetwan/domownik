@@ -1787,6 +1787,11 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .body-now b { font-size: 1.6rem; }
 .body-facts { margin: 0.2rem 0 0.6rem; }
 .body-facts small { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
+.body-pace { margin: -0.3rem 0 0.6rem; }
+.body-pace small { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
+.body-pace-ok b { color: var(--pico-ins-color, #2e7d32); }
+.body-pace-fast b, .body-pace-slow b, .body-pace-away b { color: #b26a00; }
+.body-pace-hint { flex-basis: 100%; padding: 0.35rem 0.5rem; border-radius: 0.4rem; background: color-mix(in srgb, #b26a00 10%, transparent); }
 .body-weigh { margin: 0 0 0.4rem; }
 .body-weigh label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
 .body-weigh-row { display: flex; align-items: center; gap: 0.5rem; }

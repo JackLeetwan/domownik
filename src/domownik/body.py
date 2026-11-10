@@ -42,6 +42,30 @@ SITES = [
 ]
 SITE_KEYS = [k for k, _, _ in SITES]
 CHECK_EVERY_CHOICES = (14, 21, 28)
+# the pace: a straight line through the weigh-ins of the last weeks (works when weighing once a week too)
+PACE_DAYS = 42
+PACE_MIN_SPAN = 14  # days between the first and the last weigh-in behind it
+PACE_MIN_N = 3
+# kg a week that make sense: gaining lean mass (faster is mostly fat) / losing (faster eats muscle)
+GAIN_PACE = (0.1, 0.5)
+LOSS_PACE = (0.2, 1.0)
+GOAL_NEAR = 0.3  # kg – "reached"
+ETA_MAX_WEEKS = 104
+MONTHS_GEN = [
+    "",
+    "stycznia",
+    "lutego",
+    "marca",
+    "kwietnia",
+    "maja",
+    "czerwca",
+    "lipca",
+    "sierpnia",
+    "września",
+    "października",
+    "listopada",
+    "grudnia",
+]
 # the morning push: from this hour, while it is still morning (a phone off at night catches up)
 PUSH_FROM, PUSH_UNTIL = time(7, 30), time(11, 0)
 CHECK_REPUSH_DAYS = 3  # a measurement not done: reminded again after this many days
@@ -128,6 +152,86 @@ def average(entries: list[BodyWeight], day: date, days: int = AVG_DAYS) -> float
     return sum(xs) / len(xs) if xs else None
 
 
+def trend(entries: list[BodyWeight], day: date, days: int = PACE_DAYS) -> tuple[float, int] | None:
+    """kg a week from a least-squares line through the weigh-ins of `days` days ending with `day` – and the span
+    in days behind it. None with too few weigh-ins or too short a stretch to say anything."""
+    pts = [((w.day - day).days, w.kg) for w in entries if day - timedelta(days=days - 1) <= w.day <= day]
+    if len(pts) < PACE_MIN_N:
+        return None
+    span = pts[-1][0] - pts[0][0]
+    if span < PACE_MIN_SPAN:
+        return None
+    mx = sum(x for x, _ in pts) / len(pts)
+    my = sum(y for _, y in pts) / len(pts)
+    slope = sum((x - mx) * (y - my) for x, y in pts) / sum((x - mx) ** 2 for x, _ in pts)
+    return slope * 7, span
+
+
+@dataclass
+class Pace:
+    """Is the weight going to the goal at a sensible speed – and when will it get there."""
+
+    per_week: float
+    verdict: str  # ok | slow | fast | away (the other way than the goal)
+    gaining: bool  # the goal is above
+    eta: date | None
+
+    @property
+    def hint(self) -> str | None:
+        if self.verdict == "away":
+            return (
+                "Waga spada, a cel jest wyżej – jesz za mało, dołóż ok. 300 kcal dziennie."
+                if self.gaining
+                else "Waga rośnie, a cel jest niżej – odejmij ok. 300 kcal dziennie."
+            )
+        if self.verdict == "slow":
+            return (
+                "Waga prawie stoi – jeśli tak zostanie, dołóż ok. 200–300 kcal dziennie."
+                if self.gaining
+                else "Waga prawie stoi – jeśli tak zostanie, odejmij ok. 200–300 kcal dziennie."
+            )
+        if self.verdict == "fast":
+            return (
+                "Szybciej niż 0,5 kg na tydzień przybywa głównie tłuszczu – rozważ ok. 200 kcal mniej."
+                if self.gaining
+                else "Ponad 1 kg na tydzień to ubywa też mięśni – rozważ ok. 200 kcal więcej."
+            )
+        return None
+
+    @property
+    def eta_text(self) -> str | None:
+        if self.eta is None:
+            return None
+        part = "na początku" if self.eta.day <= 10 else ("w połowie" if self.eta.day <= 20 else "pod koniec")
+        return f"{part} {MONTHS_GEN[self.eta.month]} {self.eta.year}"
+
+
+def pace(entries: list[BodyWeight], goal: float | None, avg: float | None) -> Pace | None:
+    if goal is None or avg is None or not entries or abs(goal - avg) < GOAL_NEAR:
+        return None
+    t = trend(entries, entries[-1].day)
+    if t is None:
+        return None
+    per_week, _ = t
+    gaining = goal > avg
+    toward = per_week if gaining else -per_week  # + = to the goal
+    lo, hi = GAIN_PACE if gaining else LOSS_PACE
+    if toward < 0 and abs(per_week) >= lo / 2:
+        verdict = "away"
+    elif toward < lo:
+        verdict = "slow"
+    elif toward > hi:
+        verdict = "fast"
+    else:
+        verdict = "ok"
+    eta = None
+    if toward >= lo / 2:
+        weeks = abs(goal - avg) / toward
+        if weeks <= ETA_MAX_WEEKS:
+            eta = entries[-1].day + timedelta(days=round(weeks * 7))
+    return Pace(per_week, verdict, gaining, eta)
+
+
 @dataclass
 class Summary:
     last: BodyWeight | None
@@ -139,6 +243,7 @@ class Summary:
     goal: float | None
     to_goal: float | None  # goal − avg: + still to gain, − to lose
     days_since: int | None
+    pace: Pace | None = None
 
     @property
     def stale(self) -> bool:
@@ -167,6 +272,7 @@ def summary(db: Session, user: User, today: date) -> Summary:
         goal=goal,
         to_goal=goal - avg if goal is not None and avg is not None else None,
         days_since=(today - last.day).days,
+        pace=pace(entries, goal, avg),
     )
 
 

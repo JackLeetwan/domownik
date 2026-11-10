@@ -181,3 +181,45 @@ def test_someone_elses_is_404(auth_client, db, user):
     page = auth_client.get("/forma/sylwetka").text
     assert "60 kg" not in page and "Talia 70" not in auth_client.get("/forma/sylwetka/porownaj").text
     assert db.get(BodyCheck, c.id) is not None
+
+
+def _series(db, user, per_week, weeks=5, start=72.0, every=4):
+    for i in range(0, weeks * 7 + 1, every):
+        body.add_weight(db, user, T - timedelta(days=weeks * 7 - i), round(start + per_week * i / 7, 1))
+
+
+def test_pace_toward_goal(db, user):
+    body.prefs(db, user).goal_kg = 78
+    _series(db, user, 0.3)
+    db.commit()
+    p = body.summary(db, user, T).pace
+    assert p is not None and p.verdict == "ok" and 0.25 < p.per_week < 0.35 and p.hint is None
+    assert p.eta is not None and date(2027, 2, 1) < p.eta < date(2027, 3, 31)  # ~4,8 kg at 0,3 a week ≈ 16 weeks
+    assert p.eta_text.split()[-1] == "2027"
+
+
+@pytest.mark.parametrize(
+    ("per_week", "verdict", "words"),
+    [(0.02, "slow", "dołóż"), (0.9, "fast", "tłuszczu"), (-0.4, "away", "jesz za mało")],
+)
+def test_pace_off(db, user, per_week, verdict, words):
+    body.prefs(db, user).goal_kg = 85
+    _series(db, user, per_week)
+    db.commit()
+    p = body.summary(db, user, T).pace
+    assert p.verdict == verdict and words in p.hint
+    assert (p.eta is None) == (verdict != "fast")
+
+
+def test_pace_needs_enough(db, user):
+    body.prefs(db, user).goal_kg = 78
+    body.add_weight(db, user, T - timedelta(days=10), 72.0)
+    body.add_weight(db, user, T, 72.5)
+    db.commit()
+    assert body.summary(db, user, T).pace is None  # two weigh-ins, 10 days: too little
+    body.add_weight(db, user, T - timedelta(days=20), 71.8)
+    db.commit()
+    assert body.summary(db, user, T).pace is not None  # weighing once a week or so is enough
+    body.prefs(db, user).goal_kg = 72.3
+    db.commit()
+    assert body.summary(db, user, T).pace is None  # at the goal – nothing to judge
