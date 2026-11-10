@@ -13,12 +13,21 @@
   <button type="button" class="side-add" hx-get="/dodaj" hx-target="#modal-body">＋ Dodaj</button>
   {# only this middle part scrolls – the brand/search on top and the account footer stay visible #}
   <div class="side-scroll" data-scroll-hint>
+  {# links in groups under a heading that folds (app.js remembers it per device); the group of the page
+     you are on is always open, a folded one shows the sum of its counters #}
+  {% for title, links in menu_groups(user) %}
+  {% set ns = namespace(here=false, total=0) %}
+  {% for ln in links %}{% if (p == '/' if ln.href == '/' else p.startswith(ln.href)) %}{% set ns.here = true %}{% endif %}{% set ns.total = ns.total + (nav[ln.count] or 0 if ln.count else 0) %}{% endfor %}
+  {% if title %}<details class="side-group" data-side-group="{{ title }}" open{% if ns.here %} data-here{% endif %}>
+    <summary class="side-head">{{ title }}{% if ns.total %}<span class="count">{{ ns.total }}</span>{% endif %}</summary>{% endif %}
   <ul class="side-links">
-    {% for ln in menu_sidebar(user) %}
+    {% for ln in links %}
     {% set cnt = nav[ln.count] if ln.count else 0 %}
     <li><a href="{{ ln.href }}" {% if (p == '/' if ln.href == '/' else p.startswith(ln.href)) %}aria-current="page"{% endif %}><span class="ic">{{ ln.icon }}</span> {{ ln.label }}{% if cnt %}<span class="count">{{ cnt }}</span>{% endif %}</a></li>
     {% endfor %}
   </ul>
+  {% if title %}</details>{% endif %}
+  {% endfor %}
   {% if nav.members %}
   <p class="side-head">Domownicy</p>
   <ul class="side-links">

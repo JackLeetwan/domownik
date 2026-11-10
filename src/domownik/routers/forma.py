@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
-from markupsafe import escape
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from domownik import supplements as supl
@@ -13,7 +12,7 @@ from domownik.db import get_db
 from domownik.domain.money import parse_pln
 from domownik.models import Supplement, User
 from domownik.security import current_user, verify_csrf
-from domownik.web import error_target, is_htmx, render
+from domownik.web import is_htmx, render
 
 router = APIRouter()
 
@@ -29,14 +28,6 @@ def card_context(db: Session, user: User) -> dict:
         "supl_due": any(g.open and (g.time is None or g.time <= hour) for g in groups),
         "supl_streak": supl.streak(db, user, t) if groups else 0,
     }
-
-
-def _error(request: Request, message: str) -> HTMLResponse:
-    return HTMLResponse(
-        f'<p class="error">{escape(message)}</p>',
-        status_code=422,
-        headers={"HX-Retarget": error_target(request, "#supl-error"), "HX-Reswap": "innerHTML"},
-    )
 
 
 def _back(anchor: str = "") -> RedirectResponse:
@@ -55,22 +46,59 @@ def _own(db: Session, user: User, supplement_id: int) -> Supplement:
 
 @router.get("/forma")
 def page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    active = supl.mine(db, user)
-    names = {s.name.lower() for s in supl.mine(db, user, active=None)}
     return render(
         request,
         "forma.html",
         {
             "user": user,
-            "supplements": active,
+            "supplements": supl.mine(db, user),
             "paused": supl.mine(db, user, active=False),
-            "suggestions": [(n, d) for n, d in supl.SUGGESTIONS if n.lower() not in names],
             "days_left": supl.days_left,
-            "fmt": supl.fmt,
             "card_where": "forma",
         }
         | card_context(db, user),
     )
+
+
+def _form_page(request: Request, db: Session, user: User, s: Supplement | None, values: dict, error: str = ""):
+    """The add / edit screen; after a mistake it comes back with what was typed and the message on top."""
+    names = {x.name.lower() for x in supl.mine(db, user, active=None)}
+    return render(
+        request,
+        "supplement_form.html",
+        {
+            "user": user,
+            "s": s,
+            "v": values,
+            "error": error,
+            "suggestions": [] if s else [(n, d) for n, d in supl.SUGGESTIONS if n.lower() not in names],
+            "days_left": supl.days_left,
+            "fmt": supl.fmt,
+        },
+        status_code=422 if error else 200,
+    )
+
+
+def _values(s: Supplement | None) -> dict:
+    if s is None:
+        return {
+            "name": "",
+            "dose": "",
+            "time": "08:00",
+            "per_take": "1",
+            "pack_size": "",
+            "stock": "",
+            "restock_days": "10",
+        }
+    return {
+        "name": s.name,
+        "dose": s.dose or "",
+        "time": s.time or "",
+        "per_take": supl.fmt(s.per_take),
+        "pack_size": supl.fmt(s.pack_size),
+        "stock": supl.fmt(s.stock),
+        "restock_days": str(s.restock_days),
+    }
 
 
 def _fields(form) -> dict:
@@ -81,10 +109,19 @@ def _fields(form) -> dict:
         "name": name,
         "dose": str(form.get("dose") or "").strip() or None,
         "time": supl.parse_time(form.get("time")),
-        "per_take": supl.parse_number(form.get("per_take"), "Na raz") or 1,
-        "pack_size": supl.parse_number(form.get("pack_size"), "Opakowanie"),
-        "stock": supl.parse_number(form.get("stock"), "Zostało", allow_zero=True),
+        "per_take": supl.parse_number(form.get("per_take"), "Ile bierzesz na raz") or 1,
+        "pack_size": supl.parse_number(form.get("pack_size"), "Ile jest w opakowaniu"),
+        "stock": supl.parse_number(form.get("stock"), "Ile zostało", allow_zero=True),
     }
+
+
+def _typed(form) -> dict:
+    return {k: str(form.get(k) or "") for k in _values(None)}
+
+
+@router.get("/forma/suplementy/nowy")
+def new_page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    return _form_page(request, db, user, None, _values(None))
 
 
 @router.post("/forma/suplementy", dependencies=[Depends(verify_csrf)])
@@ -93,12 +130,18 @@ async def add(request: Request, db: Session = Depends(get_db), user: User = Depe
     try:
         f = _fields(form)
     except ValueError as exc:
-        return _error(request, str(exc))
+        return _form_page(request, db, user, None, _typed(form), str(exc))
     if f["stock"] is None:
         f["stock"] = f["pack_size"]  # a new pack just opened
-    s = supl.create(db, user, **f)
+    supl.create(db, user, **f)
     db.commit()
-    return _back(f"#s{s.id}")
+    return _back()
+
+
+@router.get("/forma/suplementy/{supplement_id}")
+def edit_page(supplement_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    s = _own(db, user, supplement_id)
+    return _form_page(request, db, user, s, _values(s))
 
 
 @router.post("/forma/suplementy/{supplement_id}", dependencies=[Depends(verify_csrf)])
@@ -109,9 +152,9 @@ async def edit(supplement_id: int, request: Request, db: Session = Depends(get_d
         f = _fields(form)
         restock_days = int(str(form.get("restock_days") or s.restock_days))
         if not 0 <= restock_days <= 90:
-            raise ValueError("Ostrzeżenie o zapasie: od 0 do 90 dni")
+            raise ValueError("Na listę zakupów: od 0 do 90 dni zapasu")
     except ValueError as exc:
-        return _error(request, str(exc))
+        return _form_page(request, db, user, s, _typed(form), str(exc))
     s.name, s.dose, s.per_take, s.pack_size, s.stock = f["name"], f["dose"], f["per_take"], f["pack_size"], f["stock"]
     s.restock_days = restock_days
     supl.set_time(s, f["time"])
@@ -120,7 +163,7 @@ async def edit(supplement_id: int, request: Request, db: Session = Depends(get_d
         s.restock_listed = False  # stock corrected by hand – the next run-out is noticed again
     supl.check_restock(db, s)
     db.commit()
-    return _back(f"#s{s.id}")
+    return _back()
 
 
 def _card(request: Request, db: Session, user: User, where: str):
@@ -168,10 +211,10 @@ async def bought(
         if not 1 <= packs <= 20:
             raise ValueError("Liczba opakowań: od 1 do 20")
     except ValueError as exc:
-        return _error(request, str(exc))
+        return _form_page(request, db, user, s, _values(s), str(exc))
     supl.bought_pack(db, s, user, price_gr=parse_pln(form.get("price")), day=today(), packs=packs)
     db.commit()
-    return _back(f"#s{s.id}")
+    return _back()
 
 
 @router.post("/forma/suplementy/{supplement_id}/wstrzymaj", dependencies=[Depends(verify_csrf)])
@@ -186,7 +229,7 @@ def resume(supplement_id: int, db: Session = Depends(get_db), user: User = Depen
     s = _own(db, user, supplement_id)
     supl.resume(s)
     db.commit()
-    return _back(f"#s{s.id}")
+    return _back()
 
 
 @router.post("/forma/suplementy/{supplement_id}/usun", dependencies=[Depends(verify_csrf)])

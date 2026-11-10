@@ -28,8 +28,9 @@ def test_default_and_saved_menu(auth_client, db, user):
 
     html = auth_client.get("/notatki").text
     assert _bar_links(html) == ["/", "/kuchnia", "/kalendarz"]
-    side = html.split('<ul class="side-links">')[1].split("</ul>")[0]
+    side = html.split('<aside class="sidebar"')[1].split('<p class="side-head">Domownicy')[0].split("</aside>")[0]
     assert 'href="/grafik"' not in side and 'href="/budzet"' in side and 'href="/ustawienia"' in side
+    assert 'class="side-group"' in side  # grouped under headings
 
 
 def test_bad_values_fall_back():

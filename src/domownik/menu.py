@@ -15,24 +15,25 @@ class Link:
     label: str
     count: str | None = None  # Nav attribute with a badge number
     fixed: bool = False  # cannot be hidden
+    group: str = ""  # a heading of the sidebar ("" = no heading: Pulpit on top, Ustawienia at the bottom)
 
 
 LINKS: tuple[Link, ...] = (
     Link("pulpit", "/", "🏠", "Pulpit", fixed=True),
-    Link("kalendarz", "/kalendarz", "📅", "Kalendarz"),
-    Link("grafik", "/grafik", "🗓️", "Grafik"),
-    Link("obowiazki", "/obowiazki", "🧹", "Obowiązki", "chores"),
-    Link("zakupy", "/zakupy", "🛒", "Zakupy", "shopping"),
-    Link("kuchnia", "/kuchnia", "🍳", "Kuchnia"),
-    Link("notatki", "/notatki", "📝", "Notatki", "notes"),
-    Link("zadania", "/zadania", "📋", "Zadania"),
-    Link("do-zrobienia", "/do-zrobienia", "☐", "Do zrobienia", "todos"),
-    Link("punkty", "/punkty", "⭐", "Punkty", "points"),
-    Link("forma", "/forma", "💪", "Forma"),
-    Link("zdjecia", "/zdjecia", "📥", "Do rozpoznania", "inbox"),
-    Link("kontakty", "/kontakty", "📇", "Kontakty"),
-    Link("budzet", "/budzet", "💰", "Budżet"),
-    Link("na-wypadek", "/na-wypadek", "🧰", "Na wypadek"),
+    Link("kalendarz", "/kalendarz", "📅", "Kalendarz", group="Plan"),
+    Link("grafik", "/grafik", "🗓️", "Grafik", group="Plan"),
+    Link("zadania", "/zadania", "📋", "Zadania", group="Plan"),
+    Link("do-zrobienia", "/do-zrobienia", "☐", "Do zrobienia", "todos", group="Plan"),
+    Link("zakupy", "/zakupy", "🛒", "Zakupy", "shopping", group="Dom"),
+    Link("kuchnia", "/kuchnia", "🍳", "Kuchnia", group="Dom"),
+    Link("obowiazki", "/obowiazki", "🧹", "Obowiązki", "chores", group="Dom"),
+    Link("notatki", "/notatki", "📝", "Notatki", "notes", group="Dom"),
+    Link("punkty", "/punkty", "⭐", "Punkty", "points", group="Dom"),
+    Link("budzet", "/budzet", "💰", "Budżet", group="Pieniądze i papiery"),
+    Link("zdjecia", "/zdjecia", "📥", "Do rozpoznania", "inbox", group="Pieniądze i papiery"),
+    Link("kontakty", "/kontakty", "📇", "Kontakty", group="Pieniądze i papiery"),
+    Link("na-wypadek", "/na-wypadek", "🧰", "Na wypadek", group="Pieniądze i papiery"),
+    Link("forma", "/forma", "💪", "Forma", group="Ja"),
     Link("ustawienia", "/ustawienia", "⚙️", "Ustawienia", fixed=True),
 )
 BY_KEY = {link.key: link for link in LINKS}
@@ -58,6 +59,17 @@ def hidden(user: User | None) -> set[str]:
 def sidebar(user: User | None) -> list[Link]:
     off = hidden(user)
     return [link for link in LINKS if link.key not in off]
+
+
+def sidebar_groups(user: User | None) -> list[tuple[str, list[Link]]]:
+    """The sidebar in runs of the same heading, in LINKS order: [("", [Pulpit]), ("Plan", […]), …]."""
+    out: list[tuple[str, list[Link]]] = []
+    for link in sidebar(user):
+        if out and out[-1][0] == link.group:
+            out[-1][1].append(link)
+        else:
+            out.append((link.group, [link]))
+    return out
 
 
 def save(user: User, form) -> None:

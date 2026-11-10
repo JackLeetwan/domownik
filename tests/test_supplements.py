@@ -199,18 +199,20 @@ def test_streak(db, user):
 
 def test_page_add_tick_and_dashboard_card(auth_client, db, user):
     auth_client.post("/setup/zones")  # an empty household shows the welcome card, not the dashboard
+    assert "＋ Dodaj suplement" in auth_client.get("/forma").text
+    assert "Wypełnij jednym dotknięciem" in auth_client.get("/forma/suplementy/nowy").text
     r = auth_client.post(
         "/forma/suplementy",
         data={"name": "Kreatyna", "dose": "5 g", "time": "00:00", "per_take": "1", "pack_size": "100"},
-        headers={"HX-Request": "true"},
         follow_redirects=False,
     )
-    assert r.headers["HX-Redirect"].startswith("/forma#s")
+    assert r.status_code == 303 and r.headers["location"] == "/forma"
     s = db.query(Supplement).one()
     assert (s.time, s.stock) == ("00:00", 100)
 
     page = auth_client.get("/forma").text
-    assert "Kreatyna" in page and "zapas na 100 dni" in page
+    assert f'href="/forma/suplementy/{s.id}"' in page and "zapas na 100 dni" in page
+    assert "Kupiłem nowe opakowanie" in auth_client.get(f"/forma/suplementy/{s.id}").text
     assert "Suplementy dziś" in auth_client.get("/").text
 
     r = auth_client.post(f"/forma/suplementy/{s.id}/wziete", data={"where": "pulpit"}, headers={"HX-Request": "true"})
@@ -218,9 +220,36 @@ def test_page_add_tick_and_dashboard_card(auth_client, db, user):
     assert "Suplementy dziś" not in auth_client.get("/").text  # done for today – off the dashboard
 
 
-def test_bad_time_is_an_error(auth_client, db):
-    r = auth_client.post("/forma/suplementy", data={"name": "X", "time": "25:00"}, headers={"HX-Request": "true"})
-    assert r.status_code == 422 and "8:00" in r.text
+def test_edit_and_buy(auth_client, db, user):
+    s = supl.create(db, user, name="Omega", dose=None, time="08:00", pack_size=120, stock=10)
+    db.commit()
+    r = auth_client.post(
+        f"/forma/suplementy/{s.id}",
+        data={
+            "name": "Omega-3",
+            "dose": "1 kaps.",
+            "time": "07:30",
+            "per_take": "1",
+            "pack_size": "120",
+            "stock": "50",
+            "restock_days": "7",
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    db.refresh(s)
+    assert (s.name, s.time, s.stock, s.restock_days) == ("Omega-3", "07:30", 50, 7)
+    assert (
+        auth_client.post(f"/forma/suplementy/{s.id}/kupione", data={"packs": "1", "price": "39,99"}).status_code == 200
+    )
+    db.refresh(s)
+    assert s.stock == 170
+
+
+def test_bad_input_comes_back_with_what_was_typed(auth_client, db):
+    r = auth_client.post("/forma/suplementy", data={"name": "Magnez", "time": "25:00"})
+    assert r.status_code == 422
+    assert "Godzina w formacie 8:00" in r.text and 'value="Magnez"' in r.text
     assert db.query(Supplement).count() == 0
 
 
@@ -230,6 +259,7 @@ def test_someone_elses_supplement_is_invisible(auth_client, db, paula):
     assert "Magnez" not in auth_client.get("/forma").text
     for path in ("wziete", "kupione", "wstrzymaj", "usun"):
         assert auth_client.post(f"/forma/suplementy/{s.id}/{path}").status_code == 404
+    assert auth_client.get(f"/forma/suplementy/{s.id}").status_code == 404
     assert auth_client.post(f"/forma/suplementy/{s.id}", data={"name": "Hack"}).status_code == 404
     db.refresh(s)
     assert s.name == "Magnez" and s.active

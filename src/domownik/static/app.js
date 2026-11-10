@@ -672,6 +672,24 @@
   document.addEventListener("htmx:afterSettle", tickTimers);
 
   // ------------------------------------------------------------------ "there is more" cue on scroll strips
+  // ------------------------------------------------------------------ menu groups that fold
+  // <details data-side-group> in the sidebar: this device remembers the folded ones; the group of the page
+  // you are on ([data-here]) always stays open.
+  const SIDE_KEY = "dm-side-folded";
+  const sideFolded = () => { try { return JSON.parse(localStorage.getItem(SIDE_KEY)) || []; } catch (_) { return []; } };
+  const foldSideGroups = (root) => (root.querySelectorAll ? root : document).querySelectorAll("[data-side-group]").forEach((g) => {
+    g.open = g.hasAttribute("data-here") || !sideFolded().includes(g.dataset.sideGroup);
+  });
+  document.addEventListener("htmx:load", (e) => foldSideGroups(e.detail.elt));
+  document.addEventListener("toggle", (e) => {
+    const g = e.target;
+    if (!g.matches || !g.matches("[data-side-group]")) return;
+    const folded = new Set(sideFolded());
+    if (g.open) folded.delete(g.dataset.sideGroup); else folded.add(g.dataset.sideGroup);
+    try { localStorage.setItem(SIDE_KEY, JSON.stringify([...folded])); } catch (_) { /* private mode */ }
+    requestAnimationFrame(scrollHints);
+  }, true);
+
   // [data-scroll-hint]: .more-start / .more-end fade the edge that hides content (category chips, the drawer);
   // [data-scroll-more] inside one is shown while its end is out of sight and scrolls there on a tap
   const scrollHint = (el) => {

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name if s else 'Nowy suplement' }} · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma" class="home-link">← Forma</a></li></ul></nav>
+<header class="item-head"><h1>{{ '💊 ' ~ s.name if s else '💊 Nowy suplement' }}</h1></header>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+{% if suggestions %}
+<p class="supl-suggest"><small class="muted">Wypełnij jednym dotknięciem:</small><br>
+  {% for n, d in suggestions %}<button type="button" class="small outline secondary" data-name="{{ n }}" data-dose="{{ d }}" onclick="const f=document.getElementById('supl-form');f.name.value=this.dataset.name;f.dose.value=this.dataset.dose">{{ n }}</button> {% endfor %}
+</p>
+{% endif %}
+
+<form id="supl-form" method="post" action="{{ '/forma/suplementy/' ~ s.id if s else '/forma/suplementy' }}" class="supl-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <fieldset>
+    <label>Nazwa <input name="name" required maxlength="60" value="{{ v.name }}" placeholder="np. Kreatyna"></label>
+    <label>Dawka <input name="dose" maxlength="40" value="{{ v.dose }}" placeholder="np. 5 g albo 1 kapsułka"></label>
+    <label>Godzina powiadomienia <input name="time" type="time" value="{{ v.time }}">
+      <small class="muted">Puste = bez powiadomienia, tylko do odhaczania.</small></label>
+  </fieldset>
+
+  <details class="supl-stock"{% if v.pack_size %} open{% endif %}>
+    <summary>Zapas <small class="muted">– opcjonalnie</small></summary>
+    <p class="muted"><small>Każde ✓ odejmuje porcję. Gdy zostanie mało, suplement sam trafi na listę zakupów.</small></p>
+    <label>Ile porcji jest w opakowaniu <input name="pack_size" inputmode="decimal" value="{{ v.pack_size }}" placeholder="np. 120 kapsułek albo 100 porcji">
+      <small class="muted">Kreatyna 500 g po 5 g = 100 porcji.</small></label>
+    <label>Ile porcji bierzesz na raz <input name="per_take" inputmode="decimal" value="{{ v.per_take }}"></label>
+    <label>Ile porcji zostało teraz <input name="stock" inputmode="decimal" value="{{ v.stock }}"{% if not s %} placeholder="puste = nowe, pełne opakowanie"{% endif %}></label>
+    {% if s %}<label>Dopisz do zakupów, gdy zapasu zostanie na (dni) <input name="restock_days" type="number" min="0" max="90" value="{{ v.restock_days }}"></label>{% endif %}
+  </details>
+
+  <button type="submit">{{ 'Zapisz zmiany' if s else 'Dodaj suplement' }}</button>
+</form>
+
+{% if s %}
+<section class="supl-section">
+  <h2>🛍️ Kupiłem nowe opakowanie</h2>
+  {% if s.pack_size %}
+  <p class="muted"><small>Teraz: {{ fmt(s.stock or 0) }} porcji{% if days_left(s) is not none %} (na {{ days_left(s) }} dni){% endif %}. Opakowanie dodaje {{ fmt(s.pack_size) }}.</small></p>
+  <form method="post" action="/forma/suplementy/{{ s.id }}/kupione" class="supl-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="grid supl-two">
+      <label>Ile opakowań <input name="packs" type="number" min="1" max="20" value="1"></label>
+      <label>Cena (zł) <input name="price" inputmode="decimal" placeholder="opcjonalnie"></label>
+    </div>
+    <small class="muted">Cena trafi do budżetu w kategorii Zdrowie.</small>
+    <button type="submit" class="secondary">Dodaj do zapasu</button>
+  </form>
+  {% else %}
+  <p class="muted"><small>Najpierw wpisz wyżej w „Zapas”, ile porcji jest w opakowaniu.</small></p>
+  {% endif %}
+</section>
+
+<section class="supl-section supl-danger">
+  <form method="post" action="/forma/suplementy/{{ s.id }}/wstrzymaj" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline secondary">⏸ Wstrzymaj (przerwa)</button></form>
+  <form method="post" action="/forma/suplementy/{{ s.id }}/usun" class="inline" hx-confirm="Usunąć „{{ s.name }}” razem z historią?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline secondary">🗑 Usuń</button></form>
+</section>
+{% endif %}
+{% endblock %}

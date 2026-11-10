@@ -113,6 +113,7 @@ env.globals.update(
     holiday=holidays.name,
     menu_bar=menu.bar,
     menu_sidebar=menu.sidebar,
+    menu_groups=menu.sidebar_groups,
     items_text=items_text,
     NOTE_COLORS=NOTE_COLORS,
     MEALS=MEALS,
