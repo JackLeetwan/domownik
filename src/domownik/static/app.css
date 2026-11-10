@@ -183,7 +183,9 @@ body div.vis-tooltip { font-family: var(--pico-font-family); font-size: 0.82rem;
 @media (max-width: 639.98px) {
   .timeline-card { padding: 0.5rem 0.6rem; }
   .timeline-toolbar { margin-bottom: 0.25rem; gap: 0.35rem; }
-  .timeline-toolbar button { padding: 0.2rem 0.55rem; font-size: 0.8rem; }
+  .timeline-toolbar button { padding: 0.2rem 0.5rem; font-size: 0.8rem; white-space: nowrap; }
+  /* five ranges + "Dziś" in one row: "Tydz", "1 m", "3 m" on phones */
+  .timeline-toolbar .zoom .tl-long { display: none; }
   .timeline-toolbar { flex-wrap: nowrap; }
   .timeline-actions .switch { display: none; }
   .timeline-card .vis-item .tl-label { max-width: 11ch; }
@@ -1547,6 +1549,7 @@ main .who, .timeline-toolbar .zoom { margin: 0; }
 main .who > [role=button], .timeline-toolbar .zoom > button, .cal-views > a { margin: 0; padding: 0.3rem 0.9rem; border: 0; border-radius: 0; background: transparent; color: var(--dm-label); font-size: 0.85rem; font-weight: 400; box-shadow: none; text-decoration: none; }
 main .who > [role=button]:not(.outline), .timeline-toolbar .zoom > button[aria-pressed=true], .cal-views > a[aria-current=page] { background: var(--pico-primary-background); color: #fff; font-weight: 600; }
 main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-visible, .cal-views > a:focus-visible { outline: 2px solid var(--pico-primary); outline-offset: -2px; }
+@media (max-width: 639.98px) { .timeline-toolbar .zoom > button { padding: 0.3rem 0.6rem; } } /* five ranges fit a 360 px phone */
 
 /* ---------------------------------------------------------------- "Na wypadek" */
 .em-status { padding: 0.9rem 1rem; border-left: 4px solid var(--dm-later); }
