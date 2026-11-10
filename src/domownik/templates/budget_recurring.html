@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Stałe płatności · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/budzet" class="home-link">← Budżet</a></li></ul></nav>
+<header class="item-head"><h1>🔁 Stałe płatności</h1></header>
+
+{% if not active and not ended %}
+<p>Subskrypcje, rachunki i raty znajdą się same po imporcie wyciągu z banku – wystarczą 3 miesiące.</p>
+<a href="/budzet/import" role="button" class="outline">🏦 Import z banku</a>
+{% else %}
+<p class="rec-total"><b>≈ {{ monthly_gr|pln }}</b> miesięcznie <small class="muted">· {{ active|length }} {{ 'płatność' if active|length == 1 else ('płatności') }}</small></p>
+
+{% if dearer %}
+<section class="rec-dearer" aria-label="Podrożały">
+  {% for s in dearer %}<p>↑ <b>{{ s.name }}</b> – teraz {{ s.usual_gr|pln }}, wcześniej {{ s.before_gr|pln }} <small>(+{{ s.dearer_gr|pln }})</small></p>{% endfor %}
+</section>
+{% endif %}
+
+<ul class="supl-rows rec-rows">
+  {% for s in active %}
+  <li class="supl-row"><span class="supl-row-main">
+    <b>{{ s.name }}</b>
+    <small class="muted">{{ s.cadence }}{% if not s.steady %} · kwota zmienna{% endif %} · {% if s.next_on < today %}spóźnione – ostatnio {{ s.last_on|d }}{% else %}następna ok. {{ s.next_on|d }}{% endif %}</small>
+  </span><span class="rec-amount">{% if not s.steady %}~{% endif %}{{ s.usual_gr|pln }}</span></li>
+  {% endfor %}
+</ul>
+
+{% if ended %}
+<details class="rec-ended">
+  <summary>Chyba zakończone ({{ ended|length }})</summary>
+  <p class="muted"><small>Przestały przychodzić. Jeśli to subskrypcja, sprawdź, czy na pewno jest anulowana.</small></p>
+  <ul class="supl-rows">
+    {% for s in ended %}<li class="supl-row"><span class="supl-row-main"><b>{{ s.name }}</b><small class="muted">ostatnio {{ s.last_on|d }}</small></span><span class="rec-amount">{{ s.usual_gr|pln }}</span></li>{% endfor %}
+  </ul>
+</details>
+{% endif %}
+<p class="muted"><small>Znalezione w zaimportowanych wyciągach z ostatnich 2 lat: ten sam odbiorca w stałym rytmie (co miesiąc, kwartał albo rok). Kwota „teraz” to mediana trzech ostatnich obciążeń.</small></p>
+{% endif %}
+{% endblock %}

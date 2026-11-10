@@ -1893,3 +1893,9 @@ legend .ex-pic { width: 3rem; height: 2.25rem; margin-right: 0.25rem; }
 .card-number { font-family: ui-monospace, monospace; font-size: 1.3rem; letter-spacing: 0.08em; overflow-wrap: anywhere; margin-bottom: 0.3rem; }
 .shop-head-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .shop-head-actions > * { margin: 0; width: auto; }
+/* 🔁 standing payments */
+.rec-total { font-size: 1.15rem; margin-bottom: 0.6rem; }
+.rec-dearer { padding: 0.5rem 0.75rem; border-radius: 0.5rem; margin-bottom: 0.8rem; background: color-mix(in srgb, #b26a00 12%, transparent); }
+.rec-dearer p { margin: 0.15rem 0; }
+.rec-amount { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+.rec-rows .supl-row-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

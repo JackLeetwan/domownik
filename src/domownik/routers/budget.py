@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from domownik import budget, goals, services
+from domownik import budget, goals, recurring, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
@@ -229,6 +229,25 @@ async def task_category(
 
 
 # ---------------------------------------------------------------- categories, envelopes and incomes
+
+
+@router.get("/budzet/stale")
+def standing_page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """🔁 Subscriptions, bills, instalments – found in the imported bank statements (domownik.recurring)."""
+    found = recurring.find(db, today())
+    active = [s for s in found if not s.ended]
+    return render(
+        request,
+        "budget_recurring.html",
+        {
+            "user": user,
+            "active": active,
+            "ended": [s for s in found if s.ended],
+            "dearer": [s for s in active if s.dearer_gr],
+            "monthly_gr": sum(s.monthly_gr for s in active),
+            "today": today(),
+        },
+    )
 
 
 @router.get("/budzet/kategorie")
