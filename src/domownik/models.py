@@ -500,6 +500,19 @@ class JournalEntry(Base):
     created_by: Mapped[User | None] = relationship()
 
 
+class StandingMark(Base):
+    """What someone said about a standing payment found in the bank (domownik.recurring): not one ("skip"),
+    or confirmed over ("ended" – it comes back if a charge after `last_on` shows up)."""
+
+    __tablename__ = "standing_mark"
+
+    key: Mapped[str] = mapped_column(String(40), primary_key=True)  # recurring.key of the payee
+    state: Mapped[str] = mapped_column(String(10))  # skip | ended
+    last_on: Mapped[date | None] = mapped_column(Date)  # the last charge when it was marked
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
 class LoyaltyCard(Base):
     """A store's loyalty card of the house (shared): its number and the kind of barcode the till scans."""
 

@@ -20,7 +20,7 @@ from itertools import pairwise
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik.models import BankLine
+from domownik.models import BankLine, StandingMark, Task, Transaction
 
 LOOK_BACK_DAYS = 800  # two years and a bit: a yearly payment shows up twice
 MIN_CHARGES = 3
@@ -57,15 +57,45 @@ def _key(name: str) -> str:
     return " ".join(k.split())[:40]
 
 
+_ACRONYMS = {
+    "HBO",
+    "OC",
+    "AC",
+    "BP",
+    "KFC",
+    "CCC",
+    "OBI",
+    "PKO",
+    "PZU",
+    "ZUS",
+    "ING",
+    "NN",
+    "SA",
+    "S.A.",
+    "SP.",
+    "PL",
+    "TV",
+    "RTV",
+    "AGD",
+}
+
+
 def _pretty(name: str) -> str:
-    """'NETFLIX.COM' → 'Netflix.com', 'HBO MAX' → 'HBO Max', 'NETIA S.A.' → 'Netia S.A.' (short ones stay)."""
+    """'NETFLIX.COM' → 'Netflix.com', 'HBO MAX' → 'HBO Max', 'JAN KOWALSKI' → 'Jan Kowalski' (acronyms stay)."""
     if not name.isupper():
         return name
-    return " ".join(w if len(w) <= 3 or (len(w) <= 4 and "." in w) else w.capitalize() for w in name.split())
+
+    def word(w: str) -> str:
+        if w in _ACRONYMS or (len(w) <= 4 and not re.search(r"[AEIOUYĄĘÓ]", w)):
+            return w
+        return w.capitalize()
+
+    return " ".join(word(w) for w in name.split())
 
 
 @dataclass
 class Standing:
+    key: str
     name: str
     cadence: str
     months: int  # 1 / 3 / 12 – for the monthly sum
@@ -77,6 +107,10 @@ class Standing:
     steady: bool  # a fixed price (a subscription, an instalment) – not a bill that varies
     ended: bool  # did not come when it should have, by a margin
     before_gr: int | None = None  # the price before it went up (fixed prices only)
+    card: bool = False  # paid by card (a subscription charges itself) – not a transfer someone makes
+    task_ids: tuple[int, ...] = ()  # payments in Domownik its bank lines were booked to
+    task: Task | None = None  # the payment in Domownik it is (see link_tasks)
+    mark: StandingMark | None = None
 
     @property
     def dearer_gr(self) -> int:
@@ -88,32 +122,92 @@ class Standing:
         return round(self.usual_gr / self.months)
 
 
+def _merged(groups: dict[str, list]) -> dict[str, list]:
+    """One payee under two names – 'BIURO RACHUNKOWE VERITAX' and '… VERITAX ANNA TORZEWSKA' – is one:
+    a name (of 2+ words) that starts another takes it in."""
+    keys = sorted(groups, key=lambda k: len(k.split()))
+    root: dict[str, str] = {}
+    for k in keys:
+        words = k.split()
+        parent = next(
+            (p for p in keys if p != k and 2 <= len(p.split()) < len(words) and words[: len(p.split())] == p.split()),
+            None,
+        )
+        root[k] = root.get(parent, parent) if parent else k
+    out: dict[str, list] = defaultdict(list)
+    for k, xs in groups.items():
+        out[root[k]].extend(xs)
+    return {k: sorted(xs, key=lambda x: x[0]) for k, xs in out.items()}
+
+
 def find(db: Session, today: date) -> list[Standing]:
-    lines = db.scalars(
-        select(BankLine)
+    rows = db.execute(
+        select(BankLine, Transaction.task_id)
+        .outerjoin(Transaction, Transaction.id == BankLine.transaction_id)
         .where(BankLine.amount_gr < 0, BankLine.booked_on >= today - timedelta(days=LOOK_BACK_DAYS))
         .order_by(BankLine.booked_on)
     )
-    groups: dict[str, list[tuple[date, int, str]]] = defaultdict(list)
-    for ln in lines:
+    groups: dict[str, list[tuple[date, int, str, int | None, bool]]] = defaultdict(list)
+    for ln, task_id in rows:
         if _SKIP.search(ln.description or ""):
             continue
         name = payee(ln.description)
         key = _key(name)
         if key:
-            groups[key].append((ln.booked_on, -ln.amount_gr, name))
+            card = "KARTY" in (ln.description or "").upper()
+            groups[key].append((ln.booked_on, -ln.amount_gr, name, task_id, card))
     out = []
-    for xs in groups.values():
-        s = _standing(xs, today)
+    for key, xs in _merged(groups).items():
+        s = _standing(key, xs, today)
         if s is not None:
             out.append(s)
     return sorted(out, key=lambda s: (s.ended, -s.monthly_gr))
 
 
-def _standing(xs: list[tuple[date, int, str]], today: date) -> Standing | None:
+_COMMON = {"oplata", "oplaty", "rata", "skladka", "faktura", "abonament", "przelew", "com", "pl", "sp", "zoo", "sa"}
+
+
+def _words(text: str) -> set[str]:
+    import unicodedata
+
+    t = unicodedata.normalize("NFKD", text.lower().replace("ł", "l")).encode("ascii", "ignore").decode()
+    return {w for w in re.split(r"[^a-z0-9]+", t) if len(w) >= 3 and w not in _COMMON}
+
+
+def link_tasks(db: Session, found: list[Standing]) -> None:
+    """Which of them already is a payment in Domownik: the one its bank lines were booked to, else an active
+    payment of (about) the same sum – each payment counted once."""
+    tasks = {
+        t.id: t
+        for t in db.scalars(select(Task).where(Task.active.is_(True), Task.amount_gr.is_not(None)))
+        if t.direction != "income"
+    }
+    taken: set[int] = set()
+    for s in found:
+        tid = next((i for i in reversed(s.task_ids) if i in tasks), None)
+        if tid is not None:
+            s.task = tasks[tid]
+            taken.add(tid)
+    for s in found:
+        if s.task is not None or s.ended:
+            continue
+        words = _words(s.name)
+        near = [
+            t
+            for t in tasks.values()
+            if t.id not in taken
+            and abs(abs(t.amount_gr) - s.usual_gr) <= max(100, s.usual_gr * 0.1)
+            and words & _words(t.title)  # "Netflix" ↔ "NETFLIX.COM", "Max" ↔ "HBO Max" – a sum alone misleads
+        ]
+        if len(near) == 1:  # two bills of the same sum: better no guess than a wrong one
+            s.task = near[0]
+            taken.add(near[0].id)
+
+
+def _standing(key: str, xs: list[tuple[date, int, str, int | None, bool]], today: date) -> Standing | None:
     # two charges on one day (a correction, a split) count as one visit
     by_day: dict[date, int] = defaultdict(int)
-    for d, amount, _ in xs:
+    for d, amount, *_ in xs:
         by_day[d] += amount
     days = sorted(by_day)
     if len(days) < MIN_CHARGES_YEARLY:
@@ -139,6 +233,7 @@ def _standing(xs: list[tuple[date, int, str]], today: date) -> Standing | None:
     label, gap, _, _, months = cad
     last = days[-1]
     return Standing(
+        key=key,
         name=_pretty(xs[-1][2]),
         cadence=label,
         months=months,
@@ -150,4 +245,6 @@ def _standing(xs: list[tuple[date, int, str]], today: date) -> Standing | None:
         steady=steady,
         ended=(today - last).days > med + max(GAP_SLACK * 2, gap // 2),
         before_gr=before,
+        card=sum(x[4] for x in xs) * 2 > len(xs),
+        task_ids=tuple(x[3] for x in xs if x[3] is not None),
     )

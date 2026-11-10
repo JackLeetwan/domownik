@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -12,9 +13,20 @@ from sqlalchemy.orm import Session
 from domownik import budget, goals, recurring, services
 from domownik.config import today
 from domownik.db import get_db
-from domownik.domain.money import parse_pln
+from domownik.domain import recurrence
+from domownik.domain.money import format_pln, parse_pln
 from domownik.domain.tree import Tree
-from domownik.models import BUDGET_KINDS, BudgetCategory, Item, RecurringIncome, Task, Transaction, User
+from domownik.models import (
+    BUDGET_KINDS,
+    BudgetCategory,
+    Item,
+    RecurringIncome,
+    StandingMark,
+    Task,
+    Todo,
+    Transaction,
+    User,
+)
 from domownik.routers.calendar import _month
 from domownik.security import current_user, verify_csrf
 from domownik.web import error_target, is_quick, quick_saved, render
@@ -231,23 +243,114 @@ async def task_category(
 # ---------------------------------------------------------------- categories, envelopes and incomes
 
 
+def _standing(db: Session) -> tuple[list[recurring.Standing], dict[str, StandingMark]]:
+    found = recurring.find(db, today())
+    recurring.link_tasks(db, found)
+    marks = {m.key: m for m in db.scalars(select(StandingMark))}
+    for s in found:
+        m = marks.get(s.key)
+        if m is not None and m.state == "ended" and m.last_on and s.last_on > m.last_on:
+            db.delete(m)  # "zakończone" – and yet a new charge came: it is back on the list
+            db.commit()
+            m = None
+        s.mark = m
+    return found, marks
+
+
 @router.get("/budzet/stale")
 def standing_page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     """🔁 Subscriptions, bills, instalments – found in the imported bank statements (domownik.recurring)."""
-    found = recurring.find(db, today())
-    active = [s for s in found if not s.ended]
+    found, _ = _standing(db)
+    shown = [s for s in found if s.mark is None]
+    active = [s for s in shown if not s.ended]
     return render(
         request,
         "budget_recurring.html",
         {
             "user": user,
             "active": active,
-            "ended": [s for s in found if s.ended],
+            "ended": [s for s in shown if s.ended],
+            "hidden": [s for s in found if s.mark is not None],
             "dearer": [s for s in active if s.dearer_gr],
             "monthly_gr": sum(s.monthly_gr for s in active),
             "today": today(),
         },
     )
+
+
+def _rule(s: recurring.Standing) -> dict:
+    if s.months == 1:
+        return {"mode": "monthly", "day": min(s.next_on.day, 28)}
+    return {"mode": "interval", "every": s.months, "unit": "month", "anchor": "due"}
+
+
+def _payments_place(db: Session, tree: Tree) -> int:
+    """Where the house keeps its bills: the place with the most active payments, else the first house."""
+    counts: dict[int, int] = {}
+    for t in db.scalars(select(Task).where(Task.active.is_(True), Task.category == "payment")):
+        counts[t.item_id] = counts.get(t.item_id, 0) + 1
+    if counts:
+        return max(counts, key=counts.get)
+    houses = [i for i in tree.items.values() if i.kind == "house"] or list(tree.items.values())
+    if not houses:
+        raise HTTPException(400, "Najpierw dodaj dom w Domowniku")
+    return houses[0].id
+
+
+@router.post("/budzet/stale", dependencies=[Depends(verify_csrf)])
+async def standing_action(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """What to do with one found standing payment: co = pomin | zakonczone | przywroc | zrezygnuj | oplata."""
+    form = await request.form()
+    key, what = str(form.get("key") or ""), str(form.get("co") or "")
+    found, marks = _standing(db)
+    s = next((x for x in found if x.key == key), None)
+    if s is None:
+        raise HTTPException(404, "Tej płatności już nie ma na liście")
+    back = "/budzet/stale"
+    if what in ("pomin", "zakonczone"):
+        m = marks.get(key) or StandingMark(key=key, created_by_id=user.id)
+        m.state, m.last_on = ("skip" if what == "pomin" else "ended"), s.last_on
+        db.merge(m)
+    elif what == "przywroc":
+        if key in marks:
+            db.delete(marks[key])
+    elif what == "zrezygnuj":
+        title = f"Sprawdź, czy {s.name} jest anulowane" if s.ended else f"Zrezygnuj z: {s.name}"
+        notes = f"{format_pln(s.usual_gr)} {s.cadence}, ostatnio {s.last_on:%d.%m.%Y} (z wyciągu z banku)"
+        db.add(Todo(title=title[:200], notes=notes, created_by_id=user.id))
+        db.commit()
+        return _go(back + "?dodano=" + quote("Do zrobienia: " + title[:80]))
+    elif what == "oplata":
+        if s.task is not None:
+            return _go(f"/tasks/{s.task.id}/edit")
+        tree = Tree.load(db)
+        item_id = _payments_place(db, tree)
+        due = s.next_on if s.next_on >= today() else (recurrence.first_due(_rule(s), today()) or today())
+        t = Task(
+            item_id=item_id,
+            title=s.name[:120],
+            category="payment",
+            recurrence=_rule(s),
+            next_due_date=due,
+            lead_days=3,
+            amount_gr=s.usual_gr,
+            direction="expense",
+            autopay=s.card,  # a card subscription charges itself – nothing to pay by hand
+            budget_category_id=budget.suggest_category(db, tree, item_id, "payment"),
+        )
+        db.add(t)
+        db.commit()
+        return _go(f"/tasks/{t.id}/edit")  # a look before it is final: the name, the day, the budget line
+    else:
+        raise HTTPException(400, "Nieznane działanie")
+    db.commit()
+    return _go(back)
+
+
+def _go(url: str) -> RedirectResponse:
+    resp = RedirectResponse(url, status_code=303)
+    resp.headers["HX-Redirect"] = url
+    return resp
 
 
 @router.get("/budzet/kategorie")

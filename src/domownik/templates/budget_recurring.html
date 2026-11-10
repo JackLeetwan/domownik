@@ -1,14 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Stałe płatności · Domownik{% endblock %}
+{% macro act(s, co, label, cls='outline secondary') %}<form method="post" action="/budzet/stale" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="key" value="{{ s.key }}"><input type="hidden" name="co" value="{{ co }}"><button type="submit" class="small {{ cls }}">{{ label }}</button></form>{% endmacro %}
 {% block content %}
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/budzet" class="home-link">← Budżet</a></li></ul></nav>
 <header class="item-head"><h1>🔁 Stałe płatności</h1></header>
+{% if request.query_params.get('dodano') %}<p class="rec-flash" role="status">✓ {{ request.query_params.get('dodano') }}</p>{% endif %}
 
-{% if not active and not ended %}
+{% if not active and not ended and not hidden %}
 <p>Subskrypcje, rachunki i raty znajdą się same po imporcie wyciągu z banku – wystarczą 3 miesiące.</p>
 <a href="/budzet/import" role="button" class="outline">🏦 Import z banku</a>
 {% else %}
-<p class="rec-total"><b>≈ {{ monthly_gr|pln }}</b> miesięcznie <small class="muted">· {{ active|length }} {{ 'płatność' if active|length == 1 else ('płatności') }}</small></p>
+<p class="rec-total"><b>≈ {{ monthly_gr|pln }}</b> miesięcznie <small class="muted">· {{ active|length }} {{ 'płatność' if active|length == 1 else 'płatności' }}</small></p>
 
 {% if dearer %}
 <section class="rec-dearer" aria-label="Podrożały">
@@ -16,24 +18,51 @@
 </section>
 {% endif %}
 
-<ul class="supl-rows rec-rows">
+<p class="muted"><small>Dotknij płatności, żeby coś z nią zrobić.</small></p>
+<ul class="rec-list">
   {% for s in active %}
-  <li class="supl-row"><span class="supl-row-main">
-    <b>{{ s.name }}</b>
-    <small class="muted">{{ s.cadence }}{% if not s.steady %} · kwota zmienna{% endif %} · {% if s.next_on < today %}spóźnione – ostatnio {{ s.last_on|d }}{% else %}następna ok. {{ s.next_on|d }}{% endif %}</small>
-  </span><span class="rec-amount">{% if not s.steady %}~{% endif %}{{ s.usual_gr|pln }}</span></li>
+  <li><details class="rec-item">
+    <summary><span class="rec-main"><b>{{ s.name }}</b>
+      <small class="muted">{{ s.cadence }}{% if not s.steady %} · kwota zmienna{% endif %} · {% if s.next_on < today %}spóźnione – ostatnio {{ s.last_on|d }}{% else %}następna ok. {{ s.next_on|d }}{% endif %}{% if s.task %} · <span class="rec-in">✓ w opłatach</span>{% endif %}</small></span>
+      <span class="rec-amount">{% if not s.steady %}~{% endif %}{{ s.usual_gr|pln }}</span></summary>
+    <div class="rec-actions">
+      {% if s.task %}<a href="/tasks/{{ s.task.id }}" class="rec-task">✓ Opłata w Domowniku: {{ s.task.title }} ›</a>
+      {% else %}{{ act(s, 'oplata', '＋ Zrób z tego opłatę', '') }}{% endif %}
+      {{ act(s, 'zrezygnuj', '📝 Chcę zrezygnować') }}
+      {{ act(s, 'pomin', 'Pomiń – to nie subskrypcja') }}
+    </div>
+  </details></li>
   {% endfor %}
 </ul>
 
 {% if ended %}
-<details class="rec-ended">
-  <summary>Chyba zakończone ({{ ended|length }})</summary>
-  <p class="muted"><small>Przestały przychodzić. Jeśli to subskrypcja, sprawdź, czy na pewno jest anulowana.</small></p>
-  <ul class="supl-rows">
-    {% for s in ended %}<li class="supl-row"><span class="supl-row-main"><b>{{ s.name }}</b><small class="muted">ostatnio {{ s.last_on|d }}</small></span><span class="rec-amount">{{ s.usual_gr|pln }}</span></li>{% endfor %}
+<h3 class="supl-sub">Chyba zakończone ({{ ended|length }})</h3>
+<p class="muted"><small>Przestały przychodzić. Jeśli to subskrypcja, sprawdź, czy na pewno jest anulowana.</small></p>
+<ul class="rec-list">
+  {% for s in ended %}
+  <li><details class="rec-item">
+    <summary><span class="rec-main"><b>{{ s.name }}</b><small class="muted">ostatnio {{ s.last_on|d }}</small></span><span class="rec-amount">{{ s.usual_gr|pln }}</span></summary>
+    <div class="rec-actions">
+      {{ act(s, 'zakonczone', '✓ Tak, zakończone', '') }}
+      {{ act(s, 'zrezygnuj', '📝 Sprawdź, czy anulowane') }}
+      {{ act(s, 'pomin', 'Pomiń') }}
+    </div>
+  </details></li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if hidden %}
+<details class="rec-hidden">
+  <summary>Ukryte ({{ hidden|length }})</summary>
+  <ul class="rec-list">
+    {% for s in hidden %}
+    <li class="rec-hidden-row"><span class="rec-main"><b>{{ s.name }}</b><small class="muted">{{ 'zakończone' if s.mark.state == 'ended' else 'pominięte' }} · {{ s.usual_gr|pln }}</small></span>{{ act(s, 'przywroc', 'Przywróć') }}</li>
+    {% endfor %}
   </ul>
+  <p class="muted"><small>Zakończona wraca sama, jeśli przyjdzie nowe obciążenie.</small></p>
 </details>
 {% endif %}
-<p class="muted"><small>Znalezione w zaimportowanych wyciągach z ostatnich 2 lat: ten sam odbiorca w stałym rytmie (co miesiąc, kwartał albo rok). Kwota „teraz” to mediana trzech ostatnich obciążeń.</small></p>
+<p class="muted"><small>Znalezione w zaimportowanych wyciągach z ostatnich 2 lat: ten sam odbiorca w stałym rytmie (co miesiąc, kwartał albo rok). Kwota „teraz” to mediana trzech ostatnich obciążeń. „✓ w opłatach” – ta płatność jest już opłatą w Domowniku.</small></p>
 {% endif %}
 {% endblock %}
