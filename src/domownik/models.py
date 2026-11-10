@@ -1401,3 +1401,69 @@ class TrainingPrefs(Base):
     weekly_goal: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
     gap_days: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
     gap_pushed_on: Mapped[date | None] = mapped_column(Date)
+
+
+# ---------------------------------------------------------------- 💪 Forma: sylwetka (strictly the owner's)
+
+
+class BodyWeight(Base):
+    """One weigh-in a day (kg). The trend is the 7-day average, not single days."""
+
+    __tablename__ = "body_weight"
+    __table_args__ = (UniqueConstraint("user_id", "day"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date] = mapped_column(Date)
+    kg: Mapped[float]
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class BodyCheck(Base):
+    """A measurement every few weeks: circumferences (cm, each optional) and photos front / side / back."""
+
+    __tablename__ = "body_check"
+    __table_args__ = (UniqueConstraint("user_id", "day"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date] = mapped_column(Date)
+    chest: Mapped[float | None]
+    arm: Mapped[float | None]
+    waist: Mapped[float | None]
+    thigh: Mapped[float | None]
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    photos: Mapped[list[BodyPhoto]] = relationship(back_populates="check", cascade="all, delete-orphan")
+
+
+class BodyPhoto(Base):
+    """A photo of a measurement. Bytes in uploads/body/<user id>/ – served only to the owner."""
+
+    __tablename__ = "body_photo"
+    __table_args__ = (UniqueConstraint("check_id", "pose"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    check_id: Mapped[int] = mapped_column(ForeignKey("body_check.id", ondelete="CASCADE"), index=True)
+    pose: Mapped[str] = mapped_column(String(10))  # front | side | back
+    storage_path: Mapped[str] = mapped_column(String(120), unique=True)
+    content_type: Mapped[str] = mapped_column(String(100))
+    size: Mapped[int] = mapped_column(Integer)
+    has_thumb: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    check: Mapped[BodyCheck] = relationship(back_populates="photos")
+
+
+class BodyPrefs(Base):
+    """Per person: goal weight and the gentle reminders (a weigh-in after N days without one, a measurement)."""
+
+    __tablename__ = "body_prefs"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
+    goal_kg: Mapped[float | None]
+    reminders: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    weigh_gap_days: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
+    check_every_days: Mapped[int] = mapped_column(Integer, default=14, server_default="14")
+    weigh_pushed_on: Mapped[date | None] = mapped_column(Date)
+    check_pushed_on: Mapped[date | None] = mapped_column(Date)

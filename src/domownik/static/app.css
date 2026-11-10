@@ -1780,3 +1780,57 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .wst-day label { margin-top: 0.5rem; }
 .wst-go { width: 100%; margin: 1.5rem 0 2rem; font-size: 1.1rem; padding-block: 0.8rem; }
 .tr-other { display: block; margin-top: 0.75rem; text-align: center; font-size: 0.95rem; }
+
+/* ⚖️ Sylwetka */
+.body-now { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.body-now b { font-size: 1.6rem; }
+.body-facts { margin: 0.2rem 0 0.6rem; }
+.body-facts small { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
+.body-weigh { margin: 0 0 0.4rem; }
+.body-weigh label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
+.body-weigh-row { display: flex; align-items: center; gap: 0.5rem; }
+.body-weigh-row input { flex: 1 1 6rem; min-width: 0; margin: 0; }
+.body-weigh-row button { width: auto; margin: 0; flex: none; }
+.body-check-line { margin: 0.5rem 0 0.25rem; }
+.body-check-line [role=button] { width: 100%; margin: 0; }
+.body-ranges { display: flex; justify-content: flex-start; gap: 0.4rem; margin: 0 0 0.5rem; flex-wrap: wrap; }
+.body-ranges a { padding: 0.25rem 0.75rem; border-radius: 999px; border: 1px solid var(--dm-tile-border); text-decoration: none; font-size: 0.9rem; }
+.body-ranges a[aria-current] { background: var(--pico-primary-background); color: var(--pico-primary-inverse); border-color: transparent; }
+.body-chart { margin: 0 0 1rem; }
+.body-chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.body-chart text { font-size: 8px; fill: var(--pico-muted-color); }
+.body-chart .grid { stroke: var(--dm-tile-border); stroke-width: 0.6; }
+.body-chart .dot { fill: var(--pico-muted-color); opacity: 0.55; }
+.body-chart .avg { fill: none; stroke: var(--pico-primary); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+.body-chart .goal { stroke: var(--pico-ins-color, #2e7d32); stroke-width: 1.2; stroke-dasharray: 4 3; }
+.body-chart text.goal-label { fill: var(--pico-ins-color, #2e7d32); }
+.body-key { display: inline-block; padding: 0; border: 0; border-radius: 0; background: none; width: 0.9em; height: 0; vertical-align: middle; margin-right: 0.15em; border-top: 2px solid var(--pico-primary); }
+.body-key.key-dot { width: 0.45em; height: 0.45em; border: 0; border-radius: 50%; background: var(--pico-muted-color); }
+.body-key.key-goal { border-top: 2px dashed var(--pico-ins-color, #2e7d32); }
+.body-list, .body-settings { margin: 0.5rem 0 1rem; }
+.body-backfill { margin-top: 0.75rem; }
+.body-changes { width: 100%; margin: 0.75rem 0 0.25rem; font-variant-numeric: tabular-nums; }
+.body-changes th, .body-changes td { padding: 0.3rem 0.4rem; }
+.body-changes td, .body-changes thead th + th { text-align: right; white-space: nowrap; }
+.body-checks { margin-top: 0.75rem; }
+.body-thumbs { display: flex; gap: 0.2rem; flex: none; }
+.body-thumbs img { width: 2.2rem; height: 2.9rem; object-fit: cover; border-radius: 4px; }
+.body-compare-btn { width: 100%; }
+.body-switch { display: flex; gap: 0.5rem; align-items: flex-start; }
+.body-switch input { flex: none; }
+.body-sites { display: grid; gap: 0.1rem; }
+.body-site span { display: block; margin-bottom: 0.2rem; }
+.body-poses { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem; }
+.body-pose-pick { position: relative; display: grid; gap: 0.3rem; margin: 0; cursor: pointer; text-align: center; }
+.body-pose-pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; }
+.body-pose-img { display: grid; place-items: center; aspect-ratio: 3 / 4; border-radius: 10px; border: 2px dashed var(--dm-tile-border); background: var(--dm-tile-bg); font-size: 1.8rem; overflow: hidden; }
+.body-pose-img img { width: 100%; height: 100%; object-fit: cover; }
+.body-pose-img.picked { border-style: solid; border-color: var(--pico-primary); }
+.body-pose-del { font-size: 0.85rem; text-align: center; margin: 0.2rem 0 0; }
+.body-delete { margin-top: 1.5rem; }
+.body-pick-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.body-side { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.body-side figure { margin: 0; }
+.body-side img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; display: block; }
+.body-nophoto { display: grid; place-items: center; aspect-ratio: 3 / 4; border-radius: 8px; border: 1px dashed var(--dm-tile-border); text-align: center; padding: 0.5rem; }
+.body-side figcaption { margin-top: 0.3rem; }

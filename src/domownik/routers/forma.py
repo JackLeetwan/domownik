@@ -11,6 +11,7 @@ from domownik.config import now, today
 from domownik.db import get_db
 from domownik.domain.money import parse_pln
 from domownik.models import Supplement, User
+from domownik.routers import sylwetka
 from domownik.routers.trening import section_context
 from domownik.security import current_user, verify_csrf
 from domownik.web import is_htmx, render
@@ -58,7 +59,8 @@ def page(request: Request, db: Session = Depends(get_db), user: User = Depends(c
             "card_where": "forma",
         }
         | card_context(db, user)
-        | section_context(db, user),
+        | section_context(db, user)
+        | sylwetka.card_context(db, user),
     )
 
 

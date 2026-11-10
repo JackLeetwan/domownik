@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Porównanie sylwetki · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/sylwetka#pomiary" class="home-link">← Sylwetka</a></li></ul></nav>
+<header class="item-head"><h1>🖼 Porównanie</h1></header>
+{% if not checks %}
+<p>Nie ma jeszcze zdjęć. Dodasz je w <a href="/forma/sylwetka/pomiar/nowy">nowym pomiarze</a>.</p>
+{% else %}
+<nav class="body-ranges" aria-label="Ujęcie">{% for pose, label in poses %}<a href="/forma/sylwetka/porownaj?a={{ left.id }}&b={{ right.id }}&poza={{ pose }}"{% if pose == poza %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+
+<form method="get" action="/forma/sylwetka/porownaj" class="body-pick-dates">
+  <input type="hidden" name="poza" value="{{ poza }}">
+  <label>Przed<select name="a" data-autosubmit>{% for c in checks|reverse %}<option value="{{ c.id }}"{% if c.id == left.id %} selected{% endif %}>{{ c.day|d }}</option>{% endfor %}</select></label>
+  <label>Teraz<select name="b" data-autosubmit>{% for c in checks %}<option value="{{ c.id }}"{% if c.id == right.id %} selected{% endif %}>{{ c.day|d }}</option>{% endfor %}</select></label>
+  <noscript><button type="submit">Pokaż</button></noscript>
+</form>
+
+<div class="body-side">
+  {% for c in [left, right] %}{% set ph = photo_of(c, poza) %}
+  <figure>
+    {% if ph %}<a href="/forma/sylwetka/zdjecie/{{ ph.id }}" target="_blank" rel="noopener"><img src="/forma/sylwetka/zdjecie/{{ ph.id }}" alt="{{ pose_names[poza] }} – {{ c.day|d }}"></a>
+    {% else %}<div class="body-nophoto muted"><small>Brak zdjęcia „{{ pose_names[poza] }}”</small></div>{% endif %}
+    <figcaption><b>{{ c.day|d }}</b>
+      {% for key, label, _ in sites %}{% if c|attr(key) is not none %}<br><small class="muted">{{ label }} {{ bfmt(c|attr(key)) }}</small>{% endif %}{% endfor %}</figcaption>
+  </figure>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

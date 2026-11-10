@@ -1,0 +1,30 @@
+{# ⚖️ the weight now + the weigh-in form + when the next measurement is; needs card_context (routers/sylwetka.py) #}
+<section class="tr-card body-card">
+  {% if body.avg is not none %}
+  <div class="body-now">
+    <span><b>{{ bfmt(body.avg) }} kg</b> <small class="muted">średnia z {{ body.avg_n }} {{ 'ważenia' if body.avg_n == 1 else 'ważeń' }}{% if body.stale %} do {{ body.last.day|d }}{% else %} w 7 dni{% endif %}</small></span>
+  </div>
+  <p class="body-facts"><small>
+    {% if body.change is not none %}<span>{{ '↑' if body.change > 0.05 else ('↓' if body.change < -0.05 else '→') }} {{ bfmt(body.change, signed=True) }} kg w 4 tyg.{% if body.per_week|abs >= 0.05 %} <span class="muted">({{ bfmt(body.per_week, signed=True) }}/tydz.)</span>{% endif %}</span>{% endif %}
+    {% if body.to_goal is not none %}<span>🎯 {% if body.to_goal|abs < 0.3 %}cel {{ bfmt(body.goal) }} kg osiągnięty{% else %}do celu {{ bfmt(body.to_goal|abs) }} kg{% endif %}</span>{% endif %}
+  </small></p>
+  {% else %}
+  <p class="muted"><small>Waż się rano, po toalecie i przed jedzeniem, ile razy w tygodniu chcesz. Waga skacze z dnia na dzień o 1–2 kg, więc liczy się średnia z 7 dni.</small></p>
+  {% endif %}
+
+  <form method="post" action="/forma/waga" class="body-weigh">
+    <input type="hidden" name="csrf" value="{{ csrf }}">{% if back %}<input type="hidden" name="back" value="{{ back }}">{% endif %}
+    <label for="kg-input">{% if body.today_kg is not none %}Dziś: {{ bfmt(body.today_kg) }} kg ✓ – popraw{% else %}Waga dziś{% endif %}</label>
+    <div class="body-weigh-row">
+      <input id="kg-input" name="kg" inputmode="decimal" autocomplete="off" placeholder="{{ 'ostatnio ' ~ bfmt(body.last.kg) if body.last else 'np. 72,5' }}" value="{{ typed or '' }}" aria-describedby="kg-unit"><span id="kg-unit" class="muted">kg</span>
+      <button type="submit">Zapisz</button>
+    </div>
+  </form>
+
+  {% if not back %}<p class="body-check-line">
+    {% if check_next is none %}<a href="/forma/sylwetka/pomiar/nowy" role="button" class="outline">📏 Pierwszy pomiar: obwody i zdjęcia</a>
+    {% elif check_due %}<a href="/forma/sylwetka/pomiar/nowy" role="button" class="outline">📏 Czas na pomiar</a>
+    {% else %}<small class="muted">📏 Następny pomiar: {{ check_next|d(weekday=True) }}</small>{% endif %}
+  </p>
+  <a href="/forma/sylwetka" class="tr-other">Wykres, pomiary i zdjęcia ›</a>{% endif %}
+</section>

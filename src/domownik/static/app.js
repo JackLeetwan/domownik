@@ -759,6 +759,20 @@
   });
   scrollHints();
 
+  // 📏 a photo picked for a pose (front / side / back): shown in its tile before saving
+  document.addEventListener("change", (e) => {
+    const input = e.target;
+    if (!input.matches || !input.matches("input[type=file][data-pose-pick]")) return;
+    const box = input.closest(".body-pose") && input.closest(".body-pose").querySelector("[data-pose-preview]");
+    const file = input.files && input.files[0];
+    if (!box || !file) return;
+    const img = document.createElement("img");
+    img.alt = "";
+    img.src = URL.createObjectURL(file);
+    box.replaceChildren(img);
+    box.classList.add("picked");
+  });
+
   // ------------------------------------------------------------------ quick add ("＋")
   // a quick-add form was saved (HX-Trigger: dm-added): close the window, say so, refresh the page under it
   document.addEventListener("dm-added", (e) => {

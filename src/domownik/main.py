@@ -39,6 +39,7 @@ from domownik.routers import (
     quick,
     schedule,
     shopping,
+    sylwetka,
     tasks,
     timers,
     trening,
@@ -62,7 +63,7 @@ def _tick() -> None:
 
 
 def _timer_tick() -> None:
-    from domownik import supplements, timers, training
+    from domownik import body, supplements, timers, training
     from domownik.db import session_factory
 
     try:
@@ -80,6 +81,11 @@ def _timer_tick() -> None:
             training.run_nudge(db)
     except Exception:
         log.exception("training nudge failed")
+    try:
+        with session_factory()() as db:
+            body.run(db)
+    except Exception:
+        log.exception("body reminder failed")
 
 
 def _rest_tick() -> None:
@@ -194,6 +200,7 @@ def create_app() -> FastAPI:
     app.include_router(timers.router)
     app.include_router(forma.router)
     app.include_router(trening.router)
+    app.include_router(sylwetka.router)
 
     @app.exception_handler(LoginRequired)
     async def _login_required(request: Request, _exc: LoginRequired):

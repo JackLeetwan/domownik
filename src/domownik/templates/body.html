@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Sylwetka · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma" class="home-link">← Forma</a></li></ul></nav>
+<header class="item-head"><h1>⚖️ Sylwetka</h1></header>
+<p class="muted"><small>🔒 Waga, obwody i zdjęcia są tylko Twoje. Nikt inny w domu ich nie widzi, administrator też nie.</small></p>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+<div id="sylwetka">{% set back = "sylwetka" %}{% include "partials/body_card.html" %}</div>
+
+<h2>📊 Waga</h2>
+{% if chart %}
+<nav class="body-ranges" aria-label="Okres wykresu">{% for days, label in ranges %}<a href="/forma/sylwetka?okres={{ days }}"{% if days == okres %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+<figure class="body-chart">
+  <svg viewBox="0 0 {{ chart.w }} {{ chart.h }}" role="img" aria-label="Waga od {{ chart.from|d }} do {{ chart.to|d }}: kropki to ważenia, linia to średnia z 7 dni{% if chart.goal %}, przerywana linia to cel {{ bfmt(chart.goal) }} kg{% endif %}">
+    {% for y, label in chart.ticks %}<line x1="{{ chart.left }}" x2="{{ chart.w }}" y1="{{ y }}" y2="{{ y }}" class="grid"/><text x="{{ chart.left - 4 }}" y="{{ y + 3 }}" text-anchor="end">{{ label }}</text>{% endfor %}
+    {% if chart.goal_y is not none %}<line x1="{{ chart.left }}" x2="{{ chart.w }}" y1="{{ chart.goal_y }}" y2="{{ chart.goal_y }}" class="goal"/><text x="{{ chart.w - 2 }}" y="{{ chart.goal_y - 3 }}" text-anchor="end" class="goal-label">cel {{ bfmt(chart.goal) }}</text>{% endif %}
+    {% for x, y in chart.dots %}<circle cx="{{ x }}" cy="{{ y }}" r="2.2" class="dot"/>{% endfor %}
+    <polyline points="{{ chart.avg }}" class="avg"/>
+  </svg>
+  <figcaption class="muted"><small><span class="body-key key-dot"></span> ważenie · <span class="body-key key-avg"></span> średnia 7 dni{% if chart.goal_y is not none %} · <span class="body-key key-goal"></span> cel{% elif chart.goal_off %} · cel {{ bfmt(chart.goal) }} kg {{ '↑ wyżej' if chart.goal_off == 'up' else '↓ niżej' }}{% endif %}<br>{{ chart.from|d }} – {{ chart.to|d }}</small></figcaption>
+</figure>
+{% elif recent %}
+<p class="muted"><small>Wykres pojawi się po drugim ważeniu.</small></p>
+{% endif %}
+
+{% if recent %}
+<details class="body-list" id="wpisy">
+  <summary>Wpisy wagi ({{ recent|length }}{% if recent|length == 30 %}, ostatnie{% endif %})</summary>
+  <ul class="supl-rows">
+    {% for w in recent %}
+    <li class="supl-row"><span class="supl-row-main"><b>{{ bfmt(w.kg) }} kg</b><small class="muted">{{ w.day|d(weekday=True) }}</small></span>
+      <form method="post" action="/forma/waga/{{ w.id }}/usun" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline secondary" aria-label="Usuń wpis {{ bfmt(w.kg) }} kg z {{ w.day|d }}">Usuń</button></form></li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="/forma/waga" class="body-backfill">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="back" value="sylwetka">
+    <p><small class="muted">Wpis z innego dnia:</small></p>
+    <div class="grid">
+      <label>Dzień<input type="date" name="day" max="{{ today.isoformat() }}" value="{{ today.isoformat() }}"></label>
+      <label>Waga (kg)<input name="kg" inputmode="decimal" autocomplete="off"></label>
+    </div>
+    <button type="submit" class="outline">Zapisz wpis</button>
+  </form>
+</details>
+{% endif %}
+
+<h2 id="pomiary">📏 Pomiary</h2>
+<p class="muted"><small>Co {{ prefs.check_every_days if prefs else 14 }} dni: obwody i 3 zdjęcia, rano, przed jedzeniem. Przy budowaniu masy talia pokazuje, czy przybywa mięśni, czy tłuszczu.{% if check_next %} <b>{% if check_due %}Czas na pomiar.{% else %}Następny: {{ check_next|d(weekday=True) }}.{% endif %}</b>{% endif %}</small></p>
+<a href="/forma/sylwetka/pomiar/nowy" role="button" class="supl-add">＋ Nowy pomiar</a>
+
+{% if changes %}
+<table class="body-changes">
+  <thead><tr><th>cm</th><th>{{ checks[-1].day|d }}</th><th>{{ checks[0].day|d }}</th><th>razem</th></tr></thead>
+  <tbody>{% for label, first, last, step in changes %}
+    <tr><th scope="row">{{ label }}</th><td>{{ bfmt(first) }}</td><td><b>{{ bfmt(last) }}</b>{% if step is not none and step|abs >= 0.05 %} <small class="muted">({{ bfmt(step, signed=True) }})</small>{% endif %}</td><td>{{ bfmt(last - first, signed=True) if checks|length > 1 else '–' }}</td></tr>
+  {% endfor %}</tbody>
+</table>
+{% if checks|length > 1 %}<p class="muted"><small>W nawiasie: zmiana od poprzedniego pomiaru.</small></p>{% endif %}
+{% endif %}
+
+{% if checks %}
+<ul class="supl-rows body-checks">
+  {% for c in checks %}
+  <li id="pomiar-{{ c.id }}"><a class="supl-row" href="/forma/sylwetka/pomiar/{{ c.id }}">
+    <span class="supl-row-main"><b>{{ c.day|d(weekday=True) }}</b>
+      <small class="muted">{% for key, label, _ in sites %}{% if c|attr(key) is not none %}{{ label }} {{ bfmt(c|attr(key)) }} · {% endif %}{% endfor %}{{ c.photos|length }} zdj.</small></span>
+    <span class="body-thumbs">{% for pose, _ in poses %}{% set ph = photo_of(c, pose) %}{% if ph %}<img src="/forma/sylwetka/zdjecie/{{ ph.id }}?maly=1" alt="" loading="lazy">{% endif %}{% endfor %}</span>
+    <span class="supl-row-go" aria-hidden="true">›</span>
+  </a></li>
+  {% endfor %}
+</ul>
+{% if with_photos %}<a href="/forma/sylwetka/porownaj" role="button" class="outline body-compare-btn">🖼 Porównaj zdjęcia{% if with_photos == 1 %} (na razie 1 pomiar){% endif %}</a>{% endif %}
+{% endif %}
+
+<details class="body-settings" id="ustawienia">
+  <summary>⚙️ Cel i przypomnienia</summary>
+  <form method="post" action="/forma/sylwetka/ustawienia">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Cel wagi (kg) <small class="muted">– pozioma linia na wykresie; puste = bez celu</small>
+      <input name="goal" inputmode="decimal" autocomplete="off" value="{{ bfmt(prefs.goal_kg) if prefs else '' }}" placeholder="np. 78"></label>
+    <label>Pomiar co
+      <select name="every">{% for n in every_choices %}<option value="{{ n }}"{% if (prefs.check_every_days if prefs else 14) == n %} selected{% endif %}>{{ n // 7 }} tygodnie ({{ n }} dni)</option>{% endfor %}</select></label>
+    <label class="body-switch"><input type="checkbox" role="switch" name="reminders" value="1"{% if not prefs or prefs.reminders %} checked{% endif %}> Przypominaj rano: o ważeniu po 3 dniach bez wpisu i o pomiarze, gdy minie termin</label>
+    <button type="submit">Zapisz</button>
+  </form>
+</details>
+{% endblock %}

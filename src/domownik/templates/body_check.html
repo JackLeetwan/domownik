@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Pomiar ' ~ (c.day|d) if c else 'Nowy pomiar' }} · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/sylwetka#pomiary" class="home-link">← Sylwetka</a></li></ul></nav>
+<header class="item-head"><h1>📏 {{ 'Pomiar z ' ~ (c.day|d) if c else 'Nowy pomiar' }}</h1></header>
+<p class="muted"><small>🔒 Tylko dla Ciebie. Każde pole jest opcjonalne, więc wpisz to, co zmierzysz.</small></p>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+<form method="post" action="/forma/sylwetka/pomiar{% if c %}/{{ c.id }}{% endif %}" enctype="multipart/form-data" class="body-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+
+  <h2>Obwody (cm)</h2>
+  <p class="muted"><small>Taśma przylega, ale nie wciska skóry. Mierz zawsze w tym samym miejscu i po tej samej stronie.</small></p>
+  <div class="body-sites">
+    {% for key, label, how in sites %}
+    <label class="body-site"><span><b>{{ label }}</b> <small class="muted">{{ how }}</small></span>
+      <input name="{{ key }}" inputmode="decimal" autocomplete="off" value="{{ v[key] }}"{% if last and last|attr(key) is not none %} placeholder="ostatnio {{ bfmt(last|attr(key)) }}"{% endif %}></label>
+    {% endfor %}
+  </div>
+
+  <h2>Zdjęcia</h2>
+  <p class="muted"><small>To samo miejsce i światło, telefon na wysokości pasa, rozluźniona sylwetka. Zdjęcia zapisują się bez lokalizacji i innych danych z aparatu.</small></p>
+  <div class="body-poses">
+    {% for pose, label in poses %}{% set ph = photo_of(c, pose) if c else none %}
+    <div class="body-pose">
+      <label class="body-pose-pick">
+        <span class="body-pose-img" data-pose-preview>{% if ph %}<img src="/forma/sylwetka/zdjecie/{{ ph.id }}?maly=1" alt="{{ label }} – {{ c.day|d }}">{% else %}<span aria-hidden="true">📷</span>{% endif %}</span>
+        <span class="body-pose-label">{{ label }}{% if ph %} <small class="muted">· zmień</small>{% endif %}</span>
+        <input type="file" name="photo_{{ pose }}" accept="image/jpeg,image/png,image/webp" data-pose-pick>
+      </label>
+      {% if ph %}<label class="body-pose-del"><input type="checkbox" name="remove_{{ pose }}" value="1"> usuń</label>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <h2>Kiedy</h2>
+  <div class="grid">
+    <label>Dzień<input type="date" name="day" value="{{ v.day }}" max="{{ today.isoformat() }}" required></label>
+    <label>Waga tego dnia (kg) <small class="muted">opcjonalnie</small><input name="kg" inputmode="decimal" autocomplete="off" value="{{ v.kg }}" placeholder="{{ bfmt(weighed_today) if weighed_today is not none and not c else '' }}"></label>
+  </div>
+
+  <button type="submit">Zapisz pomiar</button>
+</form>
+
+{% if c %}
+<form method="post" action="/forma/sylwetka/pomiar/{{ c.id }}/usun" class="body-delete">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <details><summary class="muted">Usuń ten pomiar</summary>
+    <p><small>Usunie obwody i zdjęcia z {{ c.day|d }}. Tego nie da się cofnąć.</small></p>
+    <button type="submit" class="secondary">Tak, usuń pomiar</button></details>
+</form>
+{% endif %}
+{% endblock %}
