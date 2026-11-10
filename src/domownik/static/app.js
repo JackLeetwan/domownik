@@ -1058,6 +1058,14 @@
   });
 
   // ------------------------------------------------------------------ timeline
+  // the full-screen timeline (phones) must not outlive its page: not in htmx's history snapshot, not as a scroll lock
+  document.addEventListener("htmx:beforeHistorySave", () => {
+    document.querySelectorAll(".timeline-card.tl-full").forEach((c) => { c.classList.remove("tl-full"); c.classList.add("tl-compact"); });
+    document.documentElement.classList.remove("tl-lock");
+  });
+  document.addEventListener("htmx:afterSettle", () => {
+    if (!document.querySelector(".timeline-card.tl-full")) document.documentElement.classList.remove("tl-lock");
+  });
   let current = null; // the live vis.Timeline – destroyed when a boosted navigation replaces the page
 
   function initTimeline(card) {
@@ -1085,7 +1093,14 @@
   const savedRange = parseInt(store.get(rangeKey) || (phone ? "30" : "106"), 10);
   let loadedBin = null;
   let loadSeq = 0; // only the newest request may fill the timeline (zoom + lanes toggle can overlap)
-  if (phone) lanes = false; // too narrow for zone lanes – the switch is hidden there
+  // phones: a short strip of dots that does not move under the finger (the page scrolls past it);
+  // the full screen ("Powiększ", or a tap on the strip) has every control, zone lanes included
+  let full = false;
+  if (phone) card.classList.add("tl-compact");
+  document.documentElement.classList.remove("tl-lock"); // a boosted navigation away from the full screen
+  const lanesOn = () => lanes && (!phone || full);
+  const COMPACT_H = 74;
+  const fullHeight = () => Math.max(260, window.innerHeight - (container.getBoundingClientRect().top - card.getBoundingClientRect().top) - 70);
 
   const fmtDay = new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "short" });
   const fmtMonth = new Intl.DateTimeFormat("pl-PL", { month: "short" });
@@ -1203,11 +1218,12 @@
     showCurrentTime: true,
     // a tick per week (vis jumps from months straight to every 2nd day without it) – "1 mies." had no dates at all
     showWeekScale: true,
-    stack: true,
+    stack: !phone,
     stackSubgroups: true,
-    // phones: room for ~6 rows ("Rok" hid its last row behind a scroll inside the card)
-    maxHeight: phone ? Math.max(230, Math.round(window.innerHeight * 0.5) - 110) : 340,
-    minHeight: phone ? 110 : 120,
+    moveable: !phone,
+    zoomable: !phone,
+    maxHeight: phone ? COMPACT_H : 340,
+    minHeight: phone ? COMPACT_H : 120,
     // phones: a wider gap – a long urgent name ran right up to the next dot and read as one entry
     margin: { item: { horizontal: phone ? 10 : 2, vertical: phone ? 3 : 4 }, axis: 6 },
     maxMinorChars: plannedChars,
@@ -1254,7 +1270,7 @@
     const end = new Date(w.end.getTime() + pad);
     const iso = (d) => d.toISOString().slice(0, 10);
     const qs = new URLSearchParams({ start: iso(start), end: iso(end), bin });
-    if (lanes) qs.set("lanes", "1");
+    if (lanesOn()) qs.set("lanes", "1");
     if (itemId) qs.set("item", itemId);
     const seq = ++loadSeq;
     const req = { start: start.getTime(), end: end.getTime(), bin };
@@ -1290,7 +1306,7 @@
   }
 
   function applyLanes() {
-    if (lanes && groups && groups.length > 1) {
+    if (lanesOn() && groups && groups.length > 1) {
       timeline.setGroups(new vis.DataSet(groups));
     } else {
       timeline.setGroups(null);
@@ -1304,7 +1320,7 @@
     load(false);
   });
   timeline.on("click", (props) => {
-    if (!props.item) return;
+    if (!props.item || (phone && !full)) return;
     const it = items.get(props.item);
     if (it && it.task_id) {
       htmx.ajax("GET", taskUrl(it), { target: "#modal-body", swap: "innerHTML" });
@@ -1330,7 +1346,31 @@
     lanesSwitch.addEventListener("change", () => {
       lanes = lanesSwitch.checked;
       store.set("domownik.lanes", lanes ? "1" : "0");
+      if (phone && !full) return;
       load(true); // bundles are per lane when lanes are on
+    });
+  }
+
+  function setFull(on) {
+    if (on === full) return;
+    full = on;
+    card.classList.toggle("tl-full", on);
+    card.classList.toggle("tl-compact", !on);
+    document.documentElement.classList.toggle("tl-lock", on);
+    const h = on ? fullHeight() : COMPACT_H;
+    timeline.setOptions({ stack: on, moveable: on, zoomable: on, maxHeight: h, minHeight: on ? 120 : COMPACT_H });
+    if (lanes) load(true); else applyLanes();
+    timeline.redraw();
+    // no history entry for the full screen: going back to it would make htmx restore the page from its cache
+    const close = card.querySelector(on ? "[data-tl-close]" : "[data-tl-open]");
+    if (close) close.focus({ preventScroll: true });
+  }
+  if (phone) {
+    card.querySelectorAll("[data-tl-open]").forEach((el) => el.addEventListener("click", () => setFull(true)));
+    const close = card.querySelector("[data-tl-close]");
+    if (close) close.addEventListener("click", () => setFull(false));
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && full && !document.querySelector("dialog[open]")) setFull(false);
     });
   }
 
