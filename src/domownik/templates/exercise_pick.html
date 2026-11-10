@@ -22,7 +22,7 @@
 <ul class="pick-list">
   {% for ex in items %}
   <li><form method="post" action="{{ action }}{{ ex.id }}{{ action_query|default('') }}"><input type="hidden" name="csrf" value="{{ csrf }}">
-    <button type="submit" class="pick-row"><span><b>{{ ex.name }}</b><small class="muted">{{ equipment_label(ex.equipment) }} · {{ muscle_label(ex.muscle) }}</small></span><span aria-hidden="true">＋</span></button></form></li>
+    <button type="submit" class="pick-row">{% include "partials/ex_pic.html" %}<span><b>{{ ex.name }}</b><small class="muted">{{ equipment_label(ex.equipment) }} · {{ muscle_label(ex.muscle) }}</small></span><span aria-hidden="true">＋</span></button></form></li>
   {% endfor %}
 </ul>
 {% endif %}

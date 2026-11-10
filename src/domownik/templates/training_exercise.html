@@ -3,6 +3,7 @@
 {% block content %}
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/postepy" class="home-link">← Postępy</a></li></ul></nav>
 <header class="item-head"><h1>{{ ex.name }}</h1></header>
+{% set pic_class = "big" %}{% include "partials/ex_pic.html" %}
 <p class="muted"><small>{{ tr.pattern_label(ex.pattern) }} · {{ tr.muscle_label(ex.muscle) }} · {{ tr.equipment_label(ex.equipment) }}{% if ex.step %} · skok {{ fmt_kg(ex.step) }} kg{% endif %}</small></p>
 {% if chart %}
 <figure class="tr-chart">

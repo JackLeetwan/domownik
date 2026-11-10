@@ -6,7 +6,7 @@
 {% if rows %}
 <ul class="supl-rows">
   {% for ex, last, n in rows %}
-  <li><a class="supl-row" href="/forma/postepy/{{ ex.id }}"><span class="supl-row-main"><b>{{ ex.name }}</b><small class="muted">ostatnio {{ last|d }} · {{ n }} {{ 'raz' if n == 1 else 'razy' }}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
+  <li><a class="supl-row" href="/forma/postepy/{{ ex.id }}">{% include "partials/ex_pic.html" %}<span class="supl-row-main"><b>{{ ex.name }}</b><small class="muted">ostatnio {{ last|d }} · {{ n }} {{ 'raz' if n == 1 else 'razy' }}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
   {% endfor %}
 </ul>
 {% else %}

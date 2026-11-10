@@ -90,6 +90,20 @@ def items_text(items: list[dict] | None) -> str:
 
 
 env = templates.env
+
+
+def _exercise_image(ex):
+    from domownik import training
+
+    return training.image(ex)
+
+
+def _exercise_icon(ex):
+    from domownik import training
+
+    return training.equipment_icon(ex)
+
+
 env.filters["pln"] = format_pln
 env.filters["pln_input"] = input_pln
 env.filters["d"] = fmt_date
@@ -97,6 +111,8 @@ env.filters["days"] = humanize_days
 env.filters["rule"] = recurrence.describe
 env.filters["week"] = week_title
 env.globals.update(
+    exercise_image=_exercise_image,
+    exercise_icon=_exercise_icon,
     CATEGORIES=CATEGORIES,
     DIRECTIONS=DIRECTIONS,
     ITEM_KINDS=ITEM_KINDS,

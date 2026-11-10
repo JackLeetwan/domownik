@@ -304,3 +304,21 @@ def test_start_screen_and_away(auth_client, db, user):
     w = db.get(Workout, int(r.headers["location"].rsplit("/", 1)[1]))
     assert w.equipment == tr.away_equipment()
     assert all(we.exercise.equipment in tr.away_equipment() for we in w.exercises if we.swapped_from_id)
+
+
+def test_exercise_pictures_exist():
+    """Every mapped picture is shipped, every mapped key is in the catalog; most of the catalog has one."""
+    from pathlib import Path
+
+    from domownik.models import Exercise as Ex
+
+    by_key, by_name = tr._images()
+    keys = {e["key"] for e in tr.catalog()["exercises"]}
+    assert set(by_key) <= keys
+    static = Path(tr.__file__).parent / "static" / "exercises"
+    for slug in {*by_key.values(), *by_name.values()}:
+        assert (static / f"{slug}.webp").is_file(), slug
+    assert len(by_key) >= 0.9 * len(keys)
+    assert tr.image(Ex(key=None, name="Dumbbell Hammer Curl")) == "/static/exercises/hammer-curls.webp"
+    assert tr.image(Ex(key=None, name="Coś własnego")) is None
+    assert tr.equipment_icon(Ex(key=None, name="x", equipment="band")) == "🎗️"

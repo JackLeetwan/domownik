@@ -1,0 +1,132 @@
+# Pictures of the exercises: free-exercise-db (github.com/yuhonas/free-exercise-db, The Unlicense – public
+# domain). A small WebP of its first frame (the start position) is in static/exercises/<name>.webp.
+# by_key: our catalog key → the exercise's name there; by_name: an exercise without a key (made by the Jefit
+# import) by its English name. Not listed / null: no picture (the equipment icon shows instead) – better none
+# than a misleading one.
+by_key:
+  back_squat: Barbell Squat
+  goblet_squat: Goblet Squat
+  leg_press: Leg Press
+  hack_squat: Hack Squat
+  smith_squat: Smith Machine Squat
+  spanish_squat: Squats - With Bands
+  bw_squat: Bodyweight Squat
+  leg_extension: Leg Extensions
+  sissy_squat: Weighted Sissy Squat
+  bulgarian: Split Squat with Dumbbells
+  db_lunge: Dumbbell Lunges
+  bw_bulgarian: Split Squats
+  bw_lunge: Bodyweight Walking Lunge
+  step_up: Dumbbell Step Ups
+  deadlift: Barbell Deadlift
+  rdl: Romanian Deadlift
+  db_sldl: Stiff-Legged Dumbbell Deadlift
+  kb_swing: One-Arm Kettlebell Swings
+  band_good_morning: Band Good Morning
+  single_leg_rdl: Kettlebell One-Legged Deadlift
+  hip_thrust: Barbell Hip Thrust
+  machine_hip_thrust: Barbell Hip Thrust
+  glute_bridge: Butt Lift (Bridge)
+  single_glute_bridge: Single Leg Glute Bridge
+  leg_curl: Lying Leg Curls
+  seated_leg_curl: Seated Leg Curl
+  nordic_curl: Natural Glute Ham Raise
+  bench_press: Barbell Bench Press - Medium Grip
+  db_bench: Dumbbell Bench Press
+  db_incline: Incline Dumbbell Press
+  incline_bench: Barbell Incline Bench Press - Medium Grip
+  machine_chest_press: Leverage Chest Press
+  smith_bench: Smith Machine Bench Press
+  db_close_press: Close-Grip Dumbbell Press
+  close_bench: Close-Grip Barbell Bench Press
+  push_up: Pushups
+  diamond_push_up: Push-Ups - Close Triceps Position
+  band_chest_press: Standing Cable Chest Press
+  dips: Dips - Triceps Version
+  cable_fly: Cable Crossover
+  pec_deck: Butterfly
+  db_fly: Dumbbell Flyes
+  db_shoulder_press: Dumbbell Shoulder Press
+  ohp: Barbell Shoulder Press
+  machine_shoulder_press: Leverage Shoulder Press
+  band_shoulder_press: Shoulder Press - With Bands
+  pull_up: Pullups
+  lat_pulldown: Wide-Grip Lat Pulldown
+  rope_pulldown: Rope Straight-Arm Pulldown
+  assisted_pull_up: Band Assisted Pull-Up
+  bb_row: Bent Over Barbell Row
+  db_row: One-Arm Dumbbell Row
+  cable_row: Seated Cable Rows
+  machine_row: Leverage Iso Row
+  chest_supported_row: Dumbbell Incline Row
+  inverted_row: Inverted Row
+  lateral_raise: Side Lateral Raise
+  cable_lateral: Cable Seated Lateral Raise
+  machine_lateral: Side Lateral Raise
+  band_lateral: Lateral Raise - With Bands
+  face_pull: Face Pull
+  reverse_fly: Seated Bent-Over Rear Delt Raise
+  reverse_pec_deck: Reverse Machine Flyes
+  band_pull_apart: Band Pull Apart
+  bb_curl: Barbell Curl
+  db_curl: Dumbbell Alternate Bicep Curl
+  incline_hammer: Incline Hammer Curls
+  hammer_curl: Hammer Curls
+  cable_curl: Standing Biceps Cable Curl
+  chin_up: Chin-Up
+  skull_crusher: EZ-Bar Skullcrusher
+  rope_pushdown: Triceps Pushdown - Rope Attachment
+  db_overhead_ext: Standing Dumbbell Triceps Extension
+  bench_dip: Bench Dips
+  incline_machine_press: Leverage Incline Chest Press
+  arnold_press: Arnold Dumbbell Press
+  front_raise: Front Dumbbell Raise
+  shrug: Dumbbell Shrug
+  hip_abduction: Thigh Abductor
+  rope_overhead_ext: Cable Rope Overhead Triceps Extension
+  preacher_curl: Preacher Curl
+  concentration_curl: Concentration Curls
+  front_squat: Front Barbell Squat
+  pallof: Pallof Press With Rotation
+  db_calf: Standing Dumbbell Calf Raise
+  machine_calf: Seated Calf Raise
+  bw_calf: Calf Raise On A Dumbbell
+  cable_crunch: Cable Crunch
+  hanging_leg_raise: Hanging Leg Raise
+  captain_chair: Knee/Hip Raise On Parallel Bars
+  crunch: Crunches
+  lying_leg_raise: Flat Bench Lying Leg Raise
+  plank: Plank
+  side_plank: Side Bridge
+  ab_wheel: Ab Roller
+  dead_bug: Dead Bug
+by_name:
+  Barbell Decline Bench Press: Decline Barbell Bench Press
+  Dumbbell Decline Bench Press: Decline Dumbbell Bench Press
+  Band Cross-Over: Cross Over - With Bands
+  Band Reverse Fly: Back Flyes - With Bands
+  Air Bike: Air Bike
+  Dumbbell Side Bend: Dumbbell Side Bend
+  Smith Machine Bent-Over Row: Smith Machine Bent Over Row
+  Dumbbell Hammer Curl: Hammer Curls
+  Dumbbell Wrist Curl (Palms Down): Seated Dumbbell Palms-Down Wrist Curl
+  Dumbbell One-Arm Tricep Kickback: Tricep Dumbbell Kickback
+  Band Upright Row: Upright Row - With Bands
+  Cable One-Arm Tricep Pushdown (Reverse Grip): Reverse Grip Triceps Pushdown
+  Dumbbell Seated One-Arm Tricep Extension: Dumbbell One-Arm Triceps Extension
+  Cable Rope Hammer Curl: Cable Hammer Curls - Rope Attachment
+  Weight Plate Russian Twist: Russian Twist
+  Scissor Kick: Scissor Kick
+  Dumbbell Pullover: Straight-Arm Dumbbell Pullover
+  Weight Plate Neck Extension (Prone): Lying Face Down Plate Neck Resistance
+  Weight Plate Neck Flexion (Supine): Lying Face Up Plate Neck Resistance
+  Dumbbell One-Arm Incline Lateral Raise: One-Arm Incline Lateral Raise
+  All Fours Quad Stretch: All Fours Quad Stretch
+  Mountain Climber: Mountain Climbers
+  Cable One-Arm Lat Pulldown: One Arm Lat Pulldown
+  Leverage Decline Chest Press: Leverage Decline Chest Press
+  Arm Circles: Arm Circles
+  Cable One-Arm Seated Row: Seated One-arm Cable Pulley Rows
+  Cable Leg Kickback: One-Legged Cable Kickback
+  Dumbbell Seated Wrist Curl: Seated Dumbbell Palms-Up Wrist Curl
+  toe touches: Standing Toe Touches

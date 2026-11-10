@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -67,6 +68,48 @@ def muscle_label(key: str) -> str:
 
 def equipment_label(key: str) -> str:
     return catalog()["equipment"].get(key, key)
+
+
+IMAGES = CATALOG.parent / "exercise_images.yaml"
+# when there is no picture: what the exercise is done with
+EQUIPMENT_ICON = {
+    "barbell": "🏋️",
+    "dumbbell": "💪",
+    "machine": "⚙️",
+    "cable": "🔗",
+    "kettlebell": "🔔",
+    "bar": "🤸",
+    "bodyweight": "🧍",
+    "band": "🎗️",
+}
+
+
+def _slug(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+@functools.cache
+def _images() -> tuple[dict[str, str], dict[str, str]]:
+    data = yaml.safe_load(IMAGES.read_text(encoding="utf-8"))
+    by_key = {k: _slug(v) for k, v in (data.get("by_key") or {}).items() if v}
+    by_name = {k.strip().lower(): _slug(v) for k, v in (data.get("by_name") or {}).items() if v}
+    return by_key, by_name
+
+
+def image(ex: Exercise) -> str | None:
+    """The picture of the exercise (static/exercises/…webp) – by its catalog key, else by one of its names."""
+    by_key, by_name = _images()
+    slug = by_key.get(ex.key) if ex.key else None
+    if slug is None:
+        for alias in [ex.name, *(ex.en or "").split("|")]:
+            slug = by_name.get(alias.strip().lower())
+            if slug:
+                break
+    return f"/static/exercises/{slug}.webp" if slug else None
+
+
+def equipment_icon(ex: Exercise) -> str:
+    return EQUIPMENT_ICON.get(ex.equipment, "🏋️")
 
 
 AWAY = "away"

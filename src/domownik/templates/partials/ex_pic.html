@@ -1,0 +1,2 @@
+{# the picture of an exercise (free-exercise-db), or its equipment as an emoji; `ex` and optional `pic_class` #}
+{% set src = exercise_image(ex) %}<span class="ex-pic {{ pic_class|default('') }}" aria-hidden="true">{% if src %}<img src="{{ src }}" alt="" loading="lazy" width="64" height="48">{% else %}{{ exercise_icon(ex) }}{% endif %}</span>
