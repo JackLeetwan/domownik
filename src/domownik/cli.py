@@ -161,6 +161,38 @@ def notify(
             typer.echo(d.message() or "(nic nowego – nie wyśle się)")
 
 
+@app.command("import-jefit")
+def import_jefit(
+    path: Path,
+    email: str = typer.Option(..., help="Czyje treningi (adres konta w Domowniku)"),
+    dry_run: bool = typer.Option(False, help="Policz i nic nie zapisuj"),
+) -> None:
+    """Workout history from Jefit (JSON from its web API) – private workouts of that person."""
+    import json
+
+    from domownik import jefit
+    from domownik.db import session_factory
+    from domownik.models import User
+
+    migrate()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    with session_factory()() as db:
+        user = db.scalar(select(User).where(User.email == email))
+        if user is None:
+            raise typer.BadParameter(f"Nie ma konta {email}")
+        res = jefit.run(db, user, data)
+        if dry_run:
+            db.rollback()
+        else:
+            db.commit()
+    typer.echo(
+        f"{'(próba) ' if dry_run else ''}Treningi: {res.workouts} (z {res.sessions} sesji Jefita), serie: {res.sets}, "
+        f"pominięte: {res.skipped}"
+    )
+    if res.new_exercises:
+        typer.echo("Nowe ćwiczenia w bibliotece: " + ", ".join(sorted(set(res.new_exercises))))
+
+
 @app.command()
 def serve(host: str = "0.0.0.0", port: int = 8000, reload: bool = False) -> None:
     """Run migrations and start the web server."""
