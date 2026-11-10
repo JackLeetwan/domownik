@@ -38,6 +38,7 @@ from domownik.routers import (
     points,
     quick,
     schedule,
+    share,
     shopping,
     sylwetka,
     tasks,
@@ -201,6 +202,7 @@ def create_app() -> FastAPI:
     app.include_router(forma.router)
     app.include_router(trening.router)
     app.include_router(sylwetka.router)
+    app.include_router(share.router)
 
     @app.exception_handler(LoginRequired)
     async def _login_required(request: Request, _exc: LoginRequired):

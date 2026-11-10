@@ -66,7 +66,14 @@ PUBLIC = {
     ("GET", "/n/supl/{token}"),  # does nothing on GET
     ("POST", "/n/supl/{token}"),  # "✓ Wzięte" in the supplement push – signed token
 }
-NO_CSRF = {("POST", "/n/done/{token}"), ("POST", "/n/timer/{token}/{action}"), ("POST", "/n/supl/{token}")}
+NO_CSRF = {
+    ("POST", "/n/done/{token}"),
+    ("POST", "/n/timer/{token}/{action}"),
+    ("POST", "/n/supl/{token}"),
+    # Android's share sheet posts here (it cannot know our token): a SameSite=Lax session never comes along from
+    # another site, a foreign Origin is refused, a text is only shown and files only land in 📥 Do rozpoznania
+    ("POST", "/udostepnij"),
+}
 
 
 @pytest.fixture(autouse=True)

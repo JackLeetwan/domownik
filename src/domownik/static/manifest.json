@@ -83,5 +83,29 @@
       ]
     }
   ],
-  "id": "/"
+  "id": "/",
+  "share_target": {
+    "action": "/udostepnij",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "files",
+          "accept": [
+            "image/*",
+            "application/pdf",
+            ".pdf",
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".heic"
+          ]
+        }
+      ]
+    }
+  }
 }

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Udostępnione · Domownik{% endblock %}
+{% block content %}
+<header class="item-head"><h1>📤 Gdzie to zapisać?</h1></header>
+{% if error %}
+<p class="error" role="alert">{{ error }}</p>
+<a href="/" role="button" class="outline">Wróć</a>
+{% else %}
+<blockquote class="share-what">
+  {% if body %}<p>{{ body|truncate(400) }}</p>{% endif %}
+  {% if link %}<p><small><a href="{{ link }}" target="_blank" rel="noopener noreferrer">{{ link|truncate(70) }}</a></small></p>{% endif %}
+</blockquote>
+
+<div class="share-choices">
+  {% if link %}
+  <form method="post" action="/kuchnia/przepisy/z-linku" hx-disabled-elt="find button">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="link" value="{{ link }}">
+    <button type="submit">📖 Przepis <small>– składniki i kroki ze strony</small></button>
+  </form>
+  {% endif %}
+  {% if as_list or (body and not link and '\n' not in body and body|length <= 60) %}
+  <form method="post" action="/zakupy">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="text" value="{{ body }}">
+    <button type="submit" class="{{ '' if as_list and not link else 'outline' }}">🛒 Do zakupów{% if as_list %} <small>– każda linia osobno</small>{% endif %}</button>
+  </form>
+  {% endif %}
+  <form method="post" action="/do-zrobienia">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="title" value="{{ first_line }}">
+    <input type="hidden" name="notes" value="{{ body if body != first_line else '' }}{% if link %}{{ '\n' if body and body != first_line else '' }}{{ link }}{% endif %}">
+    <button type="submit" class="outline">✅ Do zrobienia</button>
+  </form>
+  <form method="post" action="/notatki">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="body" value="{{ body }}{% if link %}{{ '\n' if body else '' }}{{ link }}{% endif %}">
+    <button type="submit" class="outline">📝 Notatka na tablicy</button>
+  </form>
+</div>
+<a href="/" class="tr-other">Nic z tym nie rób</a>
+{% endif %}
+{% endblock %}

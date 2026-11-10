@@ -210,20 +210,28 @@ def test_shopping_page_picks_a_recipe(auth_client, db):
 
 
 def test_cookidoo_link_from_shopping_opens_ingredients(auth_client, db, monkeypatch):
-    from domownik import cookidoo
+    from domownik import recipe_link
 
     url = "https://cookidoo.pl/recipes/recipe/pl-PL/r1"
     got = type(
         "Got",
         (),
-        {"url": url, "name": "Zupa", "ingredients": ["2 marchewki"], "minutes": 20, "servings": 4, "tags": []},
+        {
+            "url": url,
+            "name": "Zupa",
+            "ingredients": ["2 marchewki"],
+            "minutes": 20,
+            "servings": 4,
+            "tags": [],
+            "steps": [],
+        },
     )
-    monkeypatch.setattr(cookidoo, "load", lambda u: got)
-    r = auth_client.post("/kuchnia/do-zakupow/cookidoo", data={"link": url}, headers=HX)
+    monkeypatch.setattr(recipe_link, "load", lambda u: got)
+    r = auth_client.post("/kuchnia/do-zakupow/z-linku", data={"link": url}, headers=HX)
     assert r.status_code == 200 and "Składniki: Zupa" in r.text and "2 marchewki" in r.text
-    r = auth_client.post("/kuchnia/do-zakupow/cookidoo", data={"link": url}, headers=HX)  # second time: no duplicate
+    r = auth_client.post("/kuchnia/do-zakupow/z-linku", data={"link": url}, headers=HX)  # second time: no duplicate
     assert len(db.scalars(select(Recipe)).all()) == 1
-    assert auth_client.post("/kuchnia/do-zakupow/cookidoo", data={"link": "nope"}, headers=HX).status_code == 400
+    assert auth_client.post("/kuchnia/do-zakupow/z-linku", data={"link": "nope"}, headers=HX).status_code == 400
 
 
 def test_auto_opened_shop_window_does_not_reopen(auth_client, db):

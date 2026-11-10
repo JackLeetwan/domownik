@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import cookidoo, kitchen
+from domownik import kitchen, recipe_link
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.shopping import guess_section, parse_entry
@@ -220,13 +220,14 @@ async def recipe_create(request: Request, db: Session = Depends(get_db), user: U
     return _redirect(f"/kuchnia/przepisy/{r.id}")
 
 
-async def _import_cookidoo(db: Session, user: User, link: str) -> Recipe:
-    """A Cookidoo link → a recipe here (the one imported before, if any – no duplicate). Raises CookidooError."""
-    url = cookidoo.find_url(link)
+async def _import_link(db: Session, user: User, link: str) -> Recipe:
+    """A recipe link (Cookidoo or any recipe site) → a recipe here (the one imported before, if any – no
+    duplicate). Raises RecipeLinkError."""
+    url = recipe_link.find_url(link)
     same = db.scalar(select(Recipe).where(Recipe.link == url.split("?")[0].split("#")[0]))
     if same is not None:
         return same
-    got = await run_in_threadpool(cookidoo.load, url)
+    got = await run_in_threadpool(recipe_link.load, url)
     same = db.scalar(select(Recipe).where(Recipe.link == got.url))
     if same is not None:
         return same
@@ -234,23 +235,24 @@ async def _import_cookidoo(db: Session, user: User, link: str) -> Recipe:
         created_by_id=user.id,
         name=got.name,
         ingredients="\n".join(got.ingredients) or None,
+        steps="\n".join(got.steps) or None,
         link=got.url[:300],
         minutes=got.minutes,
         servings=got.servings,
-        tags=", ".join(["cookidoo", *got.tags])[:120],
+        tags=", ".join([recipe_link.site(got.url), *got.tags])[:120],
     )
     db.add(r)
     db.commit()
     return r
 
 
-@router.post("/przepisy/cookidoo", dependencies=[Depends(verify_csrf)])
-async def recipe_from_cookidoo(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    """A Cookidoo link → a recipe here; the recipe page then opens 'do zakupów' at once."""
+@router.post("/przepisy/z-linku", dependencies=[Depends(verify_csrf)])
+async def recipe_from_link(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """A recipe link → a recipe here; the recipe page then opens 'do zakupów' at once."""
     form = await request.form()
     try:
-        r = await _import_cookidoo(db, user, str(form.get("link") or ""))
-    except cookidoo.CookidooError as exc:
+        r = await _import_link(db, user, str(form.get("link") or ""))
+    except recipe_link.RecipeLinkError as exc:
         return _error(str(exc))
     return _redirect(f"/kuchnia/przepisy/{r.id}?zakupy=1")
 
@@ -271,7 +273,7 @@ def _matching(recipes: list[Recipe], q: str) -> list[Recipe]:
 
 @router.get("/do-zakupow/przepis")
 def pick_recipe(request: Request, q: str = "", db: Session = Depends(get_db), user: User = Depends(current_user)):
-    """/zakupy → '📖 Z przepisu': a window with the recipes (pick one → its ingredients) or a Cookidoo link.
+    """/zakupy → '📖 Z przepisu': a window with the recipes (pick one → its ingredients) or a recipe link.
     With HX-Target 'pick-recipe-list' (typing in the search box) only the list comes back."""
     allr = [r for r in db.scalars(select(Recipe).order_by(Recipe.name)) if r.ingredient_list]
     shown = _matching(allr, q)
@@ -283,13 +285,13 @@ def pick_recipe(request: Request, q: str = "", db: Session = Depends(get_db), us
     )
 
 
-@router.post("/do-zakupow/cookidoo", dependencies=[Depends(verify_csrf)])
-async def cookidoo_to_shopping(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    """The Cookidoo link from the shopping list: imported (or found) and straight to its ingredients."""
+@router.post("/do-zakupow/z-linku", dependencies=[Depends(verify_csrf)])
+async def link_to_shopping(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """A recipe link from the shopping list: imported (or found) and straight to its ingredients."""
     form = await request.form()
     try:
-        r = await _import_cookidoo(db, user, str(form.get("link") or ""))
-    except cookidoo.CookidooError as exc:
+        r = await _import_link(db, user, str(form.get("link") or ""))
+    except recipe_link.RecipeLinkError as exc:
         return _error(str(exc))
     return _shop_modal(request, db, user, [r], f"Składniki: {r.name}")
 

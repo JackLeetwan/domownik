@@ -1865,3 +1865,10 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .wo-ex-title { flex: 1; min-width: 0; }
 .supl-row > .ex-pic { margin-right: 0.75rem; }
 legend .ex-pic { width: 3rem; height: 2.25rem; margin-right: 0.25rem; }
+
+/* 📤 shared from another app */
+.share-what { margin: 0 0 1rem; overflow-wrap: anywhere; }
+.share-what p { margin: 0 0 0.3rem; white-space: pre-line; }
+.share-choices form { margin: 0 0 0.5rem; }
+.share-choices button { width: 100%; text-align: left; }
+.share-choices button small { font-weight: normal; opacity: 0.8; }

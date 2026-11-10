@@ -10,11 +10,11 @@
   </form>
   {% endif %}
 </div>
-<form method="post" action="/kuchnia/przepisy/cookidoo" class="cookidoo-import" hx-disabled-elt="find button">
+<form method="post" action="/kuchnia/przepisy/z-linku" class="cookidoo-import" hx-disabled-elt="find button">
   <input type="hidden" name="csrf" value="{{ csrf }}">
-  <label for="cookidoo-link">🥣 Przepis z Cookidoo <small class="muted">– w aplikacji: Udostępnij → Kopiuj link</small></label>
+  <label for="recipe-link">🔗 Przepis z linku <small class="muted">– dowolna strona z przepisem albo Cookidoo (Udostępnij → Kopiuj link)</small></label>
   <div role="group">
-    <input id="cookidoo-link" name="link" inputmode="url" autocomplete="off" required placeholder="Wklej link z Cookidoo">
+    <input id="recipe-link" name="link" inputmode="url" autocomplete="off" required placeholder="Wklej link do przepisu">
     <button type="submit">Pobierz</button>
   </div>
 </form>
