@@ -294,3 +294,13 @@ def test_superset_goes_back_and_forth(db, user, fbw):
     assert tr.next_up(w) is bench  # the superset is done – on to the next exercise
     tr.log_set(db, bench, weight=20, reps=12, at=T + timedelta(minutes=10))
     assert tr.next_up(w) is bench
+
+
+def test_start_screen_and_away(auth_client, db, user):
+    page = auth_client.get("/forma/trening/nowy").text
+    assert "1. Gdzie trenujesz?" in page and "kolej na ten" in page and "Bez planu" in page
+    plan = tr.plans(db)[0]
+    r = _post(auth_client, "/forma/trening", {"where": "away", "plan_id": str(plan.id)})
+    w = db.get(Workout, int(r.headers["location"].rsplit("/", 1)[1]))
+    assert w.equipment == tr.away_equipment()
+    assert all(we.exercise.equipment in tr.away_equipment() for we in w.exercises if we.swapped_from_id)

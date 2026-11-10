@@ -17,15 +17,18 @@
   <link rel="stylesheet" href="/static/vendor/pico.min.css?v=1">
   <link rel="stylesheet" href="/static/vendor/vis-timeline-graph2d.min.css?v=1">
   {% block head %}{% endblock %}
-  <link rel="stylesheet" href="/static/app.css?v=78">
+  {# bump these after changing app.css / app.js – a page opened before the deploy reloads itself (app.js) #}
+  {% set css_v, js_v = 79, 49 %}
+  <link rel="stylesheet" href="/static/app.css?v={{ css_v }}">
   {# in <head>, deferred: run once per full page load – hx-boost swaps only <body>,
      scripts inside <body> would re-run (and stack listeners) on every navigation #}
   <script src="/static/vendor/htmx.min.js?v=1" defer></script>
   <script src="/static/vendor/vis-timeline-graph2d.min.js?v=1" defer></script>
-  <script src="/static/app.js?v=48" defer></script>
+  <script src="/static/app.js?v={{ js_v }}" defer></script>
 </head>
 <body hx-boost="true" hx-headers='{"X-CSRF-Token": "{{ csrf }}"}'>
 <div id="offline-bar" class="offline-bar" role="status" hidden></div>
+<template id="asset-v" data-v="{{ css_v }}-{{ js_v }}"></template>
 <div class="shell{% if nav %} has-nav{% endif %}">
   {% if nav %}{% include "partials/nav.html" %}{% endif %}
   <div class="page">

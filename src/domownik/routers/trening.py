@@ -90,6 +90,24 @@ def _parse_day(raw) -> date | None:
     return d
 
 
+@router.get("/trening/nowy")
+def start_page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    tr.ensure_library(db)
+    tr.seed_plans(db)
+    db.commit()
+    return render(
+        request,
+        "workout_start.html",
+        {
+            "user": user,
+            "plans": tr.plans(db),
+            "next_plan": tr.next_plan(db, user),
+            "today": today(),
+            "away_labels": [tr.equipment_label(e).lower() for e in tr.away_equipment()],
+        },
+    )
+
+
 @router.post("/trening", dependencies=[Depends(verify_csrf)])
 async def start(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     form = await request.form()
@@ -99,7 +117,7 @@ async def start(request: Request, db: Session = Depends(get_db), user: User = De
     running = tr.active(db, user)
     if running is not None and (day is None or day == today()) and running.day == today():
         return _go(f"/forma/trening/{running.id}")  # one going today already – back to it
-    w = tr.start(db, user, plan, day=day, away=bool(form.get("away")))
+    w = tr.start(db, user, plan, day=day, away=form.get("where") == "away" or bool(form.get("away")))
     db.commit()
     return _go(f"/forma/trening/{w.id}")
 

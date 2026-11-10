@@ -184,8 +184,9 @@ def test_slow_submit_shows_busy_state():
 
 def test_asset_versions_bumped():
     base = (STATIC.parent / "templates" / "base.html").read_text()
-    assert int(re.search(r"app\.css\?v=(\d+)", base).group(1)) >= 54
-    assert int(re.search(r"app\.js\?v=(\d+)", base).group(1)) >= 30
+    css_v, js_v = (int(x) for x in re.search(r"set css_v, js_v = (\d+), (\d+)", base).groups())
+    assert css_v >= 54 and js_v >= 30
+    assert "app.css?v={{ css_v }}" in base and "app.js?v={{ js_v }}" in base and 'id="asset-v"' in base
 
 
 def test_one_style_for_titles_and_view_switches():

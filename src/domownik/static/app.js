@@ -671,6 +671,17 @@
   setInterval(tickTimers, 15000);
   document.addEventListener("htmx:afterSettle", tickTimers);
 
+  // ------------------------------------------------------------------ a new version after a deploy
+  // hx-boost swaps only <body>: the <head> (app.css, app.js) stays from the first load. When a page comes
+  // with other asset versions (#asset-v), load it fully once so the new styles and scripts apply.
+  const assetV = () => { const t = document.getElementById("asset-v"); return t ? t.dataset.v : null; };
+  const loadedAssetV = assetV();
+  document.addEventListener("htmx:afterSettle", (e) => {
+    if (!e.detail.boosted) return;
+    const v = assetV();
+    if (v && loadedAssetV && v !== loadedAssetV) location.reload();
+  });
+
   // ------------------------------------------------------------------ 🏋️ the rest between sets
   // data-rest-ends (ms) from the server; counted down here every second, a buzz at the end (the push comes
   // from the server too, for a phone in a pocket)

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Nowy trening · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma" class="home-link">← Forma</a></li></ul></nav>
+<header class="item-head"><h1>🏋️ Nowy trening</h1></header>
+<form method="post" action="/forma/trening" class="wst">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+
+  <h2 class="wst-q">1. Gdzie trenujesz?</h2>
+  <div class="wst-two">
+    <label class="choice"><input type="radio" name="where" value="gym" checked>
+      <span><b>🏋️ Siłownia</b><small>Plan bez zmian.</small></span></label>
+    <label class="choice"><input type="radio" name="where" value="away">
+      <span><b>🧳 Wyjazd / dom</b><small>Ćwiczenia na sprzęt zamienię na wersje z: {{ away_labels|join(', ') }}.</small></span></label>
+  </div>
+
+  <h2 class="wst-q">2. Co robisz?</h2>
+  <div class="wst-list">
+    {% for p in plans %}
+    <label class="choice"><input type="radio" name="plan_id" value="{{ p.id }}"{% if next_plan and p.id == next_plan.id %} checked{% endif %}>
+      <span><b>{{ p.name }}{% if next_plan and p.id == next_plan.id %} <em class="wst-next">kolej na ten</em>{% endif %}</b>
+        <small>{% for it in p.items %}{{ it.exercise.name }}{% if not loop.last %} · {% endif %}{% endfor %}</small></span></label>
+    {% endfor %}
+    <label class="choice"><input type="radio" name="plan_id" value=""{% if not next_plan %} checked{% endif %}>
+      <span><b>Bez planu</b><small>Wybierasz ćwiczenia na bieżąco – np. gdy siłownia jest pełna.</small></span></label>
+  </div>
+
+  <h2 class="wst-q">3. Kiedy?</h2>
+  <details class="wst-day">
+    <summary>Dziś ({{ today|d(weekday=True) }}) – <span class="wst-link">zmień, żeby dopisać wcześniejszy trening</span></summary>
+    <label>Dzień treningu <input type="date" name="day" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}"></label>
+  </details>
+
+  <button type="submit" class="wst-go">▶ Zacznij</button>
+</form>
+{% endblock %}

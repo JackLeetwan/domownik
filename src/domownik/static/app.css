@@ -1699,7 +1699,7 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .tr-week { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .tr-days { display: flex; gap: 0.25rem; }
 .tr-days i { font-style: normal; font-size: 0.7rem; width: 1.65rem; height: 1.65rem; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--dm-tile-border); color: var(--pico-muted-color); }
-.tr-days i.done { background: var(--pico-primary-background); color: var(--pico-primary-inverse); border-color: transparent; }
+.tr-days i.done { background: var(--pico-primary); color: var(--pico-primary-inverse); border-color: transparent; }
 .tr-days i.today { border-color: var(--pico-primary); border-width: 2px; }
 .tr-fresh { height: 6px; border-radius: 3px; background: var(--dm-tile-border); margin: 0.6rem 0 0.2rem; overflow: hidden; }
 .tr-fresh span { display: block; height: 100%; background: var(--pico-primary-background); }
@@ -1708,11 +1708,6 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .tr-last { margin: 0 0 0.6rem; }
 .tr-go { width: 100%; margin: 0; font-size: 1.1rem; padding-block: 0.8rem; }
 .tr-card form { margin: 0; }
-.tr-other { margin: 0.75rem 0 0; }
-.tr-other > summary { font-size: 0.9rem; color: var(--pico-muted-color); }
-.tr-start { margin-top: 0.5rem; }
-.tr-start fieldset label { margin-bottom: 0.4rem; }
-.tr-start button { width: 100%; }
 .tr-links { margin: 0 0 1.5rem; }
 .tr-chart { margin: 0.5rem 0 1rem; color: var(--pico-primary); }
 .tr-chart svg { width: 100%; height: 90px; display: block; }
@@ -1767,3 +1762,21 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .plan-actions { display: flex; gap: 0.4rem; }
 .plan-actions button { width: auto; margin: 0; }
 .wo-ex-actions .wo-remove { font-size: 0.85rem; color: var(--pico-muted-color); text-decoration: none; }
+
+/* "Nowy trening": big tappable choices (a radio hidden inside a card) */
+.wst-q { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
+.wst-two { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.wst-list { display: grid; gap: 0.5rem; }
+.choice { position: relative; display: block; margin: 0; cursor: pointer; }
+.choice input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.choice > span { display: grid; align-content: start; gap: 0.2rem; height: 100%; padding: 0.75rem 0.9rem; border-radius: 12px; border: 2px solid var(--dm-tile-border); background: var(--dm-tile-bg); }
+.choice > span small { display: block; margin: 0; color: var(--pico-muted-color); font-size: 0.85rem; line-height: 1.35; }
+.choice input:checked + span { border-color: var(--pico-primary); box-shadow: 0 0 0 1px var(--pico-primary) inset; }
+.choice input:checked + span b::before { content: "✓ "; color: var(--pico-primary); }
+.choice input:focus-visible + span { outline: 2px solid var(--pico-primary); outline-offset: 2px; }
+.wst-next { font-style: normal; font-weight: 400; font-size: 0.75rem; padding: 0.05rem 0.45rem; border-radius: 999px; background: var(--pico-primary-background); color: var(--pico-primary-inverse); margin-left: 0.3rem; }
+.wst-day > summary { color: inherit; }
+.wst-link { color: var(--pico-primary); }
+.wst-day label { margin-top: 0.5rem; }
+.wst-go { width: 100%; margin: 1.5rem 0 2rem; font-size: 1.1rem; padding-block: 0.8rem; }
+.tr-other { display: block; margin-top: 0.75rem; text-align: center; font-size: 0.95rem; }
