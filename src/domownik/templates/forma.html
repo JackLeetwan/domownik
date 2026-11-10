@@ -10,7 +10,7 @@
     <span><b>{{ week.done }}/{{ week.goal }}</b> w tym tygodniu</span>
     <span class="tr-days">{% for letter, d, done in week_dots %}<i class="{% if done %}done{% endif %}{% if d == today %} today{% endif %}" title="{{ letter }}{{ ' – trening' if done else '' }}">{{ letter }}</i>{% endfor %}</span>
   </div>
-  <div class="tr-fresh"><span style="width: {{ (week.freshness * 100)|round|int }}%" class="{% if week.days_since is none or week.days_since > week.gap_days %}late{% elif week.freshness >= 0.75 %}soon{% endif %}"></span></div>
+  {% if week.days_since is not none %}  <div class="tr-fresh"><span style="width: {{ (week.freshness * 100)|round|int }}%" class="{% if week.days_since is none or week.days_since > week.gap_days %}late{% elif week.freshness >= 0.75 %}soon{% endif %}"></span></div>{% endif %}
   <p class="muted tr-last"><small>{% if week.days_since is none %}Jeszcze żadnego treningu.{% elif week.days_since == 0 %}Ostatni: dziś 💪{% elif week.days_since == 1 %}Ostatni: wczoraj{% else %}Ostatni: {{ week.days_since }} dni temu{% endif %}</small></p>
 
   {% if running %}

@@ -140,13 +140,13 @@ async def add(request: Request, db: Session = Depends(get_db), user: User = Depe
     return _back()
 
 
-@router.get("/forma/suplementy/{supplement_id}")
+@router.get("/forma/suplementy/{supplement_id:int}")
 def edit_page(supplement_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     s = _own(db, user, supplement_id)
     return _form_page(request, db, user, s, _values(s))
 
 
-@router.post("/forma/suplementy/{supplement_id}", dependencies=[Depends(verify_csrf)])
+@router.post("/forma/suplementy/{supplement_id:int}", dependencies=[Depends(verify_csrf)])
 async def edit(supplement_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     s = _own(db, user, supplement_id)
     form = await request.form()
@@ -176,7 +176,7 @@ def _card(request: Request, db: Session, user: User, where: str):
     return RedirectResponse("/" if where == "pulpit" else "/forma", status_code=303)
 
 
-@router.post("/forma/suplementy/{supplement_id}/wziete", dependencies=[Depends(verify_csrf)])
+@router.post("/forma/suplementy/{supplement_id:int}/wziete", dependencies=[Depends(verify_csrf)])
 async def toggle(
     supplement_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
 ):
@@ -202,7 +202,7 @@ async def take_group(request: Request, db: Session = Depends(get_db), user: User
     return _card(request, db, user, str(form.get("where") or "forma"))
 
 
-@router.post("/forma/suplementy/{supplement_id}/kupione", dependencies=[Depends(verify_csrf)])
+@router.post("/forma/suplementy/{supplement_id:int}/kupione", dependencies=[Depends(verify_csrf)])
 async def bought(
     supplement_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
 ):
@@ -219,14 +219,14 @@ async def bought(
     return _back()
 
 
-@router.post("/forma/suplementy/{supplement_id}/wstrzymaj", dependencies=[Depends(verify_csrf)])
+@router.post("/forma/suplementy/{supplement_id:int}/wstrzymaj", dependencies=[Depends(verify_csrf)])
 def pause(supplement_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     supl.pause(_own(db, user, supplement_id))
     db.commit()
     return _back()
 
 
-@router.post("/forma/suplementy/{supplement_id}/wznow", dependencies=[Depends(verify_csrf)])
+@router.post("/forma/suplementy/{supplement_id:int}/wznow", dependencies=[Depends(verify_csrf)])
 def resume(supplement_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     s = _own(db, user, supplement_id)
     supl.resume(s)
@@ -234,7 +234,7 @@ def resume(supplement_id: int, db: Session = Depends(get_db), user: User = Depen
     return _back()
 
 
-@router.post("/forma/suplementy/{supplement_id}/usun", dependencies=[Depends(verify_csrf)])
+@router.post("/forma/suplementy/{supplement_id:int}/usun", dependencies=[Depends(verify_csrf)])
 def remove(supplement_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     db.delete(_own(db, user, supplement_id))
     db.commit()

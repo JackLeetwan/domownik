@@ -272,3 +272,17 @@ def test_token_for_someone_else_ticks_nothing(client, db, user, paula):
     tok = supl.token(user, DAY, [s])  # Jan's token naming Paula's supplement
     assert client.post(f"/n/supl/{tok}").text == "Nie ma już tych suplementów."
     assert db.query(SupplementDose).count() == 0
+
+
+def test_take_all_of_one_hour_from_the_dashboard(auth_client, db, user):
+    """'✓ Wszystkie' – its path must not be taken for /forma/suplementy/{id} (it was a 404)."""
+    a = supl.create(db, user, name="Omega-3", dose=None, time="09:00")
+    b = supl.create(db, user, name="Witamina D3", dose=None, time="09:00")
+    c = supl.create(db, user, name="Magnez", dose=None, time="21:00")
+    db.commit()
+    r = auth_client.post(
+        "/forma/suplementy/wziete-wszystkie", data={"time": "09:00", "where": "pulpit"}, headers={"HX-Request": "true"}
+    )
+    assert r.status_code == 200 and 'id="supl-today"' in r.text
+    taken = {d.supplement_id for d in db.query(SupplementDose)}
+    assert taken == {a.id, b.id} and c.id not in taken

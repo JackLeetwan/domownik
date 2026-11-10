@@ -98,7 +98,7 @@ def _routes(app) -> list[tuple[str, str, set[str]]]:
 
 
 def _url(path: str, value: str = "1") -> str:
-    return re.sub(r"\{[a-z_]+\}", value, path)
+    return re.sub(r"\{[a-z_]+(?::[a-z]+)?\}", value, path)
 
 
 def _jpeg() -> bytes:

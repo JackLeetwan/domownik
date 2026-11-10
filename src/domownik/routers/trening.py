@@ -169,7 +169,7 @@ def _show(request: Request, db: Session, user: User, w: Workout, errors: dict | 
     return render(request, "workout.html", ctx)
 
 
-@router.get("/trening/{workout_id}")
+@router.get("/trening/{workout_id:int}")
 def workout_page(workout_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     return render(request, "workout.html", _screen(db, user, _workout(db, user, workout_id)))
 
@@ -187,7 +187,7 @@ def _num(raw, *, integer: bool = False, label: str) -> float | int | None:
     return round(value) if integer else value
 
 
-@router.post("/trening/{workout_id}/cw/{we_id}/seria", dependencies=[Depends(verify_csrf)])
+@router.post("/trening/{workout_id:int}/cw/{we_id:int}/seria", dependencies=[Depends(verify_csrf)])
 async def log_set(
     workout_id: int, we_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
 ):
@@ -212,7 +212,7 @@ async def log_set(
     return _show(request, db, user, w)
 
 
-@router.post("/trening/{workout_id}/seria/{set_id}/usun", dependencies=[Depends(verify_csrf)])
+@router.post("/trening/{workout_id:int}/seria/{set_id:int}/usun", dependencies=[Depends(verify_csrf)])
 def undo_set(
     workout_id: int, set_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
 ):
@@ -225,7 +225,7 @@ def undo_set(
     return _show(request, db, user, w)
 
 
-@router.post("/trening/{workout_id}/przerwa-koniec", dependencies=[Depends(verify_csrf)])
+@router.post("/trening/{workout_id:int}/przerwa-koniec", dependencies=[Depends(verify_csrf)])
 def skip_rest(workout_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     w = _workout(db, user, workout_id)
     w.rest_until = None
@@ -233,7 +233,7 @@ def skip_rest(workout_id: int, request: Request, db: Session = Depends(get_db), 
     return _show(request, db, user, w)
 
 
-@router.post("/trening/{workout_id}/cw/{we_id}/usun", dependencies=[Depends(verify_csrf)])
+@router.post("/trening/{workout_id:int}/cw/{we_id:int}/usun", dependencies=[Depends(verify_csrf)])
 def remove_exercise(workout_id: int, we_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     w = _workout(db, user, workout_id)
     w.exercises.remove(_we(w, we_id))
@@ -241,7 +241,7 @@ def remove_exercise(workout_id: int, we_id: int, db: Session = Depends(get_db), 
     return _go(f"/forma/trening/{w.id}")
 
 
-@router.post("/trening/{workout_id}/koniec", dependencies=[Depends(verify_csrf)])
+@router.post("/trening/{workout_id:int}/koniec", dependencies=[Depends(verify_csrf)])
 def finish(workout_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     w = _workout(db, user, workout_id)
     if not tr.counts(w):
@@ -253,7 +253,7 @@ def finish(workout_id: int, db: Session = Depends(get_db), user: User = Depends(
     return _go(f"/forma/trening/{w.id}")
 
 
-@router.post("/trening/{workout_id}/wznow", dependencies=[Depends(verify_csrf)])
+@router.post("/trening/{workout_id:int}/wznow", dependencies=[Depends(verify_csrf)])
 def reopen(workout_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     w = _workout(db, user, workout_id)
     w.finished_at = None
@@ -261,7 +261,7 @@ def reopen(workout_id: int, db: Session = Depends(get_db), user: User = Depends(
     return _go(f"/forma/trening/{w.id}")
 
 
-@router.post("/trening/{workout_id}/usun", dependencies=[Depends(verify_csrf)])
+@router.post("/trening/{workout_id:int}/usun", dependencies=[Depends(verify_csrf)])
 def delete(workout_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     db.delete(_workout(db, user, workout_id))
     db.commit()
@@ -294,7 +294,7 @@ def _pick_ctx(user: User, **kw) -> dict:
     } | kw
 
 
-@router.get("/trening/{workout_id}/cw/{we_id}/zamien")
+@router.get("/trening/{workout_id:int}/cw/{we_id:int}/zamien")
 def swap_page(
     workout_id: int,
     we_id: int,
@@ -325,7 +325,7 @@ def swap_page(
     )
 
 
-@router.post("/trening/{workout_id}/cw/{we_id}/zamien/{exercise_id}", dependencies=[Depends(verify_csrf)])
+@router.post("/trening/{workout_id:int}/cw/{we_id:int}/zamien/{exercise_id:int}", dependencies=[Depends(verify_csrf)])
 def swap(
     workout_id: int, we_id: int, exercise_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
 ):
@@ -336,7 +336,7 @@ def swap(
     return _go(f"/forma/trening/{w.id}#we{we.id}")
 
 
-@router.get("/trening/{workout_id}/dodaj")
+@router.get("/trening/{workout_id:int}/dodaj")
 def add_page(
     workout_id: int,
     request: Request,
@@ -365,7 +365,7 @@ def add_page(
     )
 
 
-@router.post("/trening/{workout_id}/dodaj/{exercise_id}", dependencies=[Depends(verify_csrf)])
+@router.post("/trening/{workout_id:int}/dodaj/{exercise_id:int}", dependencies=[Depends(verify_csrf)])
 def add(workout_id: int, exercise_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     w = _workout(db, user, workout_id)
     we = tr.add_exercise(db, w, _exercise(db, exercise_id))
@@ -381,7 +381,7 @@ def progress(request: Request, db: Session = Depends(get_db), user: User = Depen
     return render(request, "training_progress.html", {"user": user, "rows": tr.done_exercises(db, user)})
 
 
-@router.get("/postepy/{exercise_id}")
+@router.get("/postepy/{exercise_id:int}")
 def exercise_history(
     exercise_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
 ):
@@ -432,12 +432,12 @@ async def new_plan(request: Request, db: Session = Depends(get_db), user: User =
     return _go(f"/forma/plany/{p.id}")
 
 
-@router.get("/plany/{plan_id}")
+@router.get("/plany/{plan_id:int}")
 def plan_page(plan_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     return render(request, "training_plan.html", {"user": user, "p": _plan(db, plan_id)})
 
 
-@router.post("/plany/{plan_id}", dependencies=[Depends(verify_csrf)])
+@router.post("/plany/{plan_id:int}", dependencies=[Depends(verify_csrf)])
 async def save_plan(plan_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     """The whole plan in one form: name and every item's sets / range / seconds / rest / superset."""
     p = _plan(db, plan_id)
@@ -466,7 +466,7 @@ async def save_plan(plan_id: int, request: Request, db: Session = Depends(get_db
     return _go(f"/forma/plany/{p.id}")
 
 
-@router.post("/plany/{plan_id}/cw/{item_id}/{action}", dependencies=[Depends(verify_csrf)])
+@router.post("/plany/{plan_id:int}/cw/{item_id:int}/{action}", dependencies=[Depends(verify_csrf)])
 def plan_item_action(
     plan_id: int, item_id: int, action: str, db: Session = Depends(get_db), user: User = Depends(current_user)
 ):
@@ -488,7 +488,7 @@ def plan_item_action(
     return _go(f"/forma/plany/{p.id}#i{item_id}")
 
 
-@router.get("/plany/{plan_id}/dodaj")
+@router.get("/plany/{plan_id:int}/dodaj")
 def plan_add_page(
     plan_id: int, request: Request, partia: str = "", db: Session = Depends(get_db), user: User = Depends(current_user)
 ):
@@ -511,7 +511,7 @@ def plan_add_page(
     )
 
 
-@router.post("/plany/{plan_id}/dodaj/{exercise_id}", dependencies=[Depends(verify_csrf)])
+@router.post("/plany/{plan_id:int}/dodaj/{exercise_id:int}", dependencies=[Depends(verify_csrf)])
 def plan_add(plan_id: int, exercise_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     p = _plan(db, plan_id)
     ex = _exercise(db, exercise_id)
@@ -531,7 +531,7 @@ def plan_add(plan_id: int, exercise_id: int, db: Session = Depends(get_db), user
     return _go(f"/forma/plany/{p.id}#i{it.id}")
 
 
-@router.post("/plany/{plan_id}/archiwum", dependencies=[Depends(verify_csrf)])
+@router.post("/plany/{plan_id:int}/archiwum", dependencies=[Depends(verify_csrf)])
 def archive_plan(plan_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     _plan(db, plan_id).archived = True
     db.commit()
