@@ -7,7 +7,10 @@
 {% if cards %}
 <ul class="card-tiles">
   {% for c in cards %}
-  <li><a href="/zakupy/karty/{{ c.id }}" class="card-tile" style="--card-h: {{ c.hue }}"><b>{{ c.name }}</b>{% if c.note %}<small>{{ c.note }}</small>{% endif %}</a></li>
+  <li><a href="/zakupy/karty/{{ c.id }}" class="card-tile{% if c.color %} branded{% endif %}" style="--card-h: {{ c.hue }};{% if c.color %} --brand: {{ c.color }}; --brand-text: {{ c.text_color }};{% endif %}">
+    {% if c.id in logos %}<span class="card-logo"><img src="/zakupy/karty/{{ c.id }}/logo?v={{ c.logo_path[6:14] }}" alt="" loading="lazy"></span>
+    {% else %}<span class="card-logo card-initial" aria-hidden="true">{{ c.initial }}</span>{% endif %}
+    <b>{{ c.name }}</b>{% if c.note %}<small>{{ c.note }}</small>{% endif %}</a></li>
   {% endfor %}
 </ul>
 {% else %}
@@ -26,7 +29,8 @@
     <label>Numer<input name="code" required autocomplete="off" inputmode="text" value="{{ form.get('code', '') }}" placeholder="np. 2900 1234 5678 9" data-scan-code></label>
     <label>Sklep<input name="name" required maxlength="60" autocomplete="off" value="{{ form.get('name', '') }}" placeholder="np. Rossmann"></label>
     <label>Notatka <small class="muted">(opcjonalnie)</small><input name="note" maxlength="120" autocomplete="off" value="{{ form.get('note', '') }}" placeholder="np. karta Pauliny"></label>
-    <button type="submit">Zapisz kartę</button>
+    <label>Strona sklepu <small class="muted">(opcjonalnie – logo i kolor biorą się z niej; znane sklepy znajdę sam)</small><input name="site" inputmode="url" autocomplete="off" value="{{ form.get('site', '') }}" placeholder="np. rossmann.pl"></label>
+    <button type="submit" aria-busy="false" hx-disabled-elt="this">Zapisz kartę</button>
   </form>
   <p class="muted"><small>Działają karty ze stałym kodem (Rossmann, Hebe, IKEA, Decathlon, Leroy Merlin, apteki…). Aplikacje z kodem zmieniającym się przy każdym użyciu (Lidl Plus, Żabka) się nie nadają.</small></p>
 </details>

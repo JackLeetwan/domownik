@@ -2,8 +2,13 @@
 {% block title %}{{ c.name }} · Karty · Domownik{% endblock %}
 {% block content %}
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/zakupy/karty" class="home-link">← Karty</a></li></ul></nav>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 <section class="card-show">
-  <h1>{{ c.name }}</h1>
+  <header class="card-band{% if c.color %} branded{% endif %}" style="--card-h: {{ c.hue }};{% if c.color %} --brand: {{ c.color }}; --brand-text: {{ c.text_color }};{% endif %}">
+    {% if has_logo %}<span class="card-logo"><img src="/zakupy/karty/{{ c.id }}/logo?v={{ c.logo_path[6:14] }}" alt=""></span>
+    {% else %}<span class="card-logo card-initial" aria-hidden="true">{{ c.initial }}</span>{% endif %}
+    <h1>{{ c.name }}</h1>
+  </header>
   <div class="card-code card-code-{{ 'qr' if c.fmt == 'qr' else 'bars' }}">{{ code_svg|safe }}</div>
   <p class="card-number">{{ c.code }}</p>
   {% if c.note %}<p class="muted">{{ c.note }}</p>{% endif %}
@@ -11,11 +16,17 @@
 </section>
 <details class="card-add">
   <summary>Edytuj</summary>
-  <form method="post" action="/zakupy/karty/{{ c.id }}/edit">
+  <form method="post" action="/zakupy/karty/{{ c.id }}/edit" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <label>Sklep<input name="name" required maxlength="60" value="{{ c.name }}"></label>
     <label>Notatka<input name="note" maxlength="120" value="{{ c.note or '' }}"></label>
+    <label>Strona sklepu<input name="site" inputmode="url" value="{{ c.site or '' }}" placeholder="np. rossmann.pl"></label>
+    <div class="card-brand-edit">
+      <label>Kolor<input type="color" name="color" value="{{ c.color or '#2f6f5e' }}"></label>
+      <label>Własne logo <small class="muted">(np. zdjęcie karty)</small><input type="file" name="files" accept="image/*"></label>
+    </div>
     <button type="submit">Zapisz</button>
+    <button type="submit" name="fetch" value="1" class="outline secondary">🌐 Pobierz logo i kolor ze strony sklepu</button>
   </form>
   <form method="post" action="/zakupy/karty/{{ c.id }}/usun" hx-confirm="Usunąć kartę {{ c.name }}?">
     <input type="hidden" name="csrf" value="{{ csrf }}">

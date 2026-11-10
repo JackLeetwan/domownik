@@ -7,7 +7,7 @@ import json
 import pytest
 from sqlalchemy import select
 
-from domownik import recipe_link
+from domownik import recipe_link, webfetch
 from domownik.models import Recipe
 
 HX = {"HX-Request": "true"}
@@ -50,7 +50,7 @@ def test_never_into_the_home_network(monkeypatch):
     for host in ("127.0.0.1", "192.168.8.1", "10.0.0.5", "[::1]"):
         with pytest.raises(recipe_link.RecipeLinkError, match="sieci lokalnej"):
             recipe_link._check(httpx.Request("GET", f"http://{host}/przepis"))
-    monkeypatch.setattr(recipe_link.socket, "getaddrinfo", lambda h, p: [(2, 1, 6, "", ("192.168.1.10", 0))])
+    monkeypatch.setattr(webfetch.socket, "getaddrinfo", lambda h, p: [(2, 1, 6, "", ("192.168.1.10", 0))])
     with pytest.raises(recipe_link.RecipeLinkError, match="sieci lokalnej"):  # a public name pointing home
         recipe_link._check(httpx.Request("GET", "https://przepisy.example.com/x"))
 

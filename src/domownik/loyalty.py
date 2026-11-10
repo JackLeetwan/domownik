@@ -114,3 +114,73 @@ def svg(code: str, fmt: str) -> str:
     out = out.replace(m.group(0), head, 1)
     out = re.sub(r"<!--.*?-->", "", out, flags=re.DOTALL)
     return out.replace("<svg ", f'<svg class="{cls}" role="img" aria-label="Kod karty" ', 1)
+
+
+# ---------------------------------------------------------------- the shop's logo, stored with the house's data
+
+LOGO_DIR = "cards"
+_LOGO_NAME = re.compile(r"[0-9a-f]{32}\.png")
+UPLOAD_MAX = 8 * 1024 * 1024
+OWN_LOGO_BOX = (320, 200)  # a photo of the card itself is wide – kept so
+
+
+def _root():
+    from domownik.config import get_settings
+
+    return get_settings().uploads_dir.resolve()
+
+
+def logo_file(card):
+    """Absolute path of the card's logo, or None – only our own names under uploads/cards/."""
+    parts = (card.logo_path or "").split("/")
+    if len(parts) != 2 or parts[0] != LOGO_DIR or not _LOGO_NAME.fullmatch(parts[1]):
+        return None
+    path = (_root() / card.logo_path).resolve()
+    return path if path.is_relative_to(_root()) and path.is_file() else None
+
+
+def drop_logo(card) -> None:
+    path = logo_file(card)
+    if path is not None:
+        path.unlink(missing_ok=True)
+    card.logo_path = None
+
+
+def store_logo(card, png: bytes) -> None:
+    import secrets
+
+    drop_logo(card)
+    folder = _root() / LOGO_DIR
+    folder.mkdir(parents=True, exist_ok=True)
+    name = f"{secrets.token_hex(16)}.png"
+    (folder / name).write_bytes(png)
+    card.logo_path = f"{LOGO_DIR}/{name}"
+
+
+def own_logo(data) -> bytes:
+    """An uploaded picture (a logo, a photo of the card) → a clean PNG. Raises CardError."""
+    from PIL import Image, ImageOps
+
+    raw = data.read(UPLOAD_MAX + 1)
+    if len(raw) > UPLOAD_MAX:
+        raise CardError("Obrazek jest za duży (do 8 MB)")
+    try:
+        im = Image.open(io.BytesIO(raw))
+        im = ImageOps.exif_transpose(im).convert("RGBA")
+    except Exception as exc:
+        raise CardError("To nie jest obrazek – wybierz PNG, JPG albo WebP") from exc
+    im.thumbnail(OWN_LOGO_BOX)
+    out = io.BytesIO()
+    im.save(out, "PNG", optimize=True)  # re-encoded: nothing of the original file (EXIF, place) is kept
+    return out.getvalue()
+
+
+def apply_brand(card, brand) -> None:
+    """What brands.look_up found → the card (a logo of one's own is replaced only by a found one)."""
+    if brand is None:
+        return
+    card.site = brand.site
+    if brand.color:
+        card.color = brand.color
+    if brand.logo:
+        store_logo(card, brand.logo)

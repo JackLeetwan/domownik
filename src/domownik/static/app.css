@@ -1899,3 +1899,15 @@ legend .ex-pic { width: 3rem; height: 2.25rem; margin-right: 0.25rem; }
 .rec-dearer p { margin: 0.15rem 0; }
 .rec-amount { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
 .rec-rows .supl-row-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 💳 a card in its shop's colours: the brand colour from the shop's site, its logo on a white plate */
+.card-tile.branded, .card-band.branded { background: var(--brand); color: var(--brand-text); }
+.card-tile.branded:hover, .card-tile.branded:focus-visible { color: var(--brand-text); }
+.card-tile { justify-content: space-between; gap: 0.5rem; min-height: 6.5rem; }
+.card-logo { display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; height: 2.75rem; min-width: 2.75rem; max-width: 100%; padding: 0.3rem; border-radius: 0.55rem; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.18); }
+.card-logo img { display: block; max-height: 100%; max-width: 100%; object-fit: contain; }
+.card-initial { font-weight: 800; font-size: 1.35rem; color: var(--brand, hsl(var(--card-h, 160) 45% 32%)); }
+.card-band { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 0.75rem; text-align: left; color: #fff; background: linear-gradient(135deg, hsl(var(--card-h, 160) 45% 38%), hsl(var(--card-h, 160) 50% 24%)); }
+.card-band h1 { margin: 0; font-size: 1.5rem; color: inherit; }
+.card-brand-edit { display: grid; grid-template-columns: 6rem 1fr; gap: 0.75rem; align-items: end; }
+.card-brand-edit input[type=color] { height: 2.6rem; padding: 0.2rem; }

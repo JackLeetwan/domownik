@@ -510,9 +510,22 @@ class LoyaltyCard(Base):
     code: Mapped[str] = mapped_column(String(120))
     fmt: Mapped[str] = mapped_column(String(20), default="code128")  # loyalty.FORMATS
     note: Mapped[str | None] = mapped_column(String(120))
+    site: Mapped[str | None] = mapped_column(String(120))  # the shop's website – its logo and colour come from it
+    color: Mapped[str | None] = mapped_column(String(7))  # "#c8102e"
+    logo_path: Mapped[str | None] = mapped_column(String(120))  # under uploads/, see loyalty.logo_file
     used_at: Mapped[datetime | None] = mapped_column(DateTime)  # shown at a till – the most used come first
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    @property
+    def text_color(self) -> str:
+        from domownik.brands import text_on
+
+        return text_on(self.color)
+
+    @property
+    def initial(self) -> str:
+        return (self.name.strip()[:1] or "?").upper()
 
     @property
     def hue(self) -> int:

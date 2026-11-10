@@ -1,0 +1,71 @@
+# Shops with a loyalty card → their website, where the logo and the brand colour are read from (💳 Karty).
+# Only names and addresses here – the logos are fetched from the shop's own site when a card is added.
+# Keys: how people write the name (lowercase, without Polish letters); several spellings → one site.
+rossmann: rossmann.pl
+hebe: hebe.pl
+ikea: ikea.com
+ikea family: ikea.com
+decathlon: decathlon.pl
+leroy merlin: leroymerlin.pl
+castorama: castorama.pl
+obi: obi.pl
+bricomarche: bricomarche.pl
+biedronka: biedronka.pl
+moja biedronka: biedronka.pl
+lidl: lidl.pl
+kaufland: kaufland.pl
+carrefour: carrefour.pl
+auchan: auchan.pl
+netto: netto.pl
+stokrotka: stokrotka.pl
+intermarche: intermarche.pl
+dino: marketdino.pl
+polomarket: polomarket.pl
+lewiatan: lewiatan.pl
+zabka: zabka.pl
+empik: empik.com
+matras: matras.pl
+pepco: pepco.pl
+action: action.com
+jysk: jysk.pl
+agata: agatameble.pl
+black red white: brw.pl
+brw: brw.pl
+media expert: mediaexpert.pl
+rtv euro agd: euro.com.pl
+euro rtv agd: euro.com.pl
+x-kom: x-kom.pl
+media markt: mediamarkt.pl
+douglas: douglas.pl
+sephora: sephora.pl
+notino: notino.pl
+super-pharm: superpharm.pl
+superpharm: superpharm.pl
+gemini: gemini.pl
+apteka gemini: gemini.pl
+doz: doz.pl
+ziko: zikoapteka.pl
+smyk: smyk.com
+ccc: ccc.eu
+deichmann: deichmann.com
+reserved: reserved.com
+sinsay: sinsay.com
+h&m: hm.com
+hm: hm.com
+zara: zara.com
+tk maxx: tkmaxx.pl
+kik: kik.pl
+orlen: orlen.pl
+orlen vitay: orlen.pl
+shell: shell.pl
+bp: bp.com
+circle k: circlek.pl
+starbucks: starbucks.pl
+costa coffee: costacoffee.pl
+mcdonalds: mcdonalds.pl
+kfc: kfc.pl
+cinema city: cinema-city.pl
+multikino: multikino.pl
+helios: helios.pl
+eobuwie: eobuwie.pl
+zalando: zalando.pl

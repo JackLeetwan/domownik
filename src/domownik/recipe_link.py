@@ -10,15 +10,15 @@ Only public internet addresses are fetched (every redirect checked) – a link c
 from __future__ import annotations
 
 import html
-import ipaddress
 import json
 import re
-import socket
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 
 import httpx
+
+from domownik import webfetch
 
 MAX_BYTES = 3 * 1024 * 1024
 TIMEOUT = 15.0
@@ -79,43 +79,17 @@ def site(url: str) -> str:
 
 def _check(request: httpx.Request) -> None:
     """Every hop (redirects too) goes to a public internet server – never into the home network."""
-    host = request.url.host
-    if request.url.scheme not in ("http", "https") or not host:
-        raise RecipeLinkError("To nie jest link do strony")
     try:
-        infos = socket.getaddrinfo(host, None)
-    except OSError:
-        raise RecipeLinkError("Nie mogę połączyć się z tą stroną – sprawdź link i internet") from None
-    if any(not ipaddress.ip_address(i[4][0].split("%")[0]).is_global for i in infos):
-        raise RecipeLinkError("Link prowadzi do sieci lokalnej")
+        webfetch.check(request)
+    except webfetch.FetchError as exc:
+        raise RecipeLinkError(str(exc)) from None
 
 
 def fetch(url: str) -> str:
     try:
-        with (
-            httpx.Client(
-                timeout=TIMEOUT,
-                follow_redirects=True,
-                max_redirects=5,
-                headers={"User-Agent": "Mozilla/5.0 (Domownik recipe import)", "Accept-Language": "pl-PL,pl"},
-                trust_env=False,
-                event_hooks={"request": [_check]},
-            ) as client,
-            client.stream("GET", url) as resp,
-        ):
-            if resp.status_code == 404:
-                raise RecipeLinkError("Nie ma takiej strony (404) – sprawdź link")
-            if resp.status_code >= 400:
-                raise RecipeLinkError(f"Strona odpowiedziała błędem {resp.status_code}")
-            chunks, size = [], 0
-            for chunk in resp.iter_bytes():
-                size += len(chunk)
-                if size > MAX_BYTES:
-                    raise RecipeLinkError("Strona przepisu jest podejrzanie duża")
-                chunks.append(chunk)
-            return b"".join(chunks).decode(resp.encoding or "utf-8", errors="replace")
-    except httpx.HTTPError as exc:
-        raise RecipeLinkError(f"Nie udało się pobrać strony ({type(exc).__name__})") from None
+        return webfetch.get(url, max_bytes=MAX_BYTES, timeout=TIMEOUT, what="Strona przepisu").text
+    except webfetch.FetchError as exc:
+        raise RecipeLinkError(str(exc)) from None
 
 
 def _recipes_in(data) -> list[dict]:
