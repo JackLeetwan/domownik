@@ -574,6 +574,74 @@
     saveFoldState(st);
   });
 
+  // ------------------------------------------------------------------ 💳 a loyalty card from the camera
+  // BarcodeDetector (Chrome on Android): fills the number and the kind of code; elsewhere the button stays
+  // hidden and the number is typed.
+  const canScan = "BarcodeDetector" in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+  const showScan = () => {
+    if (!canScan) return;
+    document.querySelectorAll("[data-scan][hidden]").forEach((b) => { b.hidden = false; });
+  };
+  showScan();
+  document.addEventListener("htmx:load", showScan);
+  let scanning = null;
+  function stopScan() {
+    if (!scanning) return;
+    scanning.stream.getTracks().forEach((t) => t.stop());
+    clearTimeout(scanning.timer);
+    scanning.box.hidden = true;
+    scanning = null;
+  }
+  document.addEventListener("click", async (e) => {
+    if (e.target.closest && e.target.closest("[data-scan-stop]")) { stopScan(); return; }
+    const btn = e.target.closest && e.target.closest("[data-scan]");
+    if (!btn || !canScan) return;
+    e.preventDefault();
+    stopScan();
+    const form = btn.closest("form");
+    const box = form.querySelector(".card-scan");
+    const video = box.querySelector("video");
+    let detector;
+    try {
+      const formats = await window.BarcodeDetector.getSupportedFormats();
+      detector = new window.BarcodeDetector({ formats });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      scanning = { stream, box, timer: null };
+      video.srcObject = stream;
+      box.hidden = false;
+      await video.play();
+    } catch (_) {
+      stopScan();
+      btn.textContent = "📷 Aparat niedostępny – wpisz numer";
+      return;
+    }
+    const look = async () => {
+      if (!scanning) return;
+      try {
+        const found = await detector.detect(video);
+        if (found.length) {
+          form.querySelector("[data-scan-code]").value = found[0].rawValue;
+          form.querySelector("[data-scan-fmt]").value = found[0].format;
+          stopScan();
+          if (navigator.vibrate) navigator.vibrate(60);
+          const name = form.querySelector("input[name=name]");
+          if (name && !name.value) name.focus();
+          return;
+        }
+      } catch (_) { /* a frame not ready yet */ }
+      scanning.timer = setTimeout(look, 200);
+    };
+    look();
+  });
+  document.addEventListener("htmx:beforeSwap", stopScan);
+  // a number typed by hand: the kind of code is guessed on the server again
+  document.addEventListener("input", (e) => {
+    if (e.target.matches && e.target.matches("[data-scan-code]")) {
+      const f = e.target.form && e.target.form.querySelector("[data-scan-fmt]");
+      if (f) f.value = "";
+    }
+  });
+
   // ------------------------------------------------------------------ dictation (🎤, Web Speech API)
   // Only where the browser can do it (Chrome on Android, Safari); the buttons stay hidden elsewhere.
   // For a list ("mleko chleb i masło") "i" / "oraz" become commas – the server splits on those.

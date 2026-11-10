@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Karty · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/zakupy" class="home-link">← Zakupy</a></li></ul></nav>
+<header class="item-head"><h1>💳 Karty</h1></header>
+
+{% if cards %}
+<ul class="card-tiles">
+  {% for c in cards %}
+  <li><a href="/zakupy/karty/{{ c.id }}" class="card-tile" style="--card-h: {{ c.hue }}"><b>{{ c.name }}</b>{% if c.note %}<small>{{ c.note }}</small>{% endif %}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">Karty sklepów, wspólne dla domu – przy kasie pokazuje je ten, kto robi zakupy.</p>
+{% endif %}
+
+<details class="card-add"{% if error or not cards %} open{% endif %}>
+  <summary>＋ Dodaj kartę</summary>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="/zakupy/karty" class="card-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="fmt" value="{{ form.get('fmt', '') }}" data-scan-fmt>
+    <button type="button" class="secondary" data-scan hidden>📷 Zeskanuj kod z karty</button>
+    <div class="card-scan" hidden><video playsinline muted></video><small class="muted">Nakieruj aparat na kod kreskowy…</small>
+      <button type="button" class="outline secondary small" data-scan-stop>Anuluj</button></div>
+    <label>Numer<input name="code" required autocomplete="off" inputmode="text" value="{{ form.get('code', '') }}" placeholder="np. 2900 1234 5678 9" data-scan-code></label>
+    <label>Sklep<input name="name" required maxlength="60" autocomplete="off" value="{{ form.get('name', '') }}" placeholder="np. Rossmann"></label>
+    <label>Notatka <small class="muted">(opcjonalnie)</small><input name="note" maxlength="120" autocomplete="off" value="{{ form.get('note', '') }}" placeholder="np. karta Pauliny"></label>
+    <button type="submit">Zapisz kartę</button>
+  </form>
+  <p class="muted"><small>Działają karty ze stałym kodem (Rossmann, Hebe, IKEA, Decathlon, Leroy Merlin, apteki…). Aplikacje z kodem zmieniającym się przy każdym użyciu (Lidl Plus, Żabka) się nie nadają.</small></p>
+</details>
+{% endblock %}

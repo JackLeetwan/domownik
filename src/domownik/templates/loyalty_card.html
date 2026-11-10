@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ c.name }} · Karty · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/zakupy/karty" class="home-link">← Karty</a></li></ul></nav>
+<section class="card-show">
+  <h1>{{ c.name }}</h1>
+  <div class="card-code card-code-{{ 'qr' if c.fmt == 'qr' else 'bars' }}">{{ code_svg|safe }}</div>
+  <p class="card-number">{{ c.code }}</p>
+  {% if c.note %}<p class="muted">{{ c.note }}</p>{% endif %}
+  <p class="muted"><small>Podgłośnij jasność ekranu, jeśli skaner nie łapie.</small></p>
+</section>
+<details class="card-add">
+  <summary>Edytuj</summary>
+  <form method="post" action="/zakupy/karty/{{ c.id }}/edit">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Sklep<input name="name" required maxlength="60" value="{{ c.name }}"></label>
+    <label>Notatka<input name="note" maxlength="120" value="{{ c.note or '' }}"></label>
+    <button type="submit">Zapisz</button>
+  </form>
+  <form method="post" action="/zakupy/karty/{{ c.id }}/usun" hx-confirm="Usunąć kartę {{ c.name }}?">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit" class="outline danger">Usuń kartę</button>
+  </form>
+  <p class="muted"><small>{{ fmt_label }}. Inny numer? Usuń i dodaj kartę jeszcze raz.</small></p>
+</details>
+{% endblock %}

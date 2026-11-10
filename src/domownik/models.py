@@ -500,6 +500,26 @@ class JournalEntry(Base):
     created_by: Mapped[User | None] = relationship()
 
 
+class LoyaltyCard(Base):
+    """A store's loyalty card of the house (shared): its number and the kind of barcode the till scans."""
+
+    __tablename__ = "loyalty_card"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(60))
+    code: Mapped[str] = mapped_column(String(120))
+    fmt: Mapped[str] = mapped_column(String(20), default="code128")  # loyalty.FORMATS
+    note: Mapped[str | None] = mapped_column(String(120))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime)  # shown at a till – the most used come first
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    @property
+    def hue(self) -> int:
+        """A colour of its own (from the name, stable) – the tiles are told apart at a glance."""
+        return sum(ord(ch) * (i + 1) for i, ch in enumerate(self.name.lower())) * 47 % 360
+
+
 class ShoppingItem(Base):
     """One position on the shared shopping list: open → in cart (checked_at) → bought (bought_on)."""
 

@@ -3,7 +3,10 @@
 {% block content %}
 <header class="item-head">
   <h1>🛒 Zakupy</h1>
-  <button type="button" class="outline" hx-get="/kuchnia/do-zakupow/przepis" hx-target="#modal-body">📖 Z przepisu</button>
+  <span class="shop-head-actions">
+    <a href="/zakupy/karty" role="button" class="outline secondary">💳 Karty</a>
+    <button type="button" class="outline" hx-get="/kuchnia/do-zakupow/przepis" hx-target="#modal-body">📖 Z przepisu</button>
+  </span>
 </header>
 
 <form class="shop-add" method="post" action="/zakupy"

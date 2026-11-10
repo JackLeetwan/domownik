@@ -1872,3 +1872,24 @@ legend .ex-pic { width: 3rem; height: 2.25rem; margin-right: 0.25rem; }
 .share-choices form { margin: 0 0 0.5rem; }
 .share-choices button { width: 100%; text-align: left; }
 .share-choices button small { font-weight: normal; opacity: 0.8; }
+
+/* 💳 loyalty cards */
+.card-tiles { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 0.6rem; }
+.card-tiles li { margin: 0; list-style: none; }
+.card-tile { display: flex; flex-direction: column; justify-content: flex-end; min-height: 5.5rem; padding: 0.75rem; border-radius: 0.75rem; color: #fff; text-decoration: none; background: linear-gradient(135deg, hsl(var(--card-h, 160) 45% 38%), hsl(var(--card-h, 160) 50% 24%)); }
+.card-tile:hover, .card-tile:focus-visible { color: #fff; filter: brightness(1.08); }
+.card-tile b { font-size: 1.05rem; line-height: 1.2; }
+.card-tile small { opacity: 0.85; }
+.card-add summary { font-weight: 600; }
+.card-scan { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.8rem; }
+.card-scan video { width: 100%; max-height: 14rem; object-fit: cover; border-radius: 0.5rem; background: #000; }
+.card-show { text-align: center; }
+.card-show h1 { margin-bottom: 0.8rem; }
+/* the code always on white, whatever the theme – scanners need the contrast */
+.card-code { background: #fff; border-radius: 0.6rem; padding: 0.75rem; margin: 0 auto 0.6rem; }
+.card-code svg { display: block; width: 100%; height: auto; }
+.card-code-bars svg { height: 9rem; }
+.card-code-qr { max-width: 17rem; }
+.card-number { font-family: ui-monospace, monospace; font-size: 1.3rem; letter-spacing: 0.08em; overflow-wrap: anywhere; margin-bottom: 0.3rem; }
+.shop-head-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.shop-head-actions > * { margin: 0; width: auto; }
