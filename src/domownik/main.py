@@ -41,6 +41,7 @@ from domownik.routers import (
     shopping,
     tasks,
     timers,
+    trening,
 )
 from domownik.security import LoginRequired
 from domownik.slowlog import SlowRequestLog
@@ -61,7 +62,7 @@ def _tick() -> None:
 
 
 def _timer_tick() -> None:
-    from domownik import supplements, timers
+    from domownik import supplements, timers, training
     from domownik.db import session_factory
 
     try:
@@ -74,6 +75,23 @@ def _timer_tick() -> None:
             supplements.run(db)
     except Exception:  # separately: a broken supplement push must not stop the timers
         log.exception("supplement tick failed")
+    try:
+        with session_factory()() as db:
+            training.run_nudge(db)
+    except Exception:
+        log.exception("training nudge failed")
+
+
+def _rest_tick() -> None:
+    """🏋️ the end of a rest between sets – seconds matter, so every 10 s (one indexed query)."""
+    from domownik import training
+    from domownik.db import session_factory
+
+    try:
+        with session_factory()() as db:
+            training.run_rest(db)
+    except Exception:
+        log.exception("rest tick failed")
 
 
 @asynccontextmanager
@@ -91,6 +109,7 @@ async def lifespan(_app: FastAPI):
         scheduler.add_job(_tick, "interval", minutes=5, next_run_time=now(), max_instances=1, coalesce=True)
         # timers ("pranie – 2 h") need the minute, not the five: a cheap query on an indexed column
         scheduler.add_job(_timer_tick, "interval", minutes=1, next_run_time=now(), max_instances=1, coalesce=True)
+        scheduler.add_job(_rest_tick, "interval", seconds=10, max_instances=1, coalesce=True)
         scheduler.start()
     yield
     if scheduler:
@@ -174,6 +193,7 @@ def create_app() -> FastAPI:
     app.include_router(meters.router)
     app.include_router(timers.router)
     app.include_router(forma.router)
+    app.include_router(trening.router)
 
     @app.exception_handler(LoginRequired)
     async def _login_required(request: Request, _exc: LoginRequired):

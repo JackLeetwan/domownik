@@ -4,6 +4,47 @@
 <header class="item-head"><h1>💪 Forma</h1></header>
 <p class="muted"><small>🔒 Widzisz to tylko Ty.</small></p>
 
+<h2>🏋️ Trening</h2>
+<section class="tr-card">
+  <div class="tr-week">
+    <span><b>{{ week.done }}/{{ week.goal }}</b> w tym tygodniu</span>
+    <span class="tr-days">{% for letter, d, done in week_dots %}<i class="{% if done %}done{% endif %}{% if d == today %} today{% endif %}" title="{{ letter }}{{ ' – trening' if done else '' }}">{{ letter }}</i>{% endfor %}</span>
+  </div>
+  <div class="tr-fresh"><span style="width: {{ (week.freshness * 100)|round|int }}%" class="{% if week.days_since is none or week.days_since > week.gap_days %}late{% elif week.freshness >= 0.75 %}soon{% endif %}"></span></div>
+  <p class="muted tr-last"><small>{% if week.days_since is none %}Jeszcze żadnego treningu.{% elif week.days_since == 0 %}Ostatni: dziś 💪{% elif week.days_since == 1 %}Ostatni: wczoraj{% else %}Ostatni: {{ week.days_since }} dni temu{% endif %}</small></p>
+
+  {% if running %}
+  <a href="/forma/trening/{{ running.id }}" role="button" class="tr-go">▶ Wróć do treningu{% if running.plan %}: {{ running.plan.name }}{% endif %}</a>
+  {% elif next_plan %}
+  <form method="post" action="/forma/trening"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="plan_id" value="{{ next_plan.id }}">
+    <button type="submit" class="tr-go">▶ Zacznij {{ next_plan.name }}</button></form>
+  {% endif %}
+  <details class="tr-other">
+    <summary>Inny trening, wyjazd albo wpis wstecz</summary>
+    <form method="post" action="/forma/trening" class="tr-start">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <fieldset>
+        <legend>Co robisz</legend>
+        {% for p in plans %}<label><input type="radio" name="plan_id" value="{{ p.id }}"{% if next_plan and p.id == next_plan.id %} checked{% endif %}> {{ p.name }} <small class="muted">({{ p.items|length }} ćw.)</small></label>{% endfor %}
+        <label><input type="radio" name="plan_id" value=""{% if not next_plan %} checked{% endif %}> Składam na bieżąco <small class="muted">(bez planu)</small></label>
+      </fieldset>
+      <label><input type="checkbox" name="away" value="1" role="switch"> 🧳 Wyjazd / dom – tylko masa ciała, gumy, drążek</label>
+      <label>Dzień <small class="muted">(zmień, żeby dopisać trening wstecz)</small> <input type="date" name="day" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}"></label>
+      <button type="submit">▶ Zacznij</button>
+    </form>
+  </details>
+</section>
+
+{% if recent %}
+<h3 class="supl-sub">Ostatnie treningi</h3>
+<ul class="supl-rows">
+  {% for w in recent %}{% set n = w.exercises|map(attribute='done')|map('length')|sum %}
+  <li><a class="supl-row" href="/forma/trening/{{ w.id }}"><span class="supl-row-main"><b>{{ w.plan.name if w.plan else 'Trening' }}</b><small class="muted">{{ w.day|d(weekday=True) }} · {{ w.exercises|length }} ćw. · {{ n }} serii{% if w.equipment %} · 🧳{% endif %}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
+  {% endfor %}
+</ul>
+{% endif %}
+<p class="tr-links"><a href="/forma/postepy">📈 Postępy</a> · <a href="/forma/plany">📋 Plany i cel</a></p>
+
 <h2>💊 Suplementy</h2>
 {% if supplements %}
 {% include "partials/supplements_today.html" %}

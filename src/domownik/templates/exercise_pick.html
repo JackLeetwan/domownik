@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="{{ back }}" class="home-link">← Wróć</a></li></ul></nav>
+<header class="item-head"><h1>{{ title }}</h1></header>
+{% if filter_url is defined %}
+<p class="pick-chips">
+  <a href="{{ filter_url }}" class="chip{% if not muscle_filter %} on{% endif %}">Wszystko</a>
+  {% for k, label in muscles.items() %}<a href="{{ filter_url }}partia={{ k }}" class="chip{% if muscle_filter == k %} on{% endif %}">{{ label }}</a>{% endfor %}
+</p>
+{% endif %}
+{% if filtered %}<p class="muted"><small>🧳 Tylko to, co masz pod ręką (masa ciała, gumy, drążek). <a href="{{ all_url }}">Pokaż wszystko</a></small></p>{% endif %}
+{% for heading, items in sections %}
+{% if items %}
+<h2 class="pick-head">{{ heading }}</h2>
+<ul class="pick-list">
+  {% for ex in items %}
+  <li><form method="post" action="{{ action }}{{ ex.id }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit" class="pick-row"><span><b>{{ ex.name }}</b><small class="muted">{{ equipment_label(ex.equipment) }} · {{ muscle_label(ex.muscle) }}</small></span><span aria-hidden="true">＋</span></button></form></li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% else %}
+<p class="muted">Nic tu nie pasuje.</p>
+{% endfor %}
+{% if sections|selectattr(1)|list|length == 0 %}<p class="muted">Brak ćwiczeń dla tego filtra.{% if filtered %} <a href="{{ all_url }}">Pokaż wszystkie</a>{% endif %}</p>{% endif %}
+{% endblock %}

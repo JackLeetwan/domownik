@@ -1267,3 +1267,137 @@ class SupplementDose(Base):
     supplement_id: Mapped[int] = mapped_column(ForeignKey("supplement.id", ondelete="CASCADE"), index=True)
     taken_on: Mapped[date] = mapped_column(Date)
     taken_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class Exercise(Base):
+    """An exercise of the shared library ("Wyciskanie hantli na ławce płaskiej").
+
+    pattern / muscle / equipment drive the substitutes (a busy machine → the same pattern first, then the same
+    muscle; "wyjazd" → only equipment at hand). key = seeded from catalog/seed/exercises.yaml (None = own).
+    en: the names it had in Jefit, "|"-separated, for the import.
+    """
+
+    __tablename__ = "exercise"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key: Mapped[str | None] = mapped_column(String(40), unique=True)
+    name: Mapped[str] = mapped_column(String(80))
+    en: Mapped[str | None] = mapped_column(String(400))
+    pattern: Mapped[str] = mapped_column(String(20))
+    muscle: Mapped[str] = mapped_column(String(20))
+    equipment: Mapped[str] = mapped_column(String(20))
+    kind: Mapped[str] = mapped_column(String(10), default="reps", server_default="reps")  # reps | time
+    step: Mapped[float] = mapped_column(default=2.5, server_default="2.5")  # kg added at the top of the range
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class WorkoutPlan(Base):
+    """A training day to repeat ("FBW 1"); shared by the household, the rotation goes in `position` order."""
+
+    __tablename__ = "workout_plan"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(60))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    items: Mapped[list[PlanItem]] = relationship(
+        back_populates="plan", cascade="all, delete-orphan", order_by="PlanItem.position"
+    )
+
+
+class PlanItem(Base):
+    """One exercise of a plan: sets × a range of reps (8–12) or seconds; superset = the same number pairs them."""
+
+    __tablename__ = "plan_item"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("workout_plan.id", ondelete="CASCADE"), index=True)
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id", ondelete="CASCADE"))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    sets: Mapped[int] = mapped_column(Integer, default=4)
+    reps_min: Mapped[int | None] = mapped_column(Integer)
+    reps_max: Mapped[int | None] = mapped_column(Integer)
+    seconds: Mapped[int | None] = mapped_column(Integer)
+    rest_seconds: Mapped[int] = mapped_column(Integer, default=90)
+    superset: Mapped[int | None] = mapped_column(Integer)
+
+    plan: Mapped[WorkoutPlan] = relationship(back_populates="items")
+    exercise: Mapped[Exercise] = relationship()
+
+
+class Workout(Base):
+    """One training of one person – private. equipment: what was at hand (None = a full gym)."""
+
+    __tablename__ = "workout"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    plan_id: Mapped[int | None] = mapped_column(ForeignKey("workout_plan.id", ondelete="SET NULL"))
+    day: Mapped[date] = mapped_column(Date, index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime)
+    equipment: Mapped[list[str] | None] = mapped_column(JSON)
+    source: Mapped[str] = mapped_column(String(10), default="app", server_default="app")  # app | jefit
+    note: Mapped[str | None] = mapped_column(String(300))
+    rest_until: Mapped[datetime | None] = mapped_column(DateTime, index=True)  # the rest after a set ends then
+    rest_pushed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+
+    plan: Mapped[WorkoutPlan | None] = relationship()
+    exercises: Mapped[list[WorkoutExercise]] = relationship(
+        back_populates="workout", cascade="all, delete-orphan", order_by="WorkoutExercise.position"
+    )
+
+
+class WorkoutExercise(Base):
+    """An exercise as done in one workout – copied from the plan, so a swap or a change stays in this one."""
+
+    __tablename__ = "workout_exercise"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workout_id: Mapped[int] = mapped_column(ForeignKey("workout.id", ondelete="CASCADE"), index=True)
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    sets: Mapped[int] = mapped_column(Integer, default=3)
+    reps_min: Mapped[int | None] = mapped_column(Integer)
+    reps_max: Mapped[int | None] = mapped_column(Integer)
+    seconds: Mapped[int | None] = mapped_column(Integer)
+    rest_seconds: Mapped[int] = mapped_column(Integer, default=90)
+    superset: Mapped[int | None] = mapped_column(Integer)
+    swapped_from_id: Mapped[int | None] = mapped_column(ForeignKey("exercise.id", ondelete="SET NULL"))
+
+    workout: Mapped[Workout] = relationship(back_populates="exercises")
+    exercise: Mapped[Exercise] = relationship(foreign_keys=[exercise_id])
+    swapped_from: Mapped[Exercise | None] = relationship(foreign_keys=[swapped_from_id])
+    done: Mapped[list[WorkoutSet]] = relationship(
+        back_populates="workout_exercise", cascade="all, delete-orphan", order_by="WorkoutSet.set_no"
+    )
+
+
+class WorkoutSet(Base):
+    """A set done: weight (kg; a dumbbell = one hand) × reps, or seconds for a plank."""
+
+    __tablename__ = "workout_set"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workout_exercise_id: Mapped[int] = mapped_column(ForeignKey("workout_exercise.id", ondelete="CASCADE"), index=True)
+    set_no: Mapped[int] = mapped_column(Integer)
+    weight: Mapped[float | None]
+    reps: Mapped[int | None] = mapped_column(Integer)
+    seconds: Mapped[int | None] = mapped_column(Integer)
+    done_at: Mapped[datetime] = mapped_column(DateTime)
+
+    workout_exercise: Mapped[WorkoutExercise] = relationship(back_populates="done")
+
+
+class TrainingPrefs(Base):
+    """Per person: trainings a week and after how many days without one a push says so."""
+
+    __tablename__ = "training_prefs"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
+    weekly_goal: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
+    gap_days: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
+    gap_pushed_on: Mapped[date | None] = mapped_column(Date)

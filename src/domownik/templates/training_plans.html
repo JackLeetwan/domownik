@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Plany · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma" class="home-link">← Forma</a></li></ul></nav>
+<header class="item-head"><h1>📋 Plany i cel</h1></header>
+<p class="muted"><small>Plany są wspólne dla domowników – każdy ma swoje ciężary i historię. Kolejność = rotacja.</small></p>
+<ul class="supl-rows">
+  {% for p in plans %}
+  <li><a class="supl-row" href="/forma/plany/{{ p.id }}"><span class="supl-row-main"><b>{{ p.name }}</b><small class="muted">{% for it in p.items %}{{ it.exercise.name }}{% if not loop.last %} · {% endif %}{% endfor %}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
+  {% endfor %}
+</ul>
+<details>
+  <summary role="button" class="outline">＋ Nowy plan</summary>
+  <form method="post" action="/forma/plany" class="supl-form"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Nazwa <input name="name" required maxlength="60" placeholder="np. FBW 4 albo Wyjazd"></label>
+    <button type="submit">Utwórz i dodaj ćwiczenia</button></form>
+</details>
+
+<section class="supl-section">
+  <h2>🎯 Twój cel</h2>
+  <form method="post" action="/forma/cel" class="supl-form"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="grid supl-two">
+      <label>Treningów w tygodniu <input name="weekly_goal" type="number" min="1" max="7" value="{{ prefs.weekly_goal }}"></label>
+      <label>Przypomnij po (dni przerwy) <input name="gap_days" type="number" min="1" max="14" value="{{ prefs.gap_days }}"></label>
+    </div>
+    <button type="submit" class="secondary">Zapisz cel</button></form>
+</section>
+{% endblock %}

@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ w.plan.name if w.plan else 'Trening' }} · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma" class="home-link">← Forma</a></li></ul></nav>
+{% include "partials/workout_body.html" %}
+{% endblock %}

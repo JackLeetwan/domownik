@@ -1,0 +1,76 @@
+{# the workout screen – swapped as a whole after every set (hx-target="#workout") #}
+<div id="workout" class="wo">
+  <header class="wo-head">
+    <h1>🏋️ {{ w.plan.name if w.plan else 'Trening' }}</h1>
+    <p class="muted"><small>{{ w.day|d(weekday=True) }}{% if w.equipment %} · 🧳 wyjazd / dom{% endif %} · {{ progress[0] }}/{{ progress[1] }} serii{% if w.finished_at %} · ✓ zakończony{% endif %}</small></p>
+  </header>
+
+  {% if rest_ms %}
+  <div class="wo-rest" data-rest-ends="{{ rest_ms }}" role="status">
+    <span class="wo-rest-main"><b class="wo-rest-left">Przerwa</b>{% if next_we %} <small class="muted">· dalej: {{ next_we.exercise.name }}</small>{% endif %}</span>
+    <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/przerwa-koniec" hx-target="#workout" hx-swap="outerHTML">Pomiń</button>
+  </div>
+  {% endif %}
+
+  {% set ns = namespace(ss=None) %}
+  {% for r in rows %}{% set we = r.we %}{% set ex = we.exercise %}
+  {% if we.superset != ns.ss %}{% if ns.ss is not none %}</div>{% endif %}{% if we.superset is not none %}<div class="wo-superset"><p class="wo-ss-label">Superseria {{ superset_letter(we.superset) }} <small class="muted">– na zmianę, przerwa po drugim</small></p>{% endif %}{% set ns.ss = we.superset %}{% endif %}
+  <article id="we{{ we.id }}" class="wo-ex{% if r.current %} current{% endif %}{% if r.complete %} complete{% endif %}">
+    <div class="wo-ex-head">
+      <h2>{% if r.complete %}✓ {% endif %}{{ ex.name }}</h2>
+      <small class="muted">{{ we.sets }} × {% if ex.kind == 'time' %}{{ we.seconds or 30 }} s{% elif we.reps_min and we.reps_max and we.reps_min != we.reps_max %}{{ we.reps_min }}–{{ we.reps_max }}{% else %}{{ we.reps_max or we.reps_min or '?' }}{% endif %}{% if we.rest_seconds %} · przerwa {{ we.rest_seconds }} s{% endif %}{% if we.swapped_from %} · zamiast: {{ we.swapped_from.name }}{% endif %}</small>
+    </div>
+    {% if r.sug.last or r.sug.note %}
+    <p class="wo-hint">
+      {% if r.sug.last %}<span>Ostatnio: <b>{{ r.sug.last }}</b></span>{% endif %}
+      {% if r.sug.up %}<span class="wo-up">⬆ dziś {{ r.sug.note }}</span>{% elif r.sug.note %}<span class="muted">{{ r.sug.note }}</span>{% endif %}
+    </p>
+    {% endif %}
+
+    {% if we.done %}
+    <ol class="wo-sets">
+      {% for s in we.done %}
+      <li><span>{% if s.weight %}{{ fmt_kg(s.weight) }} kg × {% endif %}{% if s.reps is not none %}{{ s.reps }}{% else %}{{ s.seconds }} s{% endif %}</span>
+        <button type="button" class="wo-undo" hx-post="/forma/trening/{{ w.id }}/seria/{{ s.id }}/usun" hx-target="#workout" hx-swap="outerHTML" aria-label="Usuń serię {{ s.set_no }}" title="Usuń serię">✕</button></li>
+      {% endfor %}
+    </ol>
+    {% endif %}
+
+    {% if not r.complete or r.current %}
+    <form class="wo-log" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/seria" hx-target="#workout" hx-swap="outerHTML">
+      {% if ex.kind == 'time' %}
+      <label>Sekundy <input name="seconds" inputmode="numeric" value="{{ r.seconds or '' }}" autocomplete="off"></label>
+      {% else %}
+      <label>{% if ex.step == 0 %}kg <small>dodatkowo</small>{% else %}kg{% if ex.equipment == 'dumbbell' %} <small>1 hantla</small>{% endif %}{% endif %} <input name="weight" inputmode="decimal" value="{{ fmt_kg(r.weight) if r.weight else '' }}" placeholder="{{ '—' if ex.step == 0 else '' }}" autocomplete="off"></label>
+      <label>Powt. <input name="reps" inputmode="numeric" value="{{ r.reps or '' }}" autocomplete="off"></label>
+      {% endif %}
+      <button type="submit">✓ Seria {{ we.done|length + 1 }}{% if we.done|length < we.sets %}/{{ we.sets }}{% endif %}</button>
+    </form>
+    {% if errors.get(we.id) %}<p class="error" role="alert">{{ errors.get(we.id) }}</p>{% endif %}
+    {% else %}
+    <form class="wo-more" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/seria" hx-target="#workout" hx-swap="outerHTML">
+      <input type="hidden" name="weight" value="{{ fmt_kg(r.weight) if r.weight else '' }}"><input type="hidden" name="reps" value="{{ r.reps or '' }}"><input type="hidden" name="seconds" value="{{ r.seconds or '' }}">
+      <button type="submit" class="small outline secondary">＋ jeszcze jedna seria</button>
+    </form>
+    {% endif %}
+
+    <div class="wo-ex-actions">
+      {% if not we.done %}<a href="/forma/trening/{{ w.id }}/cw/{{ we.id }}/zamien" class="small">⇄ Zajęte? Zamień</a>{% endif %}
+      <a href="/forma/postepy/{{ ex.id }}" class="small muted">📈 Historia</a>
+      <form method="post" action="/forma/trening/{{ w.id }}/cw/{{ we.id }}/usun" class="inline" hx-confirm="Usunąć „{{ ex.name }}” z tego treningu{% if we.done %} razem z zapisanymi seriami{% endif %}?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link wo-remove">Usuń z treningu</button></form>
+    </div>
+  </article>
+  {% if loop.last and ns.ss is not none %}</div>{% endif %}
+  {% endfor %}
+
+  <a href="/forma/trening/{{ w.id }}/dodaj" role="button" class="outline wo-add">＋ Dodaj ćwiczenie</a>
+
+  <div class="wo-end">
+    {% if w.finished_at %}
+    <form method="post" action="/forma/trening/{{ w.id }}/wznow"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="outline secondary">↺ Wznów trening</button></form>
+    {% else %}
+    <form method="post" action="/forma/trening/{{ w.id }}/koniec"{% if progress[0] < progress[1] %} hx-confirm="Zakończyć? Zrobione {{ progress[0] }} z {{ progress[1] }} serii – niezrobione ćwiczenia znikną z tego treningu."{% endif %}><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit">⏹ Zakończ trening</button></form>
+    {% endif %}
+    <form method="post" action="/forma/trening/{{ w.id }}/usun" hx-confirm="Usunąć cały trening z historii?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link small muted">🗑 Usuń trening</button></form>
+  </div>
+</div>

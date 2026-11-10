@@ -671,6 +671,32 @@
   setInterval(tickTimers, 15000);
   document.addEventListener("htmx:afterSettle", tickTimers);
 
+  // ------------------------------------------------------------------ 🏋️ the rest between sets
+  // data-rest-ends (ms) from the server; counted down here every second, a buzz at the end (the push comes
+  // from the server too, for a phone in a pocket)
+  let restBuzzed = null;
+  const tickRest = () => {
+    const bar = document.querySelector("[data-rest-ends]");
+    if (!bar) return;
+    const ends = Number(bar.dataset.restEnds), left = Math.round((ends - Date.now()) / 1000);
+    const out = bar.querySelector(".wo-rest-left");
+    const mmss = (s) => `${Math.floor(Math.abs(s) / 60)}:${String(Math.abs(s) % 60).padStart(2, "0")}`;
+    if (out) out.textContent = left > 0 ? `Przerwa ${mmss(left)}` : `Do roboty! (+${mmss(left)})`;
+    bar.classList.toggle("over", left <= 0);
+    if (left <= 0 && restBuzzed !== ends) {
+      restBuzzed = ends;
+      if (navigator.vibrate) { try { navigator.vibrate([250, 120, 250]); } catch (_) { /* not allowed */ } }
+    }
+  };
+  setInterval(tickRest, 1000);
+  document.addEventListener("htmx:afterSettle", tickRest);
+  // after a set the next one to do is in view
+  document.addEventListener("htmx:afterSettle", (e) => {
+    if (!e.detail.elt || e.detail.elt.id !== "workout") return;
+    const cur = document.querySelector(".wo-ex.current");
+    if (cur) cur.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  });
+
   // ------------------------------------------------------------------ "there is more" cue on scroll strips
   // ------------------------------------------------------------------ menu groups that fold
   // <details data-side-group> in the sidebar: this device remembers the folded ones; the group of the page

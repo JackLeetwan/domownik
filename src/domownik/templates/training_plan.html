@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ p.name }} · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/plany" class="home-link">← Plany</a></li></ul></nav>
+<header class="item-head"><h1>📋 {{ p.name }}</h1></header>
+<form method="post" action="/forma/plany/{{ p.id }}" class="supl-form" id="plan-form"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Nazwa planu <input name="name" required maxlength="60" value="{{ p.name }}"></label>
+  {% for it in p.items %}{% set k = 'i' ~ it.id ~ '_' %}
+  <fieldset class="plan-item" id="i{{ it.id }}">
+    <legend>{{ loop.index }}. {{ it.exercise.name }}</legend>
+    <div class="plan-fields">
+      <label>Serie <input name="{{ k }}sets" type="number" min="1" max="20" value="{{ it.sets }}"></label>
+      {% if it.exercise.kind == 'time' %}
+      <label>Sekundy <input name="{{ k }}seconds" type="number" min="1" max="3600" value="{{ it.seconds or '' }}"></label>
+      {% else %}
+      <label>Powt. od <input name="{{ k }}reps_min" type="number" min="1" max="100" value="{{ it.reps_min or '' }}"></label>
+      <label>do <input name="{{ k }}reps_max" type="number" min="1" max="100" value="{{ it.reps_max or '' }}"></label>
+      {% endif %}
+      <label>Przerwa [s] <input name="{{ k }}rest" type="number" min="0" max="900" value="{{ it.rest_seconds }}"></label>
+      <label>Superseria <small class="muted">(nr)</small> <input name="{{ k }}superset" type="number" min="1" max="9" value="{{ it.superset or '' }}"></label>
+    </div>
+    <div class="plan-actions">
+      <button type="submit" form="mv{{ it.id }}u" class="small outline secondary" {% if loop.first %}disabled{% endif %} aria-label="W górę">↑</button>
+      <button type="submit" form="mv{{ it.id }}d" class="small outline secondary" {% if loop.last %}disabled{% endif %} aria-label="W dół">↓</button>
+      <button type="submit" form="mv{{ it.id }}x" class="small outline secondary">Usuń</button>
+    </div>
+  </fieldset>
+  {% endfor %}
+  <button type="submit">Zapisz plan</button>
+</form>
+{% for it in p.items %}
+<form id="mv{{ it.id }}u" method="post" action="/forma/plany/{{ p.id }}/cw/{{ it.id }}/gora" hidden><input type="hidden" name="csrf" value="{{ csrf }}"></form>
+<form id="mv{{ it.id }}d" method="post" action="/forma/plany/{{ p.id }}/cw/{{ it.id }}/dol" hidden><input type="hidden" name="csrf" value="{{ csrf }}"></form>
+<form id="mv{{ it.id }}x" method="post" action="/forma/plany/{{ p.id }}/cw/{{ it.id }}/usun" hidden hx-confirm="Usunąć „{{ it.exercise.name }}” z planu?"><input type="hidden" name="csrf" value="{{ csrf }}"></form>
+{% endfor %}
+<a href="/forma/plany/{{ p.id }}/dodaj" role="button" class="outline supl-add">＋ Dodaj ćwiczenie</a>
+<section class="supl-section supl-danger">
+  <form method="post" action="/forma/plany/{{ p.id }}/archiwum" hx-confirm="Schować plan „{{ p.name }}”? Historia treningów zostaje."><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline secondary">🗄 Schowaj plan</button></form>
+</section>
+{% endblock %}
