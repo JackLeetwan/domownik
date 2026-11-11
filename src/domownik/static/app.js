@@ -998,6 +998,7 @@
     const mmss = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
     const sideName = (side) => (side === "L" ? "Lewa strona" : side === "P" ? "Prawa strona" : "");
     const secsText = (s) => `${s.seconds} s${s.sided ? " na stronę" : ""}`;
+    stretches.forEach((st) => (st.live || []).forEach((u) => { new Image().src = u; }));
     const render = () => {
       const p = phases[Math.min(idx, phases.length - 1)], s = stretches[p.si];
       root.classList.toggle("prep", p.kind === "prep");
@@ -1010,7 +1011,10 @@
         : sideName(p.side) || "Teraz";
       $(".ss-name span").textContent = s.name;
       const img = $(".ss-pic img");
-      if (s.img) { if (img.getAttribute("src") !== s.img) img.src = s.img; img.hidden = false; $(".ss-emoji").hidden = true; }
+      // while doing it: the target position (static) or both frames in turn (dynamic – the movement)
+      const live = (p.kind === "work" && s.live) || [];
+      const src = live.length ? live[Math.floor(remaining() / 1200) % live.length] : s.img;
+      if (src) { if (img.getAttribute("src") !== src) img.src = src; img.hidden = false; $(".ss-emoji").hidden = true; }
       else { img.hidden = true; $(".ss-emoji").hidden = false; }
       $(".ss-time").textContent = mmss(remaining());
       const next = stretches[p.si + 1];

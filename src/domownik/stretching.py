@@ -73,6 +73,17 @@ def image(s: Stretch) -> str | None:
     return frames[1] if _by_key()[s.key].get("pic") == 1 else frames[0]
 
 
+def frames_live(s: Stretch) -> list[str]:
+    """What the timer shows while the stretch is done: a static one – the target position (frame `hold`);
+    a dynamic one – both frames in turn, the movement."""
+    frames = _frames(s)
+    if frames is None:
+        return []
+    if s.type == "static":
+        return [frames[_by_key()[s.key].get("hold", 1)]]
+    return list(frames)
+
+
 def image_start(s: Stretch) -> str | None:
     frames = _frames(s)
     return frames[0] if frames else None
@@ -228,6 +239,7 @@ def snapshot(r: StretchRoutine) -> list[dict[str, Any]]:
             "seconds": it.duration,
             "sided": it.stretch.sided,
             "img": image(it.stretch),
+            "live": frames_live(it.stretch),
             "gear": gear(it.stretch),
         }
         for it in r.items

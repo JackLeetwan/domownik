@@ -5,6 +5,7 @@
 # img: the exercise's name in free-exercise-db (The Unlicense) → static/exercises/<slug>.webp (+ <slug>-1.webp);
 # gear: a key of `gear` above when the stretch needs it
 # pic: which of the two frames is its icon (0 = start; 1 when the start is just a person standing)
+# hold: the frame the timer shows while a static stretch is held (default 1 = the end – the target position)
 # Instructions: exercise_guides.yaml, section `stretch`.
 types:
   dynamic: Dynamiczne
@@ -78,7 +79,7 @@ stretches:
   - {key: side_lying_groin, name: Pachwina leżąc na boku, type: static, area: groin, sided: true, seconds: 30, img: Side Lying Groin Stretch, pic: 1}
   - {key: calf_seated, name: Łydka w siadzie – palce do siebie, type: static, area: calves, sided: true, seconds: 30, img: Seated Calf Stretch, pic: 1}
   - {key: calf_step, name: Łydka – pięta na stopniu, type: static, area: calves, sided: true, seconds: 30, gear: step, img: Standing Gastrocnemius Calf Stretch, pic: 1}
-  - {key: soleus_standing, name: Łydka i ścięgno Achillesa – ugięte kolana, type: static, area: calves, sided: true, seconds: 30, img: Standing Soleus And Achilles Stretch, pic: 0}
+  - {key: soleus_standing, name: Łydka i ścięgno Achillesa – ugięte kolana, type: static, area: calves, sided: true, seconds: 30, img: Standing Soleus And Achilles Stretch, pic: 0, hold: 0}
   - {key: quad_step, name: Przód uda – stopa z tyłu na stopniu, type: static, area: quads, sided: true, seconds: 30, gear: step, img: Standing Elevated Quad Stretch, pic: 0}
   - {key: it_band_strap, name: Bok uda i pośladek – noga przez ciało z paskiem, type: static, area: glutes, sided: true, seconds: 30, gear: strap, img: IT Band and Glute Stretch, pic: 1}
   - {key: groin_strap, name: Pachwina – noga w bok leżąc z paskiem, type: static, area: groin, sided: true, seconds: 30, gear: strap, img: Intermediate Groin Stretch, pic: 1}
@@ -96,7 +97,7 @@ stretches:
   - {key: forearms_kneeling, name: Przedramiona w klęku, type: static, area: arms, sided: false, seconds: 30, img: Kneeling Forearm Stretch, pic: 0}
   - {key: side_neck, name: Bok szyi, type: static, area: neck, sided: true, seconds: 20, img: Side Neck Stretch, pic: 1}
   - {key: standing_twist, name: Skręt tułowia na stojąco, type: static, area: back, sided: true, seconds: 20, img: Middle Back Stretch, pic: 1}
-  - {key: chair_side_bend, name: Skłon boczny na krześle, type: static, area: back, sided: true, seconds: 20, gear: chair, img: Chair Lower Back Stretch, pic: 0}
+  - {key: chair_side_bend, name: Skłon boczny na krześle, type: static, area: back, sided: true, seconds: 20, gear: chair, img: Chair Lower Back Stretch, pic: 0, hold: 0}
   - {key: thighs_hug, name: Skłon w siadzie – obejmij uda, type: static, area: back, sided: false, seconds: 30, img: Upper Back-Leg Grab, pic: 1}
   - {key: full_torso, name: Wyciągnięcie tułowia w górę, type: static, area: abs, sided: false, seconds: 20, img: Overhead Stretch, pic: 1}
   - {key: side_lying_reach, name: Wyciągnięcie boku leżąc, type: static, area: abs, sided: true, seconds: 30, img: Side-Lying Floor Stretch, pic: 1}
