@@ -49,13 +49,36 @@ def _do(db, w, rows: dict[str, list[tuple[float | None, int]]], at=T):
 
 
 def test_seed_and_range(db, fbw):
-    assert [p.name for p in fbw] == ["FBW 1", "FBW 2", "FBW 3"]
+    assert [p.name for p in fbw] == ["FBW 1", "FBW 2", "FBW 3", "Superserie we dwoje"]
     item = fbw[0].items[2]
     assert item.exercise.name == "Wyciskanie hantli na ławce płaskiej"
     assert (item.sets, item.reps_min, item.reps_max) == (4, 8, 12)
     assert tr.range_for(16) == (12, 16) and tr.range_for(20) == (15, 20)
     assert [i.superset for i in fbw[0].items] == [1, 1, None, None, 2, 2, None]
     assert tr.seed_plans(db) == []  # only once
+
+
+def test_duo_plan_added_later(db, user):
+    """A household with plans already gets only the later ones (once); the duo plan stays out of rotation."""
+    from domownik.models import WorkoutPlan
+
+    ps = tr.seed_plans(db)
+    duo = ps.pop()
+    db.delete(duo)
+    for p in ps:  # as made before the seed column: no seed, one renamed
+        p.seed = None
+    ps[0].name = "FBW A"
+    db.flush()
+    (again,) = tr.seed_plans(db)  # FBW not remade, only the duo plan
+    assert again.name == "Superserie we dwoje" and again.position == 3
+    assert [i.superset for i in again.items] == [1, 1, 2, 2, 3, 3, 4, 4]
+    assert again.items[-1].rest_seconds == 60
+    assert tr.seed_plans(db) == []
+    assert db.query(WorkoutPlan).count() == 4
+    # rotation: FBW 1 → duo → still FBW 2 next
+    tr.start(db, user, ps[0], at=T - timedelta(days=2))
+    tr.start(db, user, again, at=T - timedelta(days=1))
+    assert tr.next_plan(db, user) == ps[1]
 
 
 def test_rotation(db, user, fbw):

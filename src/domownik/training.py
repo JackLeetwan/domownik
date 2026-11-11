@@ -209,14 +209,21 @@ def ensure_library(db: Session) -> None:
 
 
 def seed_plans(db: Session) -> list[WorkoutPlan]:
-    """The starter plans (FBW 1–3) – only into a household without any plan."""
-    if db.scalar(select(func.count(WorkoutPlan.id))):
+    """The starter plans – all of them into a household without any plan; into one that has plans only the
+    ones added to the catalog later (`later: true`) and never made. A removed one stays archived, not remade."""
+    has_plans = bool(db.scalar(select(func.count(WorkoutPlan.id))))
+    made_from = set(db.scalars(select(WorkoutPlan.seed).where(WorkoutPlan.seed.is_not(None))))
+    todo = [p for p in catalog()["plans"] if p["key"] not in made_from and (not has_plans or p.get("later"))]
+    if not todo:
         return []
     ensure_library(db)
     by_key = {e.key: e for e in db.scalars(select(Exercise).where(Exercise.key.is_not(None)))}
+    last = db.scalar(select(func.max(WorkoutPlan.position)))
+    pos = 0 if last is None else last + 1
     out = []
-    for pos, p in enumerate(catalog()["plans"]):
-        plan = WorkoutPlan(name=p["name"], position=pos)
+    for p in todo:
+        plan = WorkoutPlan(name=p["name"], position=pos, seed=p["key"])
+        pos += 1
         for i, it in enumerate(p["items"]):
             lo, hi = range_for(it["reps"]) if it.get("reps") else (None, None)
             plan.items.append(
@@ -282,18 +289,25 @@ def active(db: Session, user: User) -> Workout | None:
     )
 
 
+def _off_rotation() -> set[str]:
+    """Catalog plans done on occasion (`rotation: false` – the one for two), not in the FBW 1 → 2 → 3 cycle."""
+    return {p["key"] for p in catalog()["plans"] if p.get("rotation") is False}
+
+
 def next_plan(db: Session, user: User) -> WorkoutPlan | None:
-    """The plan after the one done last (FBW 1 → 2 → 3 → 1); the first one before any."""
-    ps = plans(db)
+    """The plan after the one done last (FBW 1 → 2 → 3 → 1); the first one before any. A plan out of the
+    rotation is neither suggested nor counted as the last one – it doesn't break the cycle."""
+    off = _off_rotation()
+    ps = [p for p in plans(db) if p.seed not in off] or plans(db)
     if not ps:
         return None
+    ids = [p.id for p in ps]
     last = db.scalar(
         select(Workout.plan_id)
-        .where(Workout.user_id == user.id, Workout.plan_id.is_not(None))
+        .where(Workout.user_id == user.id, Workout.plan_id.in_(ids))
         .order_by(Workout.day.desc(), Workout.started_at.desc())
         .limit(1)
     )
-    ids = [p.id for p in ps]
     if last not in ids:
         return ps[0]
     return ps[(ids.index(last) + 1) % len(ps)]

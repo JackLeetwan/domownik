@@ -158,8 +158,11 @@ exercises:
   - {key: dead_bug, name: Dead bug, en: [Dead Bug], pattern: core_static, muscle: core, equipment: bodyweight, step: 0}
 
 # starter plans (FBW from Jefit); reps: the target = top of the range, the bottom is derived (12 → 8–12)
+# key: remembered on the plan (seed); later: true = also added to a household that already has plans;
+# rotation: false = picked by hand, not in the FBW 1 → 2 → 3 cycle
 plans:
-  - name: FBW 1
+  - key: fbw1
+    name: FBW 1
     items:
       - {ex: spanish_squat, sets: 4, reps: 20, superset: 1}
       - {ex: pull_up, sets: 4, reps: 10, superset: 1}
@@ -168,7 +171,8 @@ plans:
       - {ex: bb_curl, sets: 4, reps: 12, superset: 2}
       - {ex: cable_crunch, sets: 4, reps: 15, superset: 2}
       - {ex: skull_crusher, sets: 4, reps: 12}
-  - name: FBW 2
+  - key: fbw2
+    name: FBW 2
     items:
       - {ex: db_sldl, sets: 4, reps: 12}
       - {ex: db_incline, sets: 4, reps: 12}
@@ -176,7 +180,8 @@ plans:
       - {ex: lateral_raise, sets: 4, reps: 16}
       - {ex: plank, sets: 4, seconds: 45, superset: 1}
       - {ex: db_calf, sets: 4, reps: 20, superset: 1}
-  - name: FBW 3
+  - key: fbw3
+    name: FBW 3
     items:
       - {ex: hip_thrust, sets: 4, reps: 12, superset: 1}
       - {ex: db_close_press, sets: 4, reps: 12, superset: 1}
@@ -185,3 +190,17 @@ plans:
       - {ex: hanging_leg_raise, sets: 4, reps: 20, superset: 2}
       - {ex: incline_hammer, sets: 4, reps: 12, superset: 3}
       - {ex: rope_pushdown, sets: 4, reps: 12, superset: 3}
+  # 👫 for two: four supersets of opposing muscles – one person does A1 while the other does A2, then swap
+  - key: duo
+    name: Superserie we dwoje
+    later: true
+    rotation: false
+    items:
+      - {ex: goblet_squat, sets: 3, reps: 12, superset: 1}
+      - {ex: lat_pulldown, sets: 3, reps: 12, superset: 1}
+      - {ex: db_bench, sets: 3, reps: 12, superset: 2}
+      - {ex: cable_row, sets: 3, reps: 12, superset: 2}
+      - {ex: db_sldl, sets: 3, reps: 12, superset: 3}
+      - {ex: db_shoulder_press, sets: 3, reps: 12, superset: 3}
+      - {ex: db_curl, sets: 3, reps: 12, superset: 4, rest: 60}
+      - {ex: rope_pushdown, sets: 3, reps: 12, superset: 4, rest: 60}

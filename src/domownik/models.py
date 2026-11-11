@@ -1347,6 +1347,7 @@ class WorkoutPlan(Base):
     name: Mapped[str] = mapped_column(String(60))
     position: Mapped[int] = mapped_column(Integer, default=0)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    seed: Mapped[str | None] = mapped_column(String(30))  # the catalog plan it was made from (exercises.yaml key)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     items: Mapped[list[PlanItem]] = relationship(
