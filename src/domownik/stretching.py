@@ -43,6 +43,17 @@ def area_label(key: str) -> str:
     return catalog()["areas"].get(key, key)
 
 
+def gear(s: Stretch) -> str | None:
+    """What the stretch needs ("pasek lub ręcznik"); None – nothing but the floor (and maybe a wall)."""
+    key = _by_key().get(s.key, {}).get("gear")
+    return catalog()["gear"].get(key, key) if key else None
+
+
+def routine_gear(r: StretchRoutine) -> list[str]:
+    """Everything a routine needs, each once, in the order it comes up."""
+    return list(dict.fromkeys(g for it in r.items if (g := gear(it.stretch))))
+
+
 # ---------------------------------------------------------------- pictures and instructions
 
 
@@ -160,10 +171,16 @@ def library(db: Session) -> list[Stretch]:
     return sorted(db.scalars(select(Stretch)), key=lambda s: order.get(s.key, len(order)))
 
 
-def groups(db: Session, type_: str | None, area: str | None = None) -> list[tuple[str, list[Stretch]]]:
-    """The picker: stretches by area (in the catalog's order of areas), optionally only dynamic / static
-    and only one area."""
-    rows = [s for s in library(db) if type_ is None or s.type == type_]
+def _pickable(db: Session, type_: str | None, free: bool) -> list[Stretch]:
+    return [s for s in library(db) if (type_ is None or s.type == type_) and not (free and gear(s))]
+
+
+def groups(
+    db: Session, type_: str | None, area: str | None = None, free: bool = False
+) -> list[tuple[str, list[Stretch]]]:
+    """The picker: stretches by area (in the catalog's order of areas), optionally only dynamic / static,
+    only one area and only the ones without gear."""
+    rows = _pickable(db, type_, free)
     return [
         (label, [s for s in rows if s.area == k])
         for k, label in catalog()["areas"].items()
@@ -171,9 +188,9 @@ def groups(db: Session, type_: str | None, area: str | None = None) -> list[tupl
     ]
 
 
-def areas_with(db: Session, type_: str | None) -> list[tuple[str, str, int]]:
-    """The picker's area chips: (key, label, how many) of the areas that have a stretch of the chosen type."""
-    rows = [s for s in library(db) if type_ is None or s.type == type_]
+def areas_with(db: Session, type_: str | None, free: bool = False) -> list[tuple[str, str, int]]:
+    """The picker's area chips: (key, label, how many) of the areas that have a stretch of the chosen kind."""
+    rows = _pickable(db, type_, free)
     counts = {k: sum(1 for s in rows if s.area == k) for k in catalog()["areas"]}
     return [(k, label, counts[k]) for k, label in catalog()["areas"].items() if counts[k]]
 
@@ -211,6 +228,7 @@ def snapshot(r: StretchRoutine) -> list[dict[str, Any]]:
             "seconds": it.duration,
             "sided": it.stretch.sided,
             "img": image(it.stretch),
+            "gear": gear(it.stretch),
         }
         for it in r.items
     ]

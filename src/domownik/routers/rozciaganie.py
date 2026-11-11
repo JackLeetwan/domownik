@@ -136,6 +136,7 @@ def add_page(
     request: Request,
     typ: str = "",
     partia: str = "",
+    sprzet: str = "",
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
@@ -143,19 +144,30 @@ def add_page(
     st.ensure_library(db)
     db.commit()
     type_ = typ if typ in st.catalog()["types"] else None
-    areas = st.areas_with(db, type_)
+    free = sprzet == "0"
+    areas = st.areas_with(db, type_, free)
     area = partia if partia in {k for k, _, _ in areas} else None
     in_routine = {it.stretch_id for it in r.items}
+    base = f"/forma/rozciaganie/{r.id}/dodaj"
+
+    def pick_url(**change) -> str:
+        """The picker with one filter changed and the others kept (None drops it)."""
+        q = {"typ": type_, "partia": area, "sprzet": "0" if free else None} | change
+        query = "&".join(f"{k}={v}" for k, v in q.items() if v)
+        return f"{base}?{query}" if query else base
+
     return render(
         request,
         "stretch_pick.html",
         _ctx(
             user,
             r=r,
-            sections=st.groups(db, type_, area),
+            sections=st.groups(db, type_, area, free),
             type_filter=type_,
             area_filter=area,
             areas=areas,
+            free_filter=free,
+            pick_url=pick_url,
             in_routine=in_routine,
         ),
     )

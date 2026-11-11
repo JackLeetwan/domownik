@@ -991,7 +991,7 @@
       else { img.hidden = true; $(".ss-emoji").hidden = false; }
       $(".ss-time").textContent = mmss(remaining());
       const next = stretches[p.si + 1];
-      $(".ss-next").textContent = p.kind === "prep" ? secsText(s) + (p.first && s.sided ? " – zaczynasz lewą" : "")
+      $(".ss-next").textContent = p.kind === "prep" ? secsText(s) + (p.first && s.sided ? " – zaczynasz lewą" : "") + (p.first && s.gear ? ` · 🧰 ${s.gear}` : "")
         : p.side === "L" ? "Potem: prawa strona" : next ? `Następne: ${next.name}` : "To ostatnie ćwiczenie";
       const pause = $(".ss-pause");
       const icon = paused ? "M7 5v14l12-7z" : "M6 5h4v14H6zM14 5h4v14h-4z";
@@ -1005,7 +1005,7 @@
         beep(660, 0.12);
         buzz(80);
         if (!p.first) speak("Zmień stronę");
-        else speak(`${p.si === 0 ? "" : "Następne: "}${s.name}. ${s.seconds} sekund${s.sided ? " na stronę, zaczynasz lewą" : ""}.`);
+        else speak(`${p.si === 0 ? "" : "Następne: "}${s.name}. ${s.seconds} sekund${s.sided ? " na stronę, zaczynasz lewą" : ""}.${s.gear ? ` Przygotuj: ${s.gear}.` : ""}`);
       } else {
         beep(880, 0.4, 0.35);
         buzz(300);

@@ -3,11 +3,18 @@
 # sided: done for each side separately – the timer counts `seconds` twice with "zmień stronę" in between
 # seconds: the default time (per side when sided); a routine can change it
 # img: the exercise's name in free-exercise-db (The Unlicense) → static/exercises/<slug>.webp (+ <slug>-1.webp);
+# gear: a key of `gear` above when the stretch needs it
 # pic: which of the two frames is its icon (0 = start; 1 when the start is just a person standing)
 # Instructions: exercise_guides.yaml, section `stretch`.
 types:
   dynamic: Dynamiczne
   static: Statyczne
+# gear: what a stretch needs besides a mat (a wall is not gear – the name says it); none = "bez sprzętu"
+gear:
+  strap: pasek lub ręcznik
+  stick: kij lub ręcznik
+  step: stopień
+  chair: krzesło
 areas:
   neck: Szyja
   shoulders: Barki
@@ -47,7 +54,7 @@ stretches:
   - {key: crossover_lunge, name: Wykrok w tył ze skrętem, type: dynamic, area: hips, sided: false, seconds: 40, img: Crossover Reverse Lunge, pic: 0}
   - {key: rear_leg_raises, name: Wymachy nogą w tył w klęku podpartym, type: dynamic, area: glutes, sided: true, seconds: 20, img: Rear Leg Raises, pic: 1}
   - {key: hamstring_90_90, name: Tył uda – prostowanie nogi z 90/90 leżąc, type: dynamic, area: hamstrings, sided: true, seconds: 30, img: 90/90 Hamstring, pic: 1}
-  - {key: stick_pass_through, name: Przenoszenie kija za głowę, type: dynamic, area: shoulders, sided: false, seconds: 30, img: Round The World Shoulder Stretch, pic: 1}
+  - {key: stick_pass_through, name: Przenoszenie kija za głowę, type: dynamic, area: shoulders, sided: false, seconds: 30, gear: stick, img: Round The World Shoulder Stretch, pic: 1}
   - {key: pelvic_tilt_standing, name: Bujanie miednicy na stojąco, type: dynamic, area: hips, sided: false, seconds: 30, img: Standing Pelvic Tilt, pic: 1}
   - {key: torso_rotation, name: Skręty tułowia z wyciągniętymi rękami, type: dynamic, area: abs, sided: false, seconds: 30, img: Torso Rotation, pic: 1}
   # ---------------------------------------------------------------- static (after) – legs and hips
@@ -57,7 +64,7 @@ stretches:
   - {key: hip_flexor_lunge, name: Zginacze bioder w wykroku, type: static, area: hips, sided: true, seconds: 30, img: Standing Hip Flexors, pic: 1}
   - {key: runners_stretch, name: Tył uda – skłon do wysuniętej nogi, type: static, area: hamstrings, sided: true, seconds: 30, img: Runner's Stretch, pic: 1}
   - {key: hamstring_seated, name: Tył uda w siadzie, type: static, area: hamstrings, sided: true, seconds: 30, img: Seated Floor Hamstring Stretch, pic: 0}
-  - {key: hamstring_lying, name: Tył uda leżąc z gumą lub ręcznikiem, type: static, area: hamstrings, sided: true, seconds: 30, img: Hamstring Stretch, pic: 1}
+  - {key: hamstring_lying, name: Tył uda leżąc z gumą lub ręcznikiem, type: static, area: hamstrings, sided: true, seconds: 30, gear: strap, img: Hamstring Stretch, pic: 1}
   - {key: toe_touch, name: Skłon do palców, type: static, area: hamstrings, sided: false, seconds: 30, img: Standing Toe Touches, pic: 1}
   - {key: figure_four, name: Pośladek – „czwórka” leżąc, type: static, area: glutes, sided: true, seconds: 30, img: Ankle On The Knee, pic: 0}
   - {key: knee_to_chest, name: Kolano do klatki leżąc, type: static, area: glutes, sided: true, seconds: 30, img: One Knee To Chest, pic: 1}
@@ -70,16 +77,16 @@ stretches:
   - {key: straddle, name: Rozkrok w siadzie ze skłonem, type: static, area: groin, sided: false, seconds: 40, img: The Straddle, pic: 0}
   - {key: side_lying_groin, name: Pachwina leżąc na boku, type: static, area: groin, sided: true, seconds: 30, img: Side Lying Groin Stretch, pic: 1}
   - {key: calf_seated, name: Łydka w siadzie – palce do siebie, type: static, area: calves, sided: true, seconds: 30, img: Seated Calf Stretch, pic: 1}
-  - {key: calf_step, name: Łydka – pięta na stopniu, type: static, area: calves, sided: true, seconds: 30, img: Standing Gastrocnemius Calf Stretch, pic: 1}
+  - {key: calf_step, name: Łydka – pięta na stopniu, type: static, area: calves, sided: true, seconds: 30, gear: step, img: Standing Gastrocnemius Calf Stretch, pic: 1}
   - {key: soleus_standing, name: Łydka i ścięgno Achillesa – ugięte kolana, type: static, area: calves, sided: true, seconds: 30, img: Standing Soleus And Achilles Stretch, pic: 0}
-  - {key: quad_step, name: Przód uda – stopa z tyłu na stopniu, type: static, area: quads, sided: true, seconds: 30, img: Standing Elevated Quad Stretch, pic: 0}
-  - {key: it_band_strap, name: Bok uda i pośladek – noga przez ciało z paskiem, type: static, area: glutes, sided: true, seconds: 30, img: IT Band and Glute Stretch, pic: 1}
-  - {key: groin_strap, name: Pachwina – noga w bok leżąc z paskiem, type: static, area: groin, sided: true, seconds: 30, img: Intermediate Groin Stretch, pic: 1}
-  - {key: hamstring_calf_strap, name: Tył uda i łydka na stojąco z paskiem, type: static, area: hamstrings, sided: true, seconds: 30, img: Standing Hamstring and Calf Stretch, pic: 0}
+  - {key: quad_step, name: Przód uda – stopa z tyłu na stopniu, type: static, area: quads, sided: true, seconds: 30, gear: step, img: Standing Elevated Quad Stretch, pic: 0}
+  - {key: it_band_strap, name: Bok uda i pośladek – noga przez ciało z paskiem, type: static, area: glutes, sided: true, seconds: 30, gear: strap, img: IT Band and Glute Stretch, pic: 1}
+  - {key: groin_strap, name: Pachwina – noga w bok leżąc z paskiem, type: static, area: groin, sided: true, seconds: 30, gear: strap, img: Intermediate Groin Stretch, pic: 1}
+  - {key: hamstring_calf_strap, name: Tył uda i łydka na stojąco z paskiem, type: static, area: hamstrings, sided: true, seconds: 30, gear: strap, img: Standing Hamstring and Calf Stretch, pic: 0}
   # ---------------------------------------------------------------- static – back, upper body
   - {key: childs_pose, name: Pozycja dziecka, type: static, area: back, sided: false, seconds: 45, img: Child's Pose, pic: 0}
   - {key: knees_to_chest, name: Oba kolana do klatki, type: static, area: back, sided: false, seconds: 30, img: Hug Knees To Chest, pic: 0}
-  - {key: seated_twist, name: Skręt tułowia na krześle, type: static, area: back, sided: true, seconds: 30, img: Spinal Stretch, pic: 0}
+  - {key: seated_twist, name: Skręt tułowia na krześle, type: static, area: back, sided: true, seconds: 30, gear: chair, img: Spinal Stretch, pic: 0}
   - {key: side_bend, name: Skłon boczny na stojąco, type: static, area: back, sided: true, seconds: 30, img: Standing Lateral Stretch, pic: 0}
   - {key: upper_back, name: Górna część pleców – ramiona w przód, type: static, area: back, sided: false, seconds: 30, img: Upper Back Stretch, pic: 1}
   - {key: lat_wall, name: Najszerszy grzbietu przy ścianie, type: static, area: back, sided: true, seconds: 30, img: One Arm Against Wall, pic: 0}
@@ -89,7 +96,7 @@ stretches:
   - {key: forearms_kneeling, name: Przedramiona w klęku, type: static, area: arms, sided: false, seconds: 30, img: Kneeling Forearm Stretch, pic: 0}
   - {key: side_neck, name: Bok szyi, type: static, area: neck, sided: true, seconds: 20, img: Side Neck Stretch, pic: 1}
   - {key: standing_twist, name: Skręt tułowia na stojąco, type: static, area: back, sided: true, seconds: 20, img: Middle Back Stretch, pic: 1}
-  - {key: chair_side_bend, name: Skłon boczny na krześle, type: static, area: back, sided: true, seconds: 20, img: Chair Lower Back Stretch, pic: 0}
+  - {key: chair_side_bend, name: Skłon boczny na krześle, type: static, area: back, sided: true, seconds: 20, gear: chair, img: Chair Lower Back Stretch, pic: 0}
   - {key: thighs_hug, name: Skłon w siadzie – obejmij uda, type: static, area: back, sided: false, seconds: 30, img: Upper Back-Leg Grab, pic: 1}
   - {key: full_torso, name: Wyciągnięcie tułowia w górę, type: static, area: abs, sided: false, seconds: 20, img: Overhead Stretch, pic: 1}
   - {key: side_lying_reach, name: Wyciągnięcie boku leżąc, type: static, area: abs, sided: true, seconds: 30, img: Side-Lying Floor Stretch, pic: 1}
@@ -99,8 +106,8 @@ stretches:
   - {key: triceps_across, name: Triceps – ręka za przeciwny bark, type: static, area: arms, sided: true, seconds: 30, img: Tricep Side Stretch, pic: 1}
   - {key: chin_to_chest, name: Kark – broda do klatki, type: static, area: neck, sided: false, seconds: 20, img: Chin To Chest Stretch, pic: 1}
   - {key: biceps_behind, name: Biceps – dłonie splecione za plecami, type: static, area: arms, sided: false, seconds: 30, img: Standing Biceps Stretch, pic: 1}
-  - {key: chest_stick, name: Klatka i przód barków – kij za głowę, type: static, area: chest, sided: false, seconds: 30, img: Chest And Front Of Shoulder Stretch, pic: 1}
-  - {key: chair_shoulders, name: Barki – skłon na krześle, dłonie na oparciu, type: static, area: shoulders, sided: false, seconds: 30, img: Chair Upper Body Stretch, pic: 1}
+  - {key: chest_stick, name: Klatka i przód barków – kij za głowę, type: static, area: chest, sided: false, seconds: 30, gear: stick, img: Chest And Front Of Shoulder Stretch, pic: 1}
+  - {key: chair_shoulders, name: Barki – skłon na krześle, dłonie na oparciu, type: static, area: shoulders, sided: false, seconds: 30, gear: chair, img: Chair Upper Body Stretch, pic: 1}
 
 # the default routines (the household then changes them freely); seconds: the stretch's default.
 # key: which default it is – a routine whose key is not in the database yet is added on start (also later ones),

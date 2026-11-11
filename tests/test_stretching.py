@@ -87,6 +87,33 @@ def test_quick_start_puts_the_recent_first(db, user):
     assert st.fmt_minutes(395) == "7 min" and st.fmt_minutes(20) == "1 min"
 
 
+def test_gear_labels_and_the_free_filter(auth_client, db):
+    """Every gear key is known; the picker's "Bez sprzętu" hides the strap / stick / step / chair ones,
+    keeps the other filters, and the routine says what to get ready."""
+    cat = st.catalog()
+    assert {row["gear"] for row in cat["stretches"] if row.get("gear")} <= set(cat["gear"])
+    st.prepare(db)
+    db.commit()
+    strap = db.query(Stretch).filter_by(key="it_band_strap").one()
+    assert st.gear(strap) == "pasek lub ręcznik" and st.gear(db.query(Stretch).filter_by(key="butterfly").one()) is None
+    long_ = db.query(StretchRoutine).filter_by(seed="legs_long").one()
+    assert st.routine_gear(long_) == ["stopień", "pasek lub ręcznik"]
+    assert st.routine_gear(db.query(StretchRoutine).filter_by(seed="legs_short").one()) == []
+    assert st.snapshot(long_)[3]["gear"] == "stopień"  # quad_step – the timer says "Przygotuj: stopień"
+
+    rid = long_.id
+    every = auth_client.get(f"/forma/rozciaganie/{rid}/dodaj?typ=static&partia=glutes").text
+    assert "Bok uda i pośladek" in every and "🧰 pasek lub ręcznik" in every
+    assert f"/forma/rozciaganie/{rid}/dodaj?typ=static&amp;partia=glutes&amp;sprzet=0" in every
+    free = auth_client.get(f"/forma/rozciaganie/{rid}/dodaj?typ=static&partia=glutes&sprzet=0").text
+    assert "Bok uda i pośladek" not in free and "czwórka" in free and "· 🧰" not in free
+    assert f'/forma/rozciaganie/{rid}/dodaj?typ=static&amp;partia=glutes"' in free  # the chip turns it off
+    page = auth_client.get(f"/forma/rozciaganie/{rid}").text
+    assert "🧰 Potrzebne: stopień, pasek lub ręcznik" in page
+    lst = auth_client.get("/forma/rozciaganie").text
+    assert "🧰 stopień, pasek lub ręcznik" in lst
+
+
 def test_pictures_and_duration(db):
     st.prepare(db)
     arm = db.query(Stretch).filter_by(key="arm_circles").one()  # pic: 1 – the start is a person standing
@@ -182,6 +209,7 @@ def test_session_start_finish_and_history(auth_client, db, user):
         "seconds": 30,
         "sided": False,
         "img": "/static/exercises/arm-circles-1.webp",
+        "gear": None,
     }
     page = auth_client.get(f"/forma/rozciaganie/sesja/{sid}").text
     assert "data-stretch-session" in page and "Kr\\u0105\\u017cenia ramion" in page and "▶ Start" in page

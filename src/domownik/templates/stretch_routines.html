@@ -8,7 +8,7 @@
   {% for r in routines %}
   <li class="pick-item"><a class="supl-row" href="/forma/rozciaganie/{{ r.id }}">
     <span class="supl-row-main"><b>{{ r.name }}</b>
-      <small class="muted">{% if r.kind != 'own' and r.name != kinds[r.kind] %}{{ kinds[r.kind] }} · {% endif %}{{ r.items|length }} ćw. · ok. {{ st.fmt_duration(st.total_seconds(r)) }}</small></span>
+      <small class="muted">{% if r.kind != 'own' and r.name != kinds[r.kind] %}{{ kinds[r.kind] }} · {% endif %}{{ r.items|length }} ćw. · ok. {{ st.fmt_duration(st.total_seconds(r)) }}{% set needs = st.routine_gear(r) %}{% if needs %} · 🧰 {{ needs|join(', ') }}{% endif %}</small></span>
     <span class="supl-row-go" aria-hidden="true">›</span></a>
     {% if r.items %}<form method="post" action="/forma/rozciaganie/{{ r.id }}/start" class="st-row-start"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" aria-label="Start: {{ r.name }}">▶ Start</button></form>{% endif %}</li>
   {% else %}

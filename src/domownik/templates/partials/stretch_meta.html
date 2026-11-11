@@ -1,1 +1,1 @@
-{# what kind of stretch `ex` is and how long it takes by default #}{{ st.type_label(ex.type) }} · {{ st.area_label(ex.area) }} · {{ ex.seconds }} s{% if ex.sided %} na stronę{% endif %}
+{# what kind of stretch `ex` is, how long it takes by default and what it needs #}{{ st.type_label(ex.type) }} · {{ st.area_label(ex.area) }} · {{ ex.seconds }} s{% if ex.sided %} na stronę{% endif %}{% set g = st.gear(ex) %}{% if g %} · 🧰 {{ g }}{% endif %}

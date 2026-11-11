@@ -4,6 +4,7 @@
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/rozciaganie" class="home-link">← Rozciąganie</a></li></ul></nav>
 <header class="item-head"><h1>🤸 {{ r.name }}</h1></header>
 <p class="muted"><small>{{ r.items|length }} ćw. · ok. {{ st.fmt_duration(st.total_seconds(r)) }} (z przejściami po {{ st.TRANSITION }} s)</small></p>
+{% set needs = st.routine_gear(r) %}{% if needs %}<p class="st-gear"><small>🧰 Potrzebne: {{ needs|join(', ') }}</small></p>{% endif %}
 {% if r.items %}
 <form method="post" action="/forma/rozciaganie/{{ r.id }}/start" class="st-start"><input type="hidden" name="csrf" value="{{ csrf }}">
   <button type="submit">▶ Start</button></form>
@@ -14,7 +15,7 @@
   <li class="st-item">
     {% include "partials/ex_pic.html" %}
     <span class="st-item-main"><b>{{ ex.name }}</b>
-      <small class="muted">{{ st.area_label(ex.area) }} · {{ st.fmt_duration(it.duration) }}{% if ex.sided %} na stronę{% endif %}</small></span>
+      <small class="muted">{{ st.area_label(ex.area) }} · {{ st.fmt_duration(it.duration) }}{% if ex.sided %} na stronę{% endif %}{% set g = st.gear(ex) %}{% if g %} · 🧰 {{ g }}{% endif %}</small></span>
     {% with info_url = '/forma/rozciaganie/cw/' ~ ex.id %}{% include "partials/ex_info.html" %}{% endwith %}
   </li>
   {% endfor %}
@@ -32,7 +33,7 @@
     <li class="st-item" id="i{{ it.id }}">
       {% include "partials/ex_pic.html" %}
       <span class="st-item-main"><b>{{ ex.name }}</b>
-        <small class="muted">{{ st.type_label(ex.type) }} · {{ st.area_label(ex.area) }}</small></span>
+        <small class="muted">{{ st.type_label(ex.type) }} · {{ st.area_label(ex.area) }}{% set g = st.gear(ex) %}{% if g %} · 🧰 {{ g }}{% endif %}</small></span>
       {% with info_url = '/forma/rozciaganie/cw/' ~ ex.id %}{% include "partials/ex_info.html" %}{% endwith %}
       <label class="st-secs"><input name="i{{ it.id }}_seconds" type="number" min="5" max="600" step="5" value="{{ it.duration }}" aria-label="Sekundy{% if ex.sided %} na stronę{% endif %}: {{ ex.name }}"><small>s{% if ex.sided %} ×2{% endif %}</small></label>
       <span class="st-item-actions">
