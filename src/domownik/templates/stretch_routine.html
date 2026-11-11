@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ r.name }} · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/rozciaganie" class="home-link">← Rozciąganie</a></li></ul></nav>
+<header class="item-head"><h1>🤸 {{ r.name }}</h1></header>
+<p class="muted"><small>{{ r.items|length }} ćw. · ok. {{ st.fmt_duration(st.total_seconds(r)) }} (z przejściami po {{ st.TRANSITION }} s)</small></p>
+<form method="post" action="/forma/rozciaganie/{{ r.id }}" class="supl-form" id="routine-form"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="grid supl-two">
+    <label>Nazwa zestawu <input name="name" required maxlength="60" value="{{ r.name }}"></label>
+    <label>Proponuj
+      <select name="kind">{% for k, label in kinds.items() %}<option value="{{ k }}"{% if r.kind == k %} selected{% endif %}>{{ label if k != 'own' else 'Nigdzie (własny)' }}</option>{% endfor %}</select></label>
+  </div>
+  <ol class="st-items">
+    {% for it in r.items %}{% set ex = it.stretch %}
+    <li class="st-item" id="i{{ it.id }}">
+      {% include "partials/ex_pic.html" %}
+      <span class="st-item-main"><b>{{ ex.name }}</b>
+        <small class="muted">{{ st.type_label(ex.type) }} · {{ st.area_label(ex.area) }}</small></span>
+      {% with info_url = '/forma/rozciaganie/cw/' ~ ex.id %}{% include "partials/ex_info.html" %}{% endwith %}
+      <label class="st-secs"><input name="i{{ it.id }}_seconds" type="number" min="5" max="600" step="5" value="{{ it.duration }}" aria-label="Sekundy{% if ex.sided %} na stronę{% endif %}: {{ ex.name }}"><small>s{% if ex.sided %} ×2{% endif %}</small></label>
+      <span class="st-item-actions">
+        <button type="submit" form="mv{{ it.id }}u" class="small outline secondary" {% if loop.first %}disabled{% endif %} aria-label="W górę">↑</button>
+        <button type="submit" form="mv{{ it.id }}d" class="small outline secondary" {% if loop.last %}disabled{% endif %} aria-label="W dół">↓</button>
+        <button type="submit" form="mv{{ it.id }}x" class="small outline secondary" aria-label="Usuń: {{ ex.name }}">✕</button>
+      </span>
+    </li>
+    {% else %}
+    <li class="muted">Jeszcze pusto – dodaj ćwiczenia.</li>
+    {% endfor %}
+  </ol>
+  <p class="muted"><small>„×2” – ćwiczenie na każdą stronę osobno; czas jest na jedną stronę.</small></p>
+  <button type="submit">Zapisz zestaw</button>
+</form>
+{% for it in r.items %}
+<form id="mv{{ it.id }}u" method="post" action="/forma/rozciaganie/{{ r.id }}/cw/{{ it.id }}/gora" hidden><input type="hidden" name="csrf" value="{{ csrf }}"></form>
+<form id="mv{{ it.id }}d" method="post" action="/forma/rozciaganie/{{ r.id }}/cw/{{ it.id }}/dol" hidden><input type="hidden" name="csrf" value="{{ csrf }}"></form>
+<form id="mv{{ it.id }}x" method="post" action="/forma/rozciaganie/{{ r.id }}/cw/{{ it.id }}/usun" hidden><input type="hidden" name="csrf" value="{{ csrf }}"></form>
+{% endfor %}
+<a href="/forma/rozciaganie/{{ r.id }}/dodaj{% if r.kind == 'before' %}?typ=dynamic{% elif r.kind == 'after' %}?typ=static{% endif %}" role="button" class="outline supl-add">＋ Dodaj ćwiczenie</a>
+<section class="supl-section supl-danger">
+  <form method="post" action="/forma/rozciaganie/{{ r.id }}/archiwum" hx-confirm="Schować zestaw „{{ r.name }}”?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline secondary">🗄 Schowaj zestaw</button></form>
+</section>
+{% endblock %}

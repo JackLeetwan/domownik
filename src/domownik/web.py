@@ -93,15 +93,18 @@ env = templates.env
 
 
 def _exercise_image(ex):
-    from domownik import training
+    """The icon of an exercise – a strength one (Exercise) or a stretch (Stretch)."""
+    from domownik import stretching, training
+    from domownik.models import Stretch
 
-    return training.image(ex)
+    return stretching.image(ex) if isinstance(ex, Stretch) else training.image(ex)
 
 
 def _exercise_icon(ex):
-    from domownik import training
+    from domownik import stretching, training
+    from domownik.models import Stretch
 
-    return training.equipment_icon(ex)
+    return stretching.icon(ex) if isinstance(ex, Stretch) else training.equipment_icon(ex)
 
 
 env.filters["pln"] = format_pln

@@ -480,6 +480,7 @@ def _guide_ctx(user: User, ex: Exercise) -> dict:
         "user": user,
         "ex": ex,
         "guide": tr.guide(ex),
+        "img_start": tr.image(ex),
         "img_end": tr.image_end(ex),
         "tr": tr,
     }

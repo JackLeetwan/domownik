@@ -1,0 +1,72 @@
+# 🤸 Stretching in "Forma" – shared by the household, seeded once (new keys are added on start).
+# type: dynamic (before a workout – movement, warm-up) | static (after – hold the position)
+# sided: done for each side separately – the timer counts `seconds` twice with "zmień stronę" in between
+# seconds: the default time (per side when sided); a routine can change it
+# img: the exercise's name in free-exercise-db (The Unlicense) → static/exercises/<slug>.webp (+ <slug>-1.webp);
+# pic: which of the two frames is its icon (0 = start; 1 when the start is just a person standing)
+# Instructions: exercise_guides.yaml, section `stretch`.
+types:
+  dynamic: Dynamiczne
+  static: Statyczne
+areas:
+  neck: Szyja
+  shoulders: Barki
+  chest: Klatka
+  arms: Ręce
+  back: Plecy
+  hips: Biodra
+  glutes: Pośladki
+  quads: Przód uda
+  hamstrings: Tył uda
+  groin: Pachwiny
+  calves: Łydki
+
+stretches:
+  # ---------------------------------------------------------------- dynamic (before)
+  - {key: arm_circles, name: Krążenia ramion, type: dynamic, area: shoulders, sided: false, seconds: 30, img: Arm Circles, pic: 1}
+  - {key: chest_openers, name: Otwieranie klatki, type: dynamic, area: chest, sided: false, seconds: 30, img: Dynamic Chest Stretch, pic: 1}
+  - {key: cat_cow, name: Koci grzbiet, type: dynamic, area: back, sided: false, seconds: 40, img: Cat Stretch, pic: 0}
+  - {key: leg_circles, name: Krążenia nogą w biodrze, type: dynamic, area: hips, sided: true, seconds: 20, img: Standing Hip Circles, pic: 1}
+  - {key: leg_swings_front, name: Wymachy nogą w przód, type: dynamic, area: hamstrings, sided: true, seconds: 30, img: Front Leg Raises, pic: 0}
+  - {key: leg_swings_side, name: Wymachy nogą w bok, type: dynamic, area: groin, sided: true, seconds: 30, img: Side Leg Raises, pic: 1}
+  - {key: groiners, name: Wypad do dłoni z podporu, type: dynamic, area: hips, sided: false, seconds: 40, img: Groiners, pic: 0}
+  - {key: worlds_greatest, name: Wykrok z rotacją (world's greatest stretch), type: dynamic, area: hips, sided: true, seconds: 30, img: World's Greatest Stretch, pic: 0}
+  - {key: inchworm, name: Gąsienica (inchworm), type: dynamic, area: hamstrings, sided: false, seconds: 45, img: Inchworm, pic: 0}
+  - {key: warmup_squats, name: Przysiady rozgrzewkowe, type: dynamic, area: quads, sided: false, seconds: 40, img: Sit Squats, pic: 1}
+  - {key: knee_circles, name: Krążenia kolan, type: dynamic, area: quads, sided: false, seconds: 20, img: Knee Circles, pic: 1}
+  - {key: ankle_circles, name: Krążenia stóp, type: dynamic, area: calves, sided: true, seconds: 15, img: Ankle Circles, pic: 0}
+  # ---------------------------------------------------------------- static (after) – legs and hips
+  - {key: quad_all_fours, name: Przód uda w klęku podpartym, type: static, area: quads, sided: true, seconds: 30, img: All Fours Quad Stretch, pic: 1}
+  - {key: quad_side, name: Przód uda leżąc na boku, type: static, area: quads, sided: true, seconds: 30, img: On Your Side Quad Stretch, pic: 1}
+  - {key: hip_flexor_kneeling, name: Zginacze bioder w klęku, type: static, area: hips, sided: true, seconds: 30, img: Kneeling Hip Flexor, pic: 0}
+  - {key: hip_flexor_lunge, name: Zginacze bioder w wykroku, type: static, area: hips, sided: true, seconds: 30, img: Standing Hip Flexors, pic: 1}
+  - {key: runners_stretch, name: Tył uda – skłon do wysuniętej nogi, type: static, area: hamstrings, sided: true, seconds: 30, img: Runner's Stretch, pic: 1}
+  - {key: hamstring_seated, name: Tył uda w siadzie, type: static, area: hamstrings, sided: true, seconds: 30, img: Seated Floor Hamstring Stretch, pic: 0}
+  - {key: hamstring_lying, name: Tył uda leżąc z gumą lub ręcznikiem, type: static, area: hamstrings, sided: true, seconds: 30, img: Hamstring Stretch, pic: 1}
+  - {key: toe_touch, name: Skłon do palców, type: static, area: hamstrings, sided: false, seconds: 30, img: Standing Toe Touches, pic: 1}
+  - {key: figure_four, name: Pośladek – „czwórka” leżąc, type: static, area: glutes, sided: true, seconds: 30, img: Ankle On The Knee, pic: 0}
+  - {key: knee_to_chest, name: Kolano do klatki leżąc, type: static, area: glutes, sided: true, seconds: 30, img: One Knee To Chest, pic: 1}
+  - {key: knee_across, name: Skręt leżąc – kolano przez ciało, type: static, area: back, sided: true, seconds: 30, img: Knee Across The Body, pic: 0}
+  - {key: butterfly, name: Motyl, type: static, area: groin, sided: false, seconds: 40, img: Groin and Back Stretch, pic: 0}
+  - {key: calf_wall, name: Łydka przy ścianie, type: static, area: calves, sided: true, seconds: 30, img: Calf Stretch Hands Against Wall, pic: 0}
+  # ---------------------------------------------------------------- static – back, upper body
+  - {key: childs_pose, name: Pozycja dziecka, type: static, area: back, sided: false, seconds: 45, img: Child's Pose, pic: 0}
+  - {key: knees_to_chest, name: Oba kolana do klatki, type: static, area: back, sided: false, seconds: 30, img: Hug Knees To Chest, pic: 0}
+  - {key: seated_twist, name: Skręt tułowia na krześle, type: static, area: back, sided: true, seconds: 30, img: Spinal Stretch, pic: 0}
+  - {key: side_bend, name: Skłon boczny na stojąco, type: static, area: back, sided: true, seconds: 30, img: Standing Lateral Stretch, pic: 0}
+  - {key: upper_back, name: Górna część pleców – ramiona w przód, type: static, area: back, sided: false, seconds: 30, img: Upper Back Stretch, pic: 1}
+  - {key: lat_wall, name: Najszerszy grzbietu przy ścianie, type: static, area: back, sided: true, seconds: 30, img: One Arm Against Wall, pic: 0}
+  - {key: chest_elbows_back, name: Klatka – łokcie w tył, type: static, area: chest, sided: false, seconds: 30, img: Elbows Back, pic: 1}
+  - {key: cross_body_shoulder, name: Bark – ramię przez klatkę, type: static, area: shoulders, sided: true, seconds: 30, img: Shoulder Stretch, pic: 1}
+  - {key: triceps_overhead, name: Triceps za głową, type: static, area: arms, sided: true, seconds: 30, img: Triceps Stretch, pic: 1}
+  - {key: forearms_kneeling, name: Przedramiona w klęku, type: static, area: arms, sided: false, seconds: 30, img: Kneeling Forearm Stretch, pic: 0}
+  - {key: side_neck, name: Bok szyi, type: static, area: neck, sided: true, seconds: 20, img: Side Neck Stretch, pic: 1}
+
+# the routines made on the first visit (the household then changes them freely); seconds: the stretch's default
+routines:
+  - name: Przed treningiem
+    kind: before
+    items: [arm_circles, chest_openers, cat_cow, leg_circles, leg_swings_front, leg_swings_side, worlds_greatest, inchworm, warmup_squats]
+  - name: Po treningu
+    kind: after
+    items: [quad_all_fours, hip_flexor_kneeling, hamstring_seated, figure_four, butterfly, calf_wall, chest_elbows_back, cross_body_shoulder, triceps_overhead, childs_pose]

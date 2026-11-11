@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ ex.name }} · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/rozciaganie" class="home-link">← Rozciąganie</a></li></ul></nav>
+<header class="item-head"><h1>{{ ex.name }}</h1></header>
+<p class="muted"><small>{% include "partials/stretch_meta.html" %}</small></p>
+{% include "partials/ex_guide.html" %}
+{% endblock %}

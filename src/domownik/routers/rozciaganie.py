@@ -1,0 +1,160 @@
+"""🤸 Stretching in "Forma": the saved routines (shared, edited like the strength plans) and the library.
+
+The session with the timer comes on top of these (the routine's ▶ Start).
+"""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+
+from domownik import stretching as st
+from domownik.db import get_db
+from domownik.models import Stretch, StretchRoutine, StretchRoutineItem, User
+from domownik.security import current_user, verify_csrf
+from domownik.web import render
+
+router = APIRouter(prefix="/forma/rozciaganie")
+
+KINDS = {"before": "Przed treningiem", "after": "Po treningu", "own": "Własny"}
+
+
+def _go(url: str) -> RedirectResponse:
+    resp = RedirectResponse(url, status_code=303)
+    resp.headers["HX-Redirect"] = url
+    return resp
+
+
+def _routine(db: Session, routine_id: int) -> StretchRoutine:
+    r = db.get(StretchRoutine, routine_id)
+    if r is None or r.archived:
+        raise HTTPException(404, "Nie ma takiego zestawu")
+    return r
+
+
+def _stretch(db: Session, stretch_id: int) -> Stretch:
+    s = db.get(Stretch, stretch_id)
+    if s is None:
+        raise HTTPException(404, "Nie ma takiego ćwiczenia")
+    return s
+
+
+def _ctx(user: User, **kw) -> dict:
+    return {"user": user, "st": st, "kinds": KINDS} | kw
+
+
+@router.get("")
+def routines_page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    st.prepare(db)
+    db.commit()
+    return render(request, "stretch_routines.html", _ctx(user, routines=st.routines(db)))
+
+
+@router.post("", dependencies=[Depends(verify_csrf)])
+async def new_routine(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    form = await request.form()
+    name = str(form.get("name") or "").strip()[:60]
+    if not name:
+        raise ValueError("Podaj nazwę zestawu")
+    top = max((r.position for r in st.routines(db)), default=-1)
+    r = StretchRoutine(name=name, kind="own", position=top + 1)
+    db.add(r)
+    db.commit()
+    return _go(f"/forma/rozciaganie/{r.id}")
+
+
+@router.get("/{routine_id:int}")
+def routine_page(routine_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    return render(request, "stretch_routine.html", _ctx(user, r=_routine(db, routine_id)))
+
+
+@router.post("/{routine_id:int}", dependencies=[Depends(verify_csrf)])
+async def save_routine(
+    routine_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    """The whole routine in one form: name, before / after / own, and every stretch's seconds."""
+    r = _routine(db, routine_id)
+    form = await request.form()
+    r.name = str(form.get("name") or r.name).strip()[:60] or r.name
+    kind = str(form.get("kind") or r.kind)
+    if kind not in KINDS:
+        raise ValueError("Nieznany rodzaj zestawu")
+    r.kind = kind
+    for it in r.items:
+        raw = str(form.get(f"i{it.id}_seconds") or "").strip()
+        if not raw:
+            it.seconds = None
+            continue
+        v = int(raw)
+        if not 5 <= v <= 600:
+            raise ValueError("Czas ćwiczenia: 5–600 sekund")
+        it.seconds = None if v == it.stretch.seconds else v
+    db.commit()
+    return _go(f"/forma/rozciaganie/{r.id}")
+
+
+@router.post("/{routine_id:int}/cw/{item_id:int}/{action}", dependencies=[Depends(verify_csrf)])
+def item_action(
+    routine_id: int, item_id: int, action: str, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    r = _routine(db, routine_id)
+    it = db.get(StretchRoutineItem, item_id)
+    if it is None or it.routine_id != r.id or action not in ("gora", "dol", "usun"):
+        raise HTTPException(404, "Nie ma takiej pozycji")
+    items = list(r.items)
+    i = items.index(it)
+    if action == "usun":
+        r.items.remove(it)
+    elif action == "gora" and i > 0:
+        items[i - 1], items[i] = items[i], items[i - 1]
+    elif action == "dol" and i < len(items) - 1:
+        items[i + 1], items[i] = items[i], items[i + 1]
+    for pos, x in enumerate(x for x in items if x in r.items):
+        x.position = pos
+    db.commit()
+    return _go(f"/forma/rozciaganie/{r.id}#i{item_id}")
+
+
+@router.get("/{routine_id:int}/dodaj")
+def add_page(
+    routine_id: int, request: Request, typ: str = "", db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    r = _routine(db, routine_id)
+    st.ensure_library(db)
+    db.commit()
+    type_ = typ if typ in st.catalog()["types"] else None
+    in_routine = {it.stretch_id for it in r.items}
+    return render(
+        request,
+        "stretch_pick.html",
+        _ctx(user, r=r, sections=st.groups(db, type_), type_filter=type_, in_routine=in_routine),
+    )
+
+
+@router.post("/{routine_id:int}/dodaj/{stretch_id:int}", dependencies=[Depends(verify_csrf)])
+def add(routine_id: int, stretch_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    r = _routine(db, routine_id)
+    s = _stretch(db, stretch_id)
+    top = max((i.position for i in r.items), default=-1)
+    it = StretchRoutineItem(stretch=s, position=top + 1)
+    r.items.append(it)
+    db.commit()
+    return _go(f"/forma/rozciaganie/{r.id}#i{it.id}")
+
+
+@router.post("/{routine_id:int}/archiwum", dependencies=[Depends(verify_csrf)])
+def archive(routine_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    _routine(db, routine_id).archived = True
+    db.commit()
+    return _go("/forma/rozciaganie")
+
+
+@router.get("/cw/{stretch_id:int}")
+def stretch_guide(stretch_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """ⓘ How the stretch is done – in the modal (the timer keeps going), else as its own page."""
+    s = _stretch(db, stretch_id)
+    ctx = _ctx(user, ex=s, guide=st.guide(s), img_start=st.image_start(s), img_end=st.image_end(s))
+    if request.headers.get("hx-target") == "modal-body":
+        return render(request, "partials/stretch_guide_modal.html", ctx)
+    return render(request, "stretch_guide.html", ctx)

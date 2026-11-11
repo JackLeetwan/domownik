@@ -1884,6 +1884,17 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .ex-guide ol, .ex-guide ul { margin: 0 0 0.5rem; padding-left: 1.25rem; }
 .ex-guide li { margin-bottom: 0.3rem; }
 
+/* 🤸 a stretching routine: picture, name, ⓘ, seconds, ↑ ↓ ✕ – two rows on a phone */
+.st-items { list-style: none; padding: 0; margin: 0 0 0.5rem; }
+.st-item { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "pic main info" "pic secs actions"; align-items: center; column-gap: 0.6rem; row-gap: 0.35rem; padding: 0.6rem 0; border-bottom: 1px solid var(--dm-tile-border); list-style: none; }
+.st-item > .ex-pic { grid-area: pic; align-self: start; }
+.st-item-main { grid-area: main; display: grid; gap: 0.1rem; min-width: 0; }
+.st-item > .ex-info { grid-area: info; }
+.st-secs { grid-area: secs; display: flex; align-items: center; gap: 0.35rem; margin: 0; }
+.st-secs input { width: 5.5rem; margin: 0; padding-block: 0.35rem; }
+.st-item-actions { grid-area: actions; display: flex; gap: 0.3rem; }
+.st-item-actions button { margin: 0; width: 2.4rem; padding-inline: 0; }
+
 /* 📤 shared from another app */
 .share-what { margin: 0 0 1rem; overflow-wrap: anywhere; }
 .share-what p { margin: 0 0 0.3rem; white-space: pre-line; }

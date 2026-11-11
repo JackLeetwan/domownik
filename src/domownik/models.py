@@ -1470,6 +1470,62 @@ class TrainingPrefs(Base):
     gap_pushed_on: Mapped[date | None] = mapped_column(Date)
 
 
+# ---------------------------------------------------------------- 🤸 Forma: rozciąganie (shared like the plans)
+
+
+class Stretch(Base):
+    """A stretch of the shared library ("Pozycja dziecka"); seeded from catalog/seed/stretches.yaml by `key`.
+
+    type: dynamic (before a workout) | static (after); sided: the timer counts `seconds` for each side.
+    """
+
+    __tablename__ = "stretch"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key: Mapped[str] = mapped_column(String(40), unique=True)
+    name: Mapped[str] = mapped_column(String(80))
+    type: Mapped[str] = mapped_column(String(10))
+    area: Mapped[str] = mapped_column(String(20))
+    sided: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    seconds: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
+
+
+class StretchRoutine(Base):
+    """A saved set of stretches ("Przed treningiem"); kind before / after is what the workout screens offer."""
+
+    __tablename__ = "stretch_routine"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(60))
+    kind: Mapped[str] = mapped_column(String(10), default="own", server_default="own")  # before | after | own
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    items: Mapped[list[StretchRoutineItem]] = relationship(
+        back_populates="routine", cascade="all, delete-orphan", order_by="StretchRoutineItem.position"
+    )
+
+
+class StretchRoutineItem(Base):
+    """One stretch of a routine; seconds None = the stretch's own default (per side when sided)."""
+
+    __tablename__ = "stretch_routine_item"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    routine_id: Mapped[int] = mapped_column(ForeignKey("stretch_routine.id", ondelete="CASCADE"), index=True)
+    stretch_id: Mapped[int] = mapped_column(ForeignKey("stretch.id", ondelete="CASCADE"))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    seconds: Mapped[int | None] = mapped_column(Integer)
+
+    routine: Mapped[StretchRoutine] = relationship(back_populates="items")
+    stretch: Mapped[Stretch] = relationship()
+
+    @property
+    def duration(self) -> int:
+        return self.seconds or self.stretch.seconds
+
+
 # ---------------------------------------------------------------- 💪 Forma: sylwetka (strictly the owner's)
 
 

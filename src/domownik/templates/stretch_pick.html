@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Dodaj do: {{ r.name }} · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/rozciaganie/{{ r.id }}" class="home-link">← Wróć</a></li></ul></nav>
+<header class="item-head"><h1>Dodaj do: {{ r.name }}</h1></header>
+{% set base = '/forma/rozciaganie/' ~ r.id ~ '/dodaj' %}
+<p class="pick-chips">
+  <a href="{{ base }}" class="chip{% if not type_filter %} on{% endif %}">Wszystko</a>
+  {% for k, label in st.catalog()['types'].items() %}<a href="{{ base }}?typ={{ k }}" class="chip{% if type_filter == k %} on{% endif %}">{{ label }}</a>{% endfor %}
+</p>
+{% if type_filter == 'dynamic' %}<p class="muted"><small>Dynamiczne – w ruchu, na rozgrzewkę przed treningiem.</small></p>
+{% elif type_filter == 'static' %}<p class="muted"><small>Statyczne – utrzymanie pozycji, po treningu.</small></p>{% endif %}
+{% for heading, items in sections %}
+{% if items %}
+<h2 class="pick-head">{{ heading }}</h2>
+<ul class="pick-list">
+  {% for ex in items %}
+  <li class="pick-item"><form method="post" action="{{ base }}/{{ ex.id }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit" class="pick-row">{% include "partials/ex_pic.html" %}<span><b>{{ ex.name }}</b><small class="muted">{% if ex.id in in_routine %}✓ w zestawie · {% endif %}{% include "partials/stretch_meta.html" %}</small></span><span aria-hidden="true">＋</span></button></form>
+    {% with info_url = '/forma/rozciaganie/cw/' ~ ex.id %}{% include "partials/ex_info.html" %}{% endwith %}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endfor %}
+{% endblock %}

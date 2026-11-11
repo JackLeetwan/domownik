@@ -143,6 +143,16 @@ def _guides() -> tuple[dict[str, Guide], dict[str, Guide]]:
     return load("by_key"), by_name
 
 
+@functools.cache
+def stretch_guides() -> dict[str, Guide]:
+    """The instructions of the stretches (stretching.py) – the `stretch` section, by the stretch's key."""
+    data = yaml.safe_load(GUIDES.read_text(encoding="utf-8"))
+    return {
+        k: Guide(steps=list(v.get("steps") or []), mistakes=list(v.get("mistakes") or []))
+        for k, v in (data.get("stretch") or {}).items()
+    }
+
+
 def guide(ex: Exercise) -> Guide | None:
     """The instructions of the exercise – by its catalog key, else by one of its names (a Jefit import)."""
     by_key, by_name = _guides()

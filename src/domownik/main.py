@@ -38,6 +38,7 @@ from domownik.routers import (
     meters,
     points,
     quick,
+    rozciaganie,
     schedule,
     share,
     shopping,
@@ -203,6 +204,7 @@ def create_app() -> FastAPI:
     app.include_router(timers.router)
     app.include_router(forma.router)
     app.include_router(trening.router)
+    app.include_router(rozciaganie.router)
     app.include_router(sylwetka.router)
     app.include_router(share.router)
 
