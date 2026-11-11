@@ -46,6 +46,10 @@ stretches:
   - {key: hip_circles_fours, name: Krążenia kolanem w klęku podpartym, type: dynamic, area: hips, sided: true, seconds: 20, img: Hip Circles (prone), pic: 1}
   - {key: crossover_lunge, name: Wykrok w tył ze skrętem, type: dynamic, area: hips, sided: false, seconds: 40, img: Crossover Reverse Lunge, pic: 0}
   - {key: rear_leg_raises, name: Wymachy nogą w tył w klęku podpartym, type: dynamic, area: glutes, sided: true, seconds: 20, img: Rear Leg Raises, pic: 1}
+  - {key: hamstring_90_90, name: Tył uda – prostowanie nogi z 90/90 leżąc, type: dynamic, area: hamstrings, sided: true, seconds: 30, img: 90/90 Hamstring, pic: 1}
+  - {key: stick_pass_through, name: Przenoszenie kija za głowę, type: dynamic, area: shoulders, sided: false, seconds: 30, img: Round The World Shoulder Stretch, pic: 1}
+  - {key: pelvic_tilt_standing, name: Bujanie miednicy na stojąco, type: dynamic, area: hips, sided: false, seconds: 30, img: Standing Pelvic Tilt, pic: 1}
+  - {key: torso_rotation, name: Skręty tułowia z wyciągniętymi rękami, type: dynamic, area: abs, sided: false, seconds: 30, img: Torso Rotation, pic: 1}
   # ---------------------------------------------------------------- static (after) – legs and hips
   - {key: quad_all_fours, name: Przód uda w klęku podpartym, type: static, area: quads, sided: true, seconds: 30, img: All Fours Quad Stretch, pic: 1}
   - {key: quad_side, name: Przód uda leżąc na boku, type: static, area: quads, sided: true, seconds: 30, img: On Your Side Quad Stretch, pic: 1}
@@ -68,6 +72,10 @@ stretches:
   - {key: calf_seated, name: Łydka w siadzie – palce do siebie, type: static, area: calves, sided: true, seconds: 30, img: Seated Calf Stretch, pic: 1}
   - {key: calf_step, name: Łydka – pięta na stopniu, type: static, area: calves, sided: true, seconds: 30, img: Standing Gastrocnemius Calf Stretch, pic: 1}
   - {key: soleus_standing, name: Łydka i ścięgno Achillesa – ugięte kolana, type: static, area: calves, sided: true, seconds: 30, img: Standing Soleus And Achilles Stretch, pic: 0}
+  - {key: quad_step, name: Przód uda – stopa z tyłu na stopniu, type: static, area: quads, sided: true, seconds: 30, img: Standing Elevated Quad Stretch, pic: 0}
+  - {key: it_band_strap, name: Bok uda i pośladek – noga przez ciało z paskiem, type: static, area: glutes, sided: true, seconds: 30, img: IT Band and Glute Stretch, pic: 1}
+  - {key: groin_strap, name: Pachwina – noga w bok leżąc z paskiem, type: static, area: groin, sided: true, seconds: 30, img: Intermediate Groin Stretch, pic: 1}
+  - {key: hamstring_calf_strap, name: Tył uda i łydka na stojąco z paskiem, type: static, area: hamstrings, sided: true, seconds: 30, img: Standing Hamstring and Calf Stretch, pic: 0}
   # ---------------------------------------------------------------- static – back, upper body
   - {key: childs_pose, name: Pozycja dziecka, type: static, area: back, sided: false, seconds: 45, img: Child's Pose, pic: 0}
   - {key: knees_to_chest, name: Oba kolana do klatki, type: static, area: back, sided: false, seconds: 30, img: Hug Knees To Chest, pic: 0}
@@ -90,12 +98,29 @@ stretches:
   - {key: side_wrist_pull, name: Ramię przez ciało – ciągnięcie za nadgarstek, type: static, area: shoulders, sided: true, seconds: 30, img: Side Wrist Pull, pic: 1}
   - {key: triceps_across, name: Triceps – ręka za przeciwny bark, type: static, area: arms, sided: true, seconds: 30, img: Tricep Side Stretch, pic: 1}
   - {key: chin_to_chest, name: Kark – broda do klatki, type: static, area: neck, sided: false, seconds: 20, img: Chin To Chest Stretch, pic: 1}
+  - {key: biceps_behind, name: Biceps – dłonie splecione za plecami, type: static, area: arms, sided: false, seconds: 30, img: Standing Biceps Stretch, pic: 1}
+  - {key: chest_stick, name: Klatka i przód barków – kij za głowę, type: static, area: chest, sided: false, seconds: 30, img: Chest And Front Of Shoulder Stretch, pic: 1}
+  - {key: chair_shoulders, name: Barki – skłon na krześle, dłonie na oparciu, type: static, area: shoulders, sided: false, seconds: 30, img: Chair Upper Body Stretch, pic: 1}
 
-# the routines made on the first visit (the household then changes them freely); seconds: the stretch's default
+# the default routines (the household then changes them freely); seconds: the stretch's default.
+# key: which default it is – a routine whose key is not in the database yet is added on start (also later ones),
+# one the household removed (archived) is not made again.
 routines:
-  - name: Przed treningiem
+  - key: before
+    name: Przed treningiem
     kind: before
     items: [arm_circles, chest_openers, cat_cow, leg_circles, leg_swings_front, leg_swings_side, worlds_greatest, inchworm, warmup_squats]
-  - name: Po treningu
+  - key: after
+    name: Po treningu
     kind: after
     items: [quad_all_fours, hip_flexor_kneeling, hamstring_seated, figure_four, butterfly, calf_wall, chest_elbows_back, cross_body_shoulder, triceps_overhead, childs_pose]
+  # 🦵 legs – on the floor and at a wall, nothing needed (~6½ min)
+  - key: legs_short
+    name: Nogi – krótko
+    kind: own
+    items: [hip_flexor_kneeling, quad_all_fours, runners_stretch, figure_four, butterfly, calf_wall]
+  # 🦵 legs – a few swings to warm up, then every part of the leg (~15 min; a step and a strap or towel)
+  - key: legs_long
+    name: Nogi – długo
+    kind: own
+    items: [leg_swings_front, leg_swings_side, hip_flexor_lunge, quad_step, hamstring_seated, runners_stretch, figure_four, seated_spinal_twist, it_band_strap, butterfly, groin_strap, calf_step, soleus_standing]

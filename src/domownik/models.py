@@ -1500,6 +1500,7 @@ class StretchRoutine(Base):
     kind: Mapped[str] = mapped_column(String(10), default="own", server_default="own")  # before | after | own
     position: Mapped[int] = mapped_column(Integer, default=0)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    seed: Mapped[str | None] = mapped_column(String(30))  # the catalog routine it was made from (stretches.yaml key)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     items: Mapped[list[StretchRoutineItem]] = relationship(

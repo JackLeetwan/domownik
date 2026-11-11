@@ -52,7 +52,26 @@ def test_seed_once_and_follow_catalog(db):
     st.prepare(db)
     db.commit()
     assert s.name == "Pozycja dziecka" and db.query(Stretch).count() == n
-    assert st.routines(db) == [] and db.query(StretchRoutine).count() == 2
+    seeds = len(st.catalog()["routines"])
+    assert st.routines(db) == [] and db.query(StretchRoutine).count() == seeds
+
+
+def test_routines_added_to_the_catalog_later(db):
+    """A household with only the first two defaults gets the newer ones (at the end), once."""
+    st.prepare(db)
+    db.commit()
+    for r in db.query(StretchRoutine).filter(StretchRoutine.seed.like("legs_%")):
+        db.delete(r)
+    db.commit()
+    made = st.seed_routines(db)
+    db.commit()
+    assert [r.name for r in made] == ["Nogi – krótko", "Nogi – długo"]
+    assert [r.name for r in st.routines(db)][-2:] == ["Nogi – krótko", "Nogi – długo"]
+    assert st.seed_routines(db) == []
+    short, long_ = made
+    assert 5 * 60 <= st.total_seconds(short) <= 7 * 60
+    assert 14 * 60 <= st.total_seconds(long_) <= 16 * 60
+    assert all(it.stretch.area in {"hips", "glutes", "quads", "hamstrings", "groin", "calves"} for it in short.items)
 
 
 def test_pictures_and_duration(db):

@@ -1726,3 +1726,101 @@ stretch:  # 🤸 the stretches (stretches.yaml) by key
     mistakes:
       - "Mocne ciągnięcie głowy rękami."
       - "Garbienie się całymi plecami."
+  hamstring_90_90:
+    steps:
+      - "Połóż się na plecach, jedna noga prosto na podłodze."
+      - "Drugą nogę zegnij w biodrze i kolanie do 90°, przytrzymaj udo dłońmi pod kolanem."
+      - "Prostuj kolano, wypychając piętę do sufitu, aż poczujesz tył uda – zatrzymaj się na chwilę."
+      - "Wróć do kąta 90° i powtarzaj spokojnie; w połowie czasu zmień nogę."
+    mistakes:
+      - "Opuszczanie uda w stronę podłogi przy prostowaniu."
+      - "Szarpanie nogą do końca zakresu."
+  stick_pass_through:
+    steps:
+      - "Stań prosto, chwyć kij lub ręcznik nachwytem, dużo szerzej niż barki, ręce opuszczone przed sobą."
+      - "Z prostymi łokciami unieś kij nad głowę i przenieś go dalej za plecy."
+      - "Tą samą drogą wróć przed siebie – ruch płynny, bez pośpiechu."
+      - "Gdy ruch idzie lekko, zwęź chwyt o kilka centymetrów."
+    mistakes:
+      - "Zginanie łokci, żeby przejść za głowę – lepiej poszerzyć chwyt."
+      - "Wyginanie lędźwi w łuk."
+  pelvic_tilt_standing:
+    steps:
+      - "Stań na szerokość bioder, kolana lekko ugięte, dłonie na biodrach."
+      - "Przechyl miednicę w przód, wypinając pośladki i lekko wyginając lędźwie."
+      - "Podwiń miednicę w tył, kość ogonową w stronę pięt, napinając brzuch i pośladki."
+      - "Bujaj miednicą płynnie tam i z powrotem, tułów i barki zostają w miejscu."
+    mistakes:
+      - "Ruch całym tułowiem zamiast samą miednicą."
+  torso_rotation:
+    steps:
+      - "Stań w lekkim rozkroku, kolana miękkie, wyciągnij proste ręce przed siebie (możesz trzymać piłkę)."
+      - "Obróć tułów w jedną stronę, wzrokiem podążając za dłońmi."
+      - "Wróć przez środek i obróć się w drugą stronę."
+      - "Zacznij od małego zakresu i z każdym powtórzeniem skręcaj się dalej."
+    mistakes:
+      - "Obracanie kolan i stóp razem z tułowiem."
+      - "Rzucanie tułowiem z rozpędu."
+  quad_step:
+    steps:
+      - "Stań plecami do stopnia, krzesła lub kanapy, ok. kroku od niego."
+      - "Połóż na nim grzbiet stopy jednej nogi za sobą."
+      - "Ugnij lekko nogę podporową, podwiń miednicę i poczuj przód uda tylnej nogi."
+      - "Trzymaj tułów prosto i oddychaj spokojnie, potem zmień nogę."
+    mistakes:
+      - "Wyginanie lędźwi w łuk zamiast podwinięcia miednicy."
+      - "Kolano podporowe wysunięte daleko przed palce."
+  it_band_strap:
+    steps:
+      - "Połóż się na plecach, załóż pasek lub ręcznik na stopę jednej nogi."
+      - "Unieś prostą nogę i przenieś ją przez ciało na przeciwną stronę, stopa nad podłogą."
+      - "Barki zostają na podłodze – poczuj bok uda i pośladek."
+      - "Delikatnie przyciągaj paskiem palce do siebie, oddychaj spokojnie, potem druga noga."
+    mistakes:
+      - "Odrywanie przeciwnego barku od podłogi."
+      - "Zginanie kolana rozciąganej nogi."
+  groin_strap:
+    steps:
+      - "Połóż się na plecach z prostymi nogami, załóż pasek lub ręcznik na stopę jednej nogi."
+      - "Unieś nogę i odprowadź ją prosto w bok, jak najdalej bez bólu."
+      - "Druga noga i miednica leżą płasko – poczuj wewnętrzną stronę uda."
+      - "Paskiem lekko przytrzymuj nogę w tej pozycji, potem zmień stronę."
+    mistakes:
+      - "Przekręcanie miednicy za nogą."
+      - "Zginanie kolana zamiast trzymać nogę prostą."
+  hamstring_calf_strap:
+    steps:
+      - "Stań, wysuń jedną nogę przed siebie i oprzyj ją na pięcie; załóż pasek lub ręcznik na jej palce."
+      - "Ugnij tylną nogę, przednia zostaje prosta."
+      - "Pochyl się z prostymi plecami od bioder i przyciągnij paskiem palce do siebie."
+      - "Poczuj tył uda i łydkę przedniej nogi, oddychaj spokojnie, potem zmień nogę."
+    mistakes:
+      - "Zaokrąglanie pleców zamiast skłonu z bioder."
+      - "Uginanie kolana przedniej nogi."
+  biceps_behind:
+    steps:
+      - "Stań prosto i spleć dłonie za plecami."
+      - "Wyprostuj łokcie i obróć dłonie tak, by wnętrza patrzyły w dół."
+      - "Powoli unoś ręce w tył i w górę, aż poczujesz przód ramion i barków."
+      - "Klatka do przodu, barki nisko, oddychaj spokojnie."
+    mistakes:
+      - "Pochylanie się w przód, żeby wyżej unieść ręce."
+      - "Unoszenie barków do uszu."
+  chest_stick:
+    steps:
+      - "Stań prosto, chwyć kij lub ręcznik nachwytem, trochę szerzej niż barki, przed sobą."
+      - "Z prostymi rękami unieś go nad głowę."
+      - "Powoli przenieś go jeszcze trochę za głowę, aż poczujesz klatkę i przód barków."
+      - "Zatrzymaj się tam, brzuch napięty, oddychaj spokojnie."
+    mistakes:
+      - "Wyginanie lędźwi zamiast ruchu w barkach."
+      - "Za wąski chwyt i zginanie łokci."
+  chair_shoulders:
+    steps:
+      - "Usiądź na brzegu krzesła i sięgnij rękami w tył, chwytając oparcie po bokach."
+      - "Wyprostuj łokcie, ręce zostają za plecami."
+      - "Powoli pochyl tułów w przód nad kolana, aż poczujesz przód barków i górę pleców."
+      - "Rozluźnij szyję i oddychaj spokojnie."
+    mistakes:
+      - "Puszczanie oparcia albo uginanie łokci."
+      - "Gwałtowne opadanie tułowiem w dół."

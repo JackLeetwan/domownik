@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from domownik import training as tr
@@ -96,17 +96,25 @@ def ensure_library(db: Session) -> None:
 
 
 def seed_routines(db: Session) -> list[StretchRoutine]:
-    """The default routines – once, when there are none at all (also none archived)."""
-    if db.scalar(select(StretchRoutine.id).limit(1)) is not None:
+    """The default routines from the catalog that were never made – also ones added to it later.
+
+    One the household removed stays archived (its seed is still there) and is not made again.
+    """
+    made_from = set(db.scalars(select(StretchRoutine.seed).where(StretchRoutine.seed.is_not(None))))
+    todo = [row for row in catalog()["routines"] if row["key"] not in made_from]
+    if not todo:
         return []
     ensure_library(db)
     by_key = {s.key: s for s in db.scalars(select(Stretch))}
+    last = db.scalar(select(func.max(StretchRoutine.position)))
+    pos = 0 if last is None else last + 1
     made = []
-    for pos, row in enumerate(catalog()["routines"]):
-        r = StretchRoutine(name=row["name"], kind=row["kind"], position=pos)
+    for row in todo:
+        r = StretchRoutine(name=row["name"], kind=row["kind"], position=pos, seed=row["key"])
         r.items = [StretchRoutineItem(stretch=by_key[k], position=i) for i, k in enumerate(row["items"])]
         db.add(r)
         made.append(r)
+        pos += 1
     db.flush()
     return made
 
