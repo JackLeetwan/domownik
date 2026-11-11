@@ -16,6 +16,9 @@
   {% for g, host in invites %}
   <a href="/forma/razem/{{ g.id }}" role="button" class="tr-go tr-join">👫 Dołącz: {{ host.user.name }} – {{ host.plan.name if host.plan else 'trening' }}</a>
   {% endfor %}
+  {% for g in stretch_invites %}{% set host = g.sessions[0] %}
+  <a href="/forma/rozciaganie/razem/{{ g.id }}" role="button" class="tr-go tr-join">👫 Dołącz do rozciągania: {{ host.user.name }} – {{ host.name }}</a>
+  {% endfor %}
   {% if running %}
   <a href="/forma/trening/{{ running.id }}" role="button" class="tr-go">▶ Wróć do treningu{% if running.plan %}: {{ running.plan.name }}{% endif %}</a>
   {% elif next_plan %}

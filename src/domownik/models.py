@@ -1526,6 +1526,25 @@ class StretchRoutineItem(Base):
         return self.seconds or self.stretch.seconds
 
 
+class StretchGroup(Base):
+    """👫 Stretching together: one timer for everybody in it (each still has their own StretchSession – history).
+
+    state: the timer as the browsers keep it (phase index, when it ends in server ms or the time left when
+    paused, the results, ...); rev goes up with every change, a change sent from an older rev is refused.
+    """
+
+    __tablename__ = "stretch_group"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    invited: Mapped[list[int]] = mapped_column(JSON, default=list)
+    state: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    rev: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+    sessions: Mapped[list[StretchSession]] = relationship(back_populates="group", order_by="StretchSession.id")
+
+
 class StretchSession(Base):
     """One stretching session of one person (private, like a workout).
 
@@ -1547,8 +1566,11 @@ class StretchSession(Base):
     done: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     total: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     seconds: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    group_id: Mapped[int | None] = mapped_column(ForeignKey("stretch_group.id", ondelete="SET NULL"), index=True)
 
     routine: Mapped[StretchRoutine | None] = relationship()
+    group: Mapped[StretchGroup | None] = relationship(back_populates="sessions")
+    user: Mapped[User] = relationship()
 
 
 # ---------------------------------------------------------------- 💪 Forma: sylwetka (strictly the owner's)

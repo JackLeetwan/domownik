@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from domownik import stretching as st
 from domownik import training as tr
 from domownik.models import Stretch, StretchRoutine, StretchSession, User
@@ -251,3 +253,95 @@ def test_no_offer_for_an_old_workout_or_someone_elses(auth_client, db, user):
     r = _post(auth_client, f"/forma/rozciaganie/{before.id}/start", {"workout_id": str(w2.id)})
     s = db.get(StretchSession, int(r.headers["location"].rsplit("/", 1)[1]))
     assert s.workout_id is None  # someone else's workout is not linked
+
+
+def _paula(db):
+    other = User(email="paula@example.com", name="Paula", password_hash=hash_password("tajnehaslo2"))
+    db.add(other)
+    db.commit()
+    return other
+
+
+def test_together_invite_join_and_shared_state(auth_client, db, user, monkeypatch):
+    from domownik import together
+
+    sent = []
+    monkeypatch.setattr(together, "_send", lambda db, u, body: sent.append((u.id, body)) or 1)
+    paula = _paula(db)
+    st.prepare(db)
+    db.commit()
+    after = st.for_kind(db, "after")
+    r = _post(auth_client, f"/forma/rozciaganie/{after.id}/start")
+    sid = int(r.headers["location"].rsplit("/", 1)[1])
+    page = auth_client.get(f"/forma/rozciaganie/sesja/{sid}").text
+    assert "👫 Rozciągaj się razem" in page and "data-group" not in page
+
+    _post(auth_client, f"/forma/rozciaganie/sesja/{sid}/zapros", {"razem": str(paula.id)})
+    s = db.get(StretchSession, sid)
+    db.refresh(s)
+    g = s.group
+    assert g is not None and g.invited == [paula.id]
+    assert sent == [(paula.id, sent[0][1])] and sent[0][1]["url"] == f"/forma/rozciaganie/razem/{g.id}"
+    page = auth_client.get(f"/forma/rozciaganie/sesja/{sid}").text
+    assert f'data-group="{g.id}"' in page and "Zakończ dla wszystkich" in page and "👫 Rozciągaj się razem" not in page
+
+    # the shared state: a change from the current rev goes in, an outdated one gets the newer state back
+    url = f"/forma/rozciaganie/razem/{g.id}/stan"
+    d = auth_client.get(url).json()
+    assert d["rev"] == 0 and d["state"] == {} and d["with"] == [] and d["waiting"] == 1
+    state = {"idx": 1, "endsAt": 123, "left": 0, "started": True, "activeMs": 0, "runFrom": 100, "results": {}}
+    d = auth_client.post(url, json={"rev": 0, "state": state | {"junk": 1}}).json()
+    assert d["ok"] and d["rev"] == 1 and d["state"] == state
+    d = auth_client.post(url, json={"rev": 0, "state": state | {"idx": 5}}).json()
+    assert not d["ok"] and d["rev"] == 1 and d["state"]["idx"] == 1
+
+
+def test_together_partner_joins(auth_client, db, user, monkeypatch):
+    from domownik import together
+
+    monkeypatch.setattr(together, "_send", lambda db, u, body: 1)
+    paula = _paula(db)
+    st.prepare(db)
+    db.commit()
+    host = st.start(db, user, st.for_kind(db, "after"))
+    g = st.invite(db, host, [paula])
+    db.commit()
+    assert [x.id for x in st.open_invites(db, paula)] == [g.id]
+    mine = st.join(db, g, paula)
+    db.commit()
+    assert mine.group_id == g.id and mine.steps == host.steps and mine.user_id == paula.id
+    assert st.join(db, g, paula) is mine and st.open_invites(db, paula) == []
+    d = auth_client.get(f"/forma/rozciaganie/razem/{g.id}/stan").json()
+    assert d["with"] == ["Paula"] and d["waiting"] == 0
+
+    # someone not invited: a 404 (and no join); after "end for everybody" nobody new comes in
+    third = User(email="gosc@example.com", name="Gość", password_hash=hash_password("tajnehaslo3"))
+    db.add(third)
+    db.commit()
+    with pytest.raises(ValueError):
+        st.join(db, g, third)
+    g.state = {"finished": True}
+    db.commit()
+    assert not st.is_live(g)
+
+
+def test_together_forma_shows_invite(auth_client, db, user, monkeypatch):
+    from domownik import together
+
+    monkeypatch.setattr(together, "_send", lambda db, u, body: 1)
+    paula = _paula(db)
+    st.prepare(db)
+    db.commit()
+    host = st.start(db, paula, st.for_kind(db, "after"))
+    g = st.invite(db, host, [user])
+    db.commit()
+    forma = auth_client.get("/forma").text
+    assert f"/forma/rozciaganie/razem/{g.id}" in forma and "Dołącz do rozciągania: Paula" in forma
+    r = auth_client.get(f"/forma/rozciaganie/razem/{g.id}", follow_redirects=False)
+    sid = int(r.headers["location"].rsplit("/", 1)[1])
+    s = db.get(StretchSession, sid)
+    assert s.user_id == user.id and s.group_id == g.id
+    page = auth_client.get(f"/forma/rozciaganie/sesja/{sid}").text
+    assert f'data-group="{g.id}"' in page
+    # the partner's own session stays private
+    assert auth_client.get(f"/forma/rozciaganie/sesja/{host.id}").status_code == 404

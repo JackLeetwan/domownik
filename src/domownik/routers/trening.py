@@ -88,6 +88,7 @@ def section_context(db: Session, user: User) -> dict:
         "st": st,
         "today": t,
         "invites": together.open_invites(db, user, t),
+        "stretch_invites": st.open_invites(db, user),
         "partners": together.partners(db, user),
     }
 

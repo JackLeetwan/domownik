@@ -18,12 +18,14 @@
 </section>
 {% else %}
 {# the timer – app.js "stretching session"; the steps are the routine as it was at the start #}
-<section class="ss" data-stretch-session="{{ s.id }}" data-transition="{{ transition }}" data-key="dm-stretch-{{ s.id }}">
+<section class="ss" data-stretch-session="{{ s.id }}" data-transition="{{ transition }}" data-key="dm-stretch-{{ s.id }}"{% if group %} data-group="{{ group.id }}"{% endif %}>
   <script type="application/json" class="ss-steps">{{ s.steps|tojson }}</script>
+  {% if group %}<script type="application/json" class="ss-group">{{ group_json|tojson }}</script>{% endif %}
   <header class="ss-head">
     <h1 class="ss-title">🤸 {{ s.name }}</h1>
     <span class="ss-count" aria-live="polite"></span>
   </header>
+  {% if group %}<p class="ss-with muted" aria-live="polite"></p>{% endif %}
   <div class="ss-bar" aria-hidden="true"><span></span></div>
   <p class="ss-phase"></p>
   <div class="ss-pic"><img alt="" width="320" height="213"><span class="ss-emoji" aria-hidden="true">🧘</span></div>
@@ -43,8 +45,18 @@
   </p>
   <form method="post" action="/forma/rozciaganie/sesja/{{ s.id }}/koniec" class="ss-finish"><input type="hidden" name="csrf" value="{{ csrf }}">
     <input type="hidden" name="done" value="0"><input type="hidden" name="seconds" value="0">
-    <button type="button" class="small outline secondary ss-end">⏹ Zakończ</button>
+    <button type="button" class="small outline secondary ss-end">⏹ Zakończ{% if group %} dla wszystkich{% endif %}</button>
   </form>
+  {% if can_invite %}
+  <details class="wo-invite ss-invite">
+    <summary role="button" class="outline secondary">👫 Rozciągaj się razem</summary>
+    <form method="post" action="/forma/rozciaganie/sesja/{{ s.id }}/zapros">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <p class="muted"><small>Kogo? Dostanie powiadomienie i dołączy jednym dotknięciem. Timer jest wspólny – pauza, pominięcie czy cofnięcie działa u obojga.</small></p>
+      {% for u in can_invite %}<button type="submit" name="razem" value="{{ u.id }}" class="outline">{{ u.name }}</button>{% endfor %}
+    </form>
+  </details>
+  {% endif %}
 </section>
 {% endif %}
 {% endblock %}

@@ -912,11 +912,15 @@
     let activeMs = 0, runFrom = 0, lastBeep = null, finished = false;
     let results = {}; // phase index → "done" | "skip" (work phases only)
     let audio = null, lock = null;
+    // 👫 together: the state lives on the server (rev), every browser polls it; times sent in server ms
+    const shared = !!(root.dataset.group && $(".ss-group"));
+    const gUrl = shared ? `/forma/rozciaganie/razem/${root.dataset.group}/stan` : "";
+    let rev = -1, offset = 0, armed = false, endAll = false;
 
     const remaining = () => (paused ? left : endsAt - Date.now());
     const active = () => activeMs + (paused || !runFrom ? 0 : Date.now() - runFrom);
     const save = () => {
-      if (finished) return;
+      if (finished || shared) return;
       store.set(key, JSON.stringify({ idx, left: Math.max(0, remaining()), activeMs: active(), results }));
     };
     const saved = (() => { try { return JSON.parse(store.get(key) || "null"); } catch (_) { return null; } })();
@@ -991,7 +995,7 @@
       const icon = paused ? "M7 5v14l12-7z" : "M6 5h4v14H6zM14 5h4v14h-4z";
       if (pause.dataset.icon !== icon) { pause.dataset.icon = icon; pause.querySelector("path").setAttribute("d", icon); }
       pause.setAttribute("aria-label", paused ? "Wznów" : "Pauza");
-      $(".ss-start").textContent = started ? "▶ Wznów" : "▶ Start";
+      $(".ss-start").textContent = !started ? "▶ Start" : shared && !paused ? "▶ Dołącz" : "▶ Wznów";
     };
     const announce = (p) => {
       const s = stretches[p.si];
@@ -1012,8 +1016,9 @@
       if (p && p.kind === "work" && results[idx] !== "done") results[idx] = natural ? "done" : "skip";
     };
     const doneCount = () => stretches.filter((_, si) => phases.every((p, i) => p.si !== si || p.kind !== "work" || results[i] === "done")).length;
-    const end = () => {
+    const end = (all = false) => {
       if (finished) return;
+      if (all && shared) { endAll = true; push(); }
       if (!paused) { activeMs = active(); runFrom = 0; }
       paused = true;
       finished = true;
@@ -1025,7 +1030,8 @@
       const form = $(".ss-finish");
       form.elements.done.value = doneCount();
       form.elements.seconds.value = Math.round(activeMs / 1000);
-      if (form.requestSubmit) form.requestSubmit(); else form.submit();
+      const submit = () => { if (form.requestSubmit) form.requestSubmit(); else form.submit(); };
+      if (all && shared) pushing.then(submit); else submit(); // "end for everybody" reaches the server first
     };
     const go = (i, { natural = false, live = true } = {}) => {
       if (i > idx) mark(natural);
@@ -1043,6 +1049,7 @@
     const tick = () => {
       if (!document.body.contains(root)) { // navigated away (hx-boost swaps the page)
         clearInterval(timer);
+        if (pollTimer) clearInterval(pollTimer);
         document.removeEventListener("visibilitychange", onVisible);
         unwake();
         if ("speechSynthesis" in window) speechSynthesis.cancel();
@@ -1067,6 +1074,83 @@
     };
     const timer = setInterval(tick, 200);
 
+    // ---- 👫 the shared timer
+    const blob = () => ({
+      idx, started, results, activeMs,
+      endsAt: paused ? null : endsAt + offset, left: paused ? left : 0,
+      runFrom: !paused && runFrom ? runFrom + offset : 0, finished: endAll,
+    });
+    const clock = (d, t0, t1) => { offset = d.now - (t0 + t1) / 2; };
+    const showWith = (d) => {
+      const el = $(".ss-with");
+      if (!el) return;
+      const w = d.with || [], n = d.waiting || 0;
+      el.textContent = w.length ? `👫 Razem z: ${w.join(", ")}${n ? " · ktoś jeszcze nie dołączył" : ""}`
+        : n ? "👫 Czekam, aż dołączy – timer jest wspólny" : "";
+    };
+    const showControls = () => { $(".ss-start").hidden = true; $(".ss-controls").hidden = false; };
+    const adopt = (d) => {
+      if (finished) return;
+      rev = d.rev;
+      showWith(d);
+      const g = d.state || {};
+      if (!("idx" in g)) { if (started) push(); return; } // invited after starting alone – this device's state goes up
+      const before = idx, wasPaused = paused;
+      idx = Math.min(g.idx, phases.length);
+      results = g.results || {};
+      started = !!g.started;
+      if (g.endsAt == null) {
+        paused = true; left = g.left; runFrom = 0; activeMs = g.activeMs || 0;
+      } else {
+        paused = false; endsAt = g.endsAt - offset; activeMs = g.activeMs || 0;
+        runFrom = g.runFrom ? g.runFrom - offset : Date.now();
+      }
+      if (g.finished) { end(); return; }
+      if (idx >= phases.length) { end(); return; }
+      if (idx !== before) lastBeep = null;
+      if (paused && !wasPaused) { unwake(); if ("speechSynthesis" in window) speechSynthesis.cancel(); }
+      if (!paused && armed) {
+        wake();
+        const fresh = endsAt - Date.now() > phases[idx].secs * 1000 - 1500;
+        if (fresh && (idx !== before || wasPaused)) announce(phases[idx]); // the partner skipped / went back / resumed
+      }
+      render();
+    };
+    let pushing = Promise.resolve();
+    const push = () => {
+      if (!shared) return;
+      pushing = pushing.then(async () => {
+        const t0 = Date.now();
+        try {
+          const r = await fetch(gUrl, {
+            method: "POST", credentials: "same-origin",
+            headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() },
+            body: JSON.stringify({ rev, state: blob() }),
+          });
+          if (!r.ok) return;
+          const d = await r.json();
+          clock(d, t0, Date.now());
+          if (d.ok) { rev = d.rev; showWith(d); } else adopt(d); // someone was quicker – their change wins
+        } catch (_) { /* offline – the next poll brings the truth */ }
+      });
+    };
+    let polling = false;
+    const poll = async (force = false) => {
+      if (polling || finished) return;
+      polling = true;
+      const t0 = Date.now();
+      try {
+        const r = await fetch(gUrl, { credentials: "same-origin", headers: { Accept: "application/json" } });
+        if (r.ok) {
+          const d = await r.json();
+          clock(d, t0, Date.now());
+          if (force || d.rev > rev) adopt(d); else showWith(d);
+        }
+      } catch (_) { /* offline */ }
+      polling = false;
+    };
+    const pollTimer = shared ? setInterval(() => { if (document.visibilityState === "visible") poll(); }, 2000) : null;
+
     // ---- controls
     const run = () => {
       paused = false;
@@ -1086,22 +1170,25 @@
     $(".ss-start").addEventListener("click", () => {
       try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch (_) { audio = null; }
       if ("speechSynthesis" in window) speechSynthesis.getVoices(); // starts loading the voices (Chrome)
+      armed = true;
+      showControls();
+      if (shared && started && !paused) { wake(); render(); return; } // joining a running timer – sound on, nothing changes
       const fresh = !started;
       started = true;
-      $(".ss-start").hidden = true;
-      $(".ss-controls").hidden = false;
       run();
       if (fresh || phases[idx].kind === "prep") announce(phases[idx]);
       render();
       save();
+      push();
     });
-    $(".ss-pause").addEventListener("click", () => { if (paused) run(); else pause(); render(); });
-    $(".ss-skip").addEventListener("click", () => go(idx + 1));
+    $(".ss-pause").addEventListener("click", () => { if (paused) run(); else pause(); render(); push(); });
+    $(".ss-skip").addEventListener("click", () => { go(idx + 1); push(); });
     $(".ss-back").addEventListener("click", () => {
       const p = phases[idx], start = firstPrep(p.si);
       const elapsed = p.secs * 1000 - remaining();
       const target = (idx === start || (idx === start + 1 && elapsed < 2000)) && p.si > 0 ? firstPrep(p.si - 1) : start;
       go(target);
+      push();
     });
     $(".ss-info").addEventListener("click", () => {
       const s = stretches[phases[Math.min(idx, phases.length - 1)].si];
@@ -1111,10 +1198,16 @@
       const wasRunning = !paused;
       if (wasRunning) pause();
       render();
-      if (await askConfirm("Zakończyć rozciąganie? Zapisze się to, co już zrobione.", "Zakończ")) end();
-      else if (wasRunning) { run(); render(); }
+      if (wasRunning) push();
+      const q = shared ? "Zakończyć rozciąganie u wszystkich? Każdemu zapisze się to, co już zrobione." : "Zakończyć rozciąganie? Zapisze się to, co już zrobione.";
+      if (await askConfirm(q, "Zakończ")) end(true);
+      else if (wasRunning) { run(); render(); push(); }
     });
     render();
+    if (shared) {
+      showWith(JSON.parse($(".ss-group").textContent || "{}"));
+      poll(true); // the clock and the state as they are now (the page may have taken a while)
+    }
   }
   const initStretch = (scope) => {
     const el = scope && scope.matches && scope.matches("[data-stretch-session]") ? scope : (scope || document).querySelector("[data-stretch-session]");

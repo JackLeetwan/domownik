@@ -7,14 +7,17 @@ the result at the end.
 
 from __future__ import annotations
 
+import time
+
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from domownik import stretching as st
+from domownik import together
 from domownik import training as tr
 from domownik.db import get_db
-from domownik.models import Stretch, StretchRoutine, StretchRoutineItem, StretchSession, User
+from domownik.models import Stretch, StretchGroup, StretchRoutine, StretchRoutineItem, StretchSession, User
 from domownik.security import current_user, verify_csrf
 from domownik.web import render
 
@@ -190,9 +193,33 @@ async def start(routine_id: int, request: Request, db: Session = Depends(get_db)
 @router.get("/sesja/{session_id:int}")
 def session_page(session_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     s = _session(db, user, session_id)
+    g = s.group
+    live = g is not None and s.finished_at is None
+    invited = set(g.invited or []) if g else set()
     return render(
-        request, "stretch_session.html", _ctx(user, s=s, transition=st.TRANSITION, after=_after_url(db, user, s))
+        request,
+        "stretch_session.html",
+        _ctx(
+            user,
+            s=s,
+            transition=st.TRANSITION,
+            after=_after_url(db, user, s),
+            group=g if live else None,
+            group_json=_group_state(g, user) if live else None,
+            can_invite=[u for u in together.partners(db, user) if u.id not in invited] if s.finished_at is None else [],
+        ),
     )
+
+
+def _group_state(g: StretchGroup, user: User) -> dict:
+    """What a browser on the shared timer needs: the state, its rev, the server's clock, who else is in."""
+    return {
+        "rev": g.rev,
+        "state": g.state or {},
+        "now": int(time.time() * 1000),
+        "with": [x.user.name for x in g.sessions if x.user_id != user.id and x.user is not None],
+        "waiting": len(set(g.invited or []) - {x.user_id for x in g.sessions} - {user.id}),
+    }
 
 
 def _after_url(db: Session, user: User, s: StretchSession) -> str:
@@ -218,3 +245,56 @@ def delete_session(session_id: int, db: Session = Depends(get_db), user: User = 
     db.delete(s)
     db.commit()
     return _go("/forma")
+
+
+# ---------------------------------------------------------------- 👫 together: one timer
+
+
+@router.post("/sesja/{session_id:int}/zapros", dependencies=[Depends(verify_csrf)])
+async def invite(session_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    s = _session(db, user, session_id)
+    if s.finished_at is not None:
+        raise ValueError("Ta sesja już się skończyła")
+    form = await request.form()
+    ids = {str(v) for v in form.getlist("razem")}
+    invitees = [u for u in together.partners(db, user) if str(u.id) in ids]
+    if invitees:
+        st.invite(db, s, invitees)
+        db.commit()
+    return _go(f"/forma/rozciaganie/sesja/{s.id}")
+
+
+def _group(db: Session, user: User, group_id: int) -> StretchGroup:
+    g = db.get(StretchGroup, group_id)
+    if g is None or (st.member(g, user) is None and user.id not in (g.invited or [])):
+        raise HTTPException(404, "Nie ma takiego wspólnego rozciągania")
+    return g
+
+
+@router.get("/razem/{group_id:int}")
+def join(group_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """The link from the push: joins straight away and opens one's own session on the shared timer."""
+    s = st.join(db, _group(db, user, group_id), user)
+    db.commit()
+    return _go(f"/forma/rozciaganie/sesja/{s.id}")
+
+
+@router.get("/razem/{group_id:int}/stan")
+def group_state(group_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Polled every ~2 s by the timer of everybody in."""
+    g = _group(db, user, group_id)
+    return JSONResponse(_group_state(g, user))
+
+
+@router.post("/razem/{group_id:int}/stan", dependencies=[Depends(verify_csrf)])
+async def set_group_state(
+    group_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    """A change from one browser (start, pause, skip, back, end). An outdated one gets the current state back."""
+    g = _group(db, user, group_id)
+    if st.member(g, user) is None:
+        raise HTTPException(404, "Nie ma takiego wspólnego rozciągania")
+    body = await request.json()
+    ok = st.set_state(g, int(body.get("rev", -1)), dict(body.get("state") or {}))
+    db.commit()
+    return JSONResponse({"ok": ok} | _group_state(g, user))

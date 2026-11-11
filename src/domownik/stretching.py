@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import functools
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +19,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from domownik import training as tr
 from domownik.config import now
-from domownik.models import Stretch, StretchRoutine, StretchRoutineItem, StretchSession, User, Workout
+from domownik.models import Stretch, StretchGroup, StretchRoutine, StretchRoutineItem, StretchSession, User, Workout
 
 CATALOG = Path(__file__).parent / "catalog" / "seed" / "stretches.yaml"
 TRANSITION = 5  # seconds to get into the position: before every stretch and before its second side
@@ -175,12 +176,16 @@ def snapshot(r: StretchRoutine) -> list[dict[str, Any]]:
     ]
 
 
-def start(db: Session, user: User, r: StretchRoutine, workout: Workout | None = None) -> StretchSession:
-    """A new session; an unfinished one of the same person is dropped (one at a time, nothing to resume)."""
+def _drop_unfinished(db: Session, user: User) -> None:
     for old in db.scalars(
         select(StretchSession).where(StretchSession.user_id == user.id, StretchSession.finished_at.is_(None))
     ):
         db.delete(old)
+
+
+def start(db: Session, user: User, r: StretchRoutine, workout: Workout | None = None) -> StretchSession:
+    """A new session; an unfinished one of the same person is dropped (one at a time, nothing to resume)."""
+    _drop_unfinished(db, user)
     steps = snapshot(r)
     s = StretchSession(
         user_id=user.id,
@@ -263,3 +268,98 @@ def offer(db: Session, user: User, w: Workout, sets_done: int) -> Offer:
         if o.routine is None and o.pending is None:
             o.kind = None
     return o
+
+
+# ---------------------------------------------------------------- 👫 together: one timer for two
+
+
+def _naive_now() -> datetime:
+    return now().replace(tzinfo=None, microsecond=0)
+
+
+def is_live(g: StretchGroup) -> bool:
+    """Somebody is still in it today and nobody ended it for everybody."""
+    if (g.state or {}).get("finished") or g.created_at.date() != _naive_now().date():
+        return False
+    return any(s.finished_at is None for s in g.sessions)
+
+
+def invite(db: Session, s: StretchSession, invitees: list[User]) -> StretchGroup:
+    """The session becomes one done together (if it is not yet); each invitee gets a push with the link."""
+    from domownik import together
+
+    g = s.group
+    if g is None:
+        g = StretchGroup(created_by_id=s.user_id, invited=[], state={}, created_at=_naive_now())
+        db.add(g)
+        s.group = g
+    g.invited = sorted(set(g.invited or []) | {u.id for u in invitees})
+    db.flush()
+    host = db.get(User, s.user_id)
+    for u in invitees:
+        if member(g, u) is None:
+            together._send(
+                db,
+                u,
+                {
+                    "title": f"👫 {host.name if host else 'Ktoś'} zaprasza do rozciągania",
+                    "body": f"{s.name} – wspólny timer. Dotknij, żeby dołączyć.",
+                    "url": f"/forma/rozciaganie/razem/{g.id}",
+                    "tag": f"domownik-rozciaganie-{g.id}",
+                },
+            )
+    return g
+
+
+def member(g: StretchGroup, user: User) -> StretchSession | None:
+    return next((s for s in g.sessions if s.user_id == user.id), None)
+
+
+def join(db: Session, g: StretchGroup, user: User) -> StretchSession:
+    """One's own session on the group's timer (the same steps); one's other unfinished session is dropped."""
+    mine = member(g, user)
+    if mine is not None:
+        return mine
+    if user.id not in (g.invited or []):
+        raise ValueError("To rozciąganie nie jest dla Ciebie")
+    if not is_live(g):
+        raise ValueError("To wspólne rozciąganie już się skończyło")
+    host = g.sessions[0]
+    _drop_unfinished(db, user)
+    s = StretchSession(
+        user_id=user.id,
+        routine_id=host.routine_id,
+        name=host.name,
+        steps=host.steps,
+        total=host.total,
+        started_at=_naive_now(),
+        group=g,
+    )
+    db.add(s)
+    db.flush()
+    return s
+
+
+def open_invites(db: Session, user: User) -> list[StretchGroup]:
+    """Stretching someone invited this person to, still going, not joined yet."""
+    since = _naive_now().replace(hour=0, minute=0, second=0)
+    return [
+        g
+        for g in db.scalars(select(StretchGroup).where(StretchGroup.created_at >= since).order_by(StretchGroup.id))
+        if user.id in (g.invited or []) and member(g, user) is None and is_live(g)
+    ]
+
+
+STATE_KEYS = {"idx", "endsAt", "left", "started", "activeMs", "runFrom", "results", "finished"}
+
+
+def set_state(g: StretchGroup, rev: int, state: dict[str, Any]) -> bool:
+    """A change of the shared timer – only from the current rev (else the sender takes the newer one)."""
+    if rev != g.rev:
+        return False
+    clean = {k: v for k, v in state.items() if k in STATE_KEYS}
+    if len(str(clean)) > 4000:
+        raise ValueError("Za duży stan timera")
+    g.state = clean
+    g.rev += 1
+    return True
