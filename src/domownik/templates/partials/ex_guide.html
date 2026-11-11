@@ -1,0 +1,22 @@
+{# ⓘ how an exercise is done: start and end position side by side, steps, common mistakes; `ex`, `guide`, `img_end` #}
+{% set img_start = exercise_image(ex) %}
+{% if img_start %}
+<div class="ex-frames">
+  <figure><img src="{{ img_start }}" alt="" loading="lazy" width="320" height="213"><figcaption>Start</figcaption></figure>
+  {% if img_end %}<figure><img src="{{ img_end }}" alt="" loading="lazy" width="320" height="213"><figcaption>Koniec</figcaption></figure>{% endif %}
+</div>
+{% else %}
+{% set pic_class = "big" %}{% include "partials/ex_pic.html" %}
+{% endif %}
+{% if guide %}
+<section class="ex-guide" aria-label="Jak wykonać">
+  <h3>Jak wykonać</h3>
+  <ol>{% for s in guide.steps %}<li>{{ s }}</li>{% endfor %}</ol>
+  {% if guide.mistakes %}
+  <h3>Uważaj na</h3>
+  <ul>{% for m in guide.mistakes %}<li>{{ m }}</li>{% endfor %}</ul>
+  {% endif %}
+</section>
+{% else %}
+<p class="muted"><small>Brak instrukcji dla tego ćwiczenia.</small></p>
+{% endif %}

@@ -464,6 +464,27 @@ def add(workout_id: int, exercise_id: int, db: Session = Depends(get_db), user: 
 # ---------------------------------------------------------------- progress
 
 
+@router.get("/cwiczenie/{exercise_id:int}")
+def exercise_guide(
+    exercise_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    """ⓘ How the exercise is done – in the modal (the workout's timer keeps going); without htmx its page."""
+    ex = _exercise(db, exercise_id)
+    if request.headers.get("hx-target") != "modal-body":
+        return RedirectResponse(f"/forma/postepy/{ex.id}", status_code=303)
+    return render(request, "partials/ex_guide_modal.html", _guide_ctx(user, ex))
+
+
+def _guide_ctx(user: User, ex: Exercise) -> dict:
+    return {
+        "user": user,
+        "ex": ex,
+        "guide": tr.guide(ex),
+        "img_end": tr.image_end(ex),
+        "tr": tr,
+    }
+
+
 @router.get("/postepy")
 def progress(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     return render(request, "training_progress.html", {"user": user, "rows": tr.done_exercises(db, user)})
@@ -478,7 +499,7 @@ def exercise_history(
     return render(
         request,
         "training_exercise.html",
-        {"user": user, "ex": ex, "rows": rows, "fmt_kg": tr.fmt_kg, "chart": _chart(rows), "tr": tr},
+        _guide_ctx(user, ex) | {"rows": rows, "fmt_kg": tr.fmt_kg, "chart": _chart(rows)},
     )
 
 

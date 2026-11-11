@@ -29,7 +29,7 @@
   {% if we.superset != ns.ss %}{% if ns.ss is not none %}</div>{% endif %}{% if we.superset is not none %}<div class="wo-superset"><p class="wo-ss-label">Superseria {{ superset_letter(we.superset) }} <small class="muted">– na zmianę, przerwa po drugim</small></p>{% endif %}{% set ns.ss = we.superset %}{% endif %}
   <article id="we{{ we.id }}" class="wo-ex{% if r.current %} current{% endif %}{% if r.complete %} complete{% endif %}">
     <div class="wo-ex-head">
-      {% include "partials/ex_pic.html" %}
+      <a href="/forma/postepy/{{ ex.id }}" class="ex-pic-btn" hx-get="/forma/cwiczenie/{{ ex.id }}" hx-target="#modal-body" hx-swap="innerHTML" hx-push-url="false" aria-label="Jak wykonać: {{ ex.name }}" title="Jak wykonać">{% include "partials/ex_pic.html" %}<span class="ex-pic-i" aria-hidden="true">ⓘ</span></a>
       <div class="wo-ex-title"><h2>{% if r.complete %}✓ {% endif %}{{ ex.name }}</h2>
       {% for pid, name, slots in partner_slots %}{% set sv = slots.get(we.slot) %}{% if sv %}<span class="wo-partner-badge{% if sv.done >= sv.sets %} done{% endif %}" data-badge="{{ pid }}-{{ we.slot }}">{{ name }}{% if sv.other_exercise %}: {{ sv.name }}{% endif %} {{ sv.text }}</span>{% endif %}{% endfor %}
       <small class="muted">{{ we.sets }} × {% if ex.kind == 'time' %}{{ we.seconds or 30 }} s{% elif we.reps_min and we.reps_max and we.reps_min != we.reps_max %}{{ we.reps_min }}–{{ we.reps_max }}{% else %}{{ we.reps_max or we.reps_min or '?' }}{% endif %}{% if we.rest_seconds %} · przerwa {{ we.rest_seconds }} s{% endif %}{% if we.swapped_from %} · zamiast: {{ we.swapped_from.name }}{% endif %}</small></div>

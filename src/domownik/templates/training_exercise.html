@@ -3,8 +3,9 @@
 {% block content %}
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/postepy" class="home-link">← Postępy</a></li></ul></nav>
 <header class="item-head"><h1>{{ ex.name }}</h1></header>
-{% set pic_class = "big" %}{% include "partials/ex_pic.html" %}
 <p class="muted"><small>{{ tr.pattern_label(ex.pattern) }} · {{ tr.muscle_label(ex.muscle) }} · {{ tr.equipment_label(ex.equipment) }}{% if ex.step %} · skok {{ fmt_kg(ex.step) }} kg{% endif %}</small></p>
+{% include "partials/ex_guide.html" %}
+<h2 class="pick-head">Historia</h2>
 {% if chart %}
 <figure class="tr-chart">
   <svg viewBox="-4 0 {{ chart.w + 8 }} {{ chart.h }}" role="img" aria-label="Szacowany maks. ciężar na 1 powtórzenie: od {{ fmt_kg(chart.lo|round(1)) }} do {{ fmt_kg(chart.hi|round(1)) }} kg">

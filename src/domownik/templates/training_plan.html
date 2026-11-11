@@ -7,7 +7,7 @@
   <label>Nazwa planu <input name="name" required maxlength="60" value="{{ p.name }}"></label>
   {% for it in p.items %}{% set k = 'i' ~ it.id ~ '_' %}
   <fieldset class="plan-item" id="i{{ it.id }}">
-    <legend>{% with ex = it.exercise %}{% include "partials/ex_pic.html" %}{% endwith %} {{ loop.index }}. {{ it.exercise.name }}</legend>
+    <legend>{% with ex = it.exercise %}{% include "partials/ex_pic.html" %}{% endwith %} {{ loop.index }}. {{ it.exercise.name }} {% with ex = it.exercise %}{% include "partials/ex_info.html" %}{% endwith %}</legend>
     <div class="plan-fields">
       <label>Serie <input name="{{ k }}sets" type="number" min="1" max="20" value="{{ it.sets }}"></label>
       {% if it.exercise.kind == 'time' %}

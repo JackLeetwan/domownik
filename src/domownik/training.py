@@ -44,6 +44,7 @@ from domownik.models import (
 log = logging.getLogger("domownik.training")
 
 CATALOG = Path(__file__).parent / "catalog" / "seed" / "exercises.yaml"
+STATIC = Path(__file__).parent / "static"
 REST_PUSH_LATE = timedelta(minutes=2)  # a server back later does not push about an old rest
 NUDGE_HOUR = 17  # "4 dni bez treningu" goes out at this hour
 DEFAULT_REST = 90
@@ -106,6 +107,52 @@ def image(ex: Exercise) -> str | None:
             if slug:
                 break
     return f"/static/exercises/{slug}.webp" if slug else None
+
+
+def image_end(ex: Exercise) -> str | None:
+    """The second frame (the end position) – shown next to the first one with the instructions."""
+    start = image(ex)
+    if start is None:
+        return None
+    end = start.removesuffix(".webp") + "-1.webp"
+    return end if (STATIC / end.removeprefix("/static/")).is_file() else None
+
+
+GUIDES = CATALOG.parent / "exercise_guides.yaml"
+
+
+@dataclass(frozen=True)
+class Guide:
+    """How an exercise is done: a few steps and the most common mistakes."""
+
+    steps: list[str]
+    mistakes: list[str]
+
+
+@functools.cache
+def _guides() -> tuple[dict[str, Guide], dict[str, Guide]]:
+    data = yaml.safe_load(GUIDES.read_text(encoding="utf-8"))
+
+    def load(section: str) -> dict[str, Guide]:
+        return {
+            k: Guide(steps=list(v.get("steps") or []), mistakes=list(v.get("mistakes") or []))
+            for k, v in (data.get(section) or {}).items()
+        }
+
+    by_name = {k.strip().lower(): g for k, g in load("by_name").items()}
+    return load("by_key"), by_name
+
+
+def guide(ex: Exercise) -> Guide | None:
+    """The instructions of the exercise – by its catalog key, else by one of its names (a Jefit import)."""
+    by_key, by_name = _guides()
+    if ex.key and ex.key in by_key:
+        return by_key[ex.key]
+    for alias in [ex.name, *(ex.en or "").split("|")]:
+        g = by_name.get(alias.strip().lower())
+        if g:
+            return g
+    return None
 
 
 def equipment_icon(ex: Exercise) -> str:

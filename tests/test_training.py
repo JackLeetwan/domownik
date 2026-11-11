@@ -216,6 +216,10 @@ def test_full_flow_on_the_phone(auth_client, db, user):
     press = next(we for we in w.exercises if we.exercise.key == "db_shoulder_press")
     pick = auth_client.get(f"/forma/trening/{wid}/cw/{press.id}/zamien").text
     assert "Ten sam ruch" in pick and "Wyciskanie żołnierskie" in pick
+    assert (
+        f'hx-get="/forma/cwiczenie/{press.exercise_id}"' in auth_client.get(f"/forma/trening/{wid}").text
+    )  # ⓘ = the picture
+    assert 'class="ex-info"' in pick
     ohp = db.query(Exercise).filter_by(key="ohp").one()
     _post(auth_client, f"/forma/trening/{wid}/cw/{press.id}/zamien/{ohp.id}")
     db.refresh(press)
@@ -322,3 +326,49 @@ def test_exercise_pictures_exist():
     assert tr.image(Ex(key=None, name="Dumbbell Hammer Curl")) == "/static/exercises/hammer-curls.webp"
     assert tr.image(Ex(key=None, name="Coś własnego")) is None
     assert tr.equipment_icon(Ex(key=None, name="x", equipment="band")) == "🎗️"
+
+
+# ---------------------------------------------------------------- ⓘ how an exercise is done
+
+
+def test_every_catalog_exercise_has_a_guide():
+    """A new exercise in exercises.yaml needs its instructions in exercise_guides.yaml too."""
+    by_key, by_name = tr._guides()
+    missing = [row["key"] for row in tr.catalog()["exercises"] if row["key"] not in by_key]
+    assert not missing, f"brak instrukcji w exercise_guides.yaml: {missing}"
+    images = tr.yaml.safe_load(tr.IMAGES.read_text(encoding="utf-8"))
+    assert {n.lower() for n in images["by_name"]} <= set(by_name)
+    for g in [*by_key.values(), *by_name.values()]:
+        assert 3 <= len(g.steps) <= 5 and 1 <= len(g.mistakes) <= 2
+
+
+def test_guide_by_key_and_by_jefit_name(db):
+    tr.ensure_library(db)
+    assert tr.guide(_ex(db, "back_squat")).steps
+    jefit = Exercise(
+        name="Dumbbell Hammer Curl", en="Dumbbell Hammer Curl", pattern="biceps", muscle="biceps", equipment="dumbbell"
+    )
+    assert tr.guide(jefit) is not None
+    own = Exercise(name="Moje dziwne ćwiczenie", pattern="biceps", muscle="biceps", equipment="dumbbell")
+    assert tr.guide(own) is None
+
+
+def test_every_picture_has_its_end_frame(db):
+    tr.ensure_library(db)
+    for ex in db.query(Exercise).all():
+        if tr.image(ex):
+            assert tr.image_end(ex), ex.key
+
+
+def test_guide_modal_and_page(auth_client, db):
+    tr.ensure_library(db)
+    db.commit()
+    squat = _ex(db, "back_squat")
+    modal = auth_client.get(f"/forma/cwiczenie/{squat.id}", headers={"HX-Request": "true", "HX-Target": "modal-body"})
+    assert modal.status_code == 200
+    assert "Jak wykonać" in modal.text and "Uważaj na" in modal.text and "-1.webp" in modal.text
+    plain = auth_client.get(f"/forma/cwiczenie/{squat.id}", follow_redirects=False)
+    assert plain.status_code == 303 and plain.headers["location"] == f"/forma/postepy/{squat.id}"
+    page = auth_client.get(f"/forma/postepy/{squat.id}").text
+    assert "Jak wykonać" in page and "Jeszcze nie robione" in page
+    assert auth_client.get("/forma/cwiczenie/999999", headers={"HX-Target": "modal-body"}).status_code == 404

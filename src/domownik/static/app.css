@@ -1866,6 +1866,24 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .supl-row > .ex-pic { margin-right: 0.75rem; }
 legend .ex-pic { width: 3rem; height: 2.25rem; margin-right: 0.25rem; }
 
+/* ⓘ how an exercise is done – a button next to it (picker, plan), the picture itself on the workout screen */
+.ex-info { display: inline-grid; place-items: center; width: 2.75rem; height: 2.75rem; flex: none; border-radius: 50%; font-size: 1.3rem; text-decoration: none; color: var(--pico-muted-color); }
+.ex-info:hover, .ex-info:focus-visible { color: var(--pico-primary); background: var(--dm-tile-bg); }
+.pick-list li.pick-item { display: flex; align-items: center; border-bottom: 1px solid var(--dm-tile-border); }
+.pick-item form { flex: 1; min-width: 0; }
+.pick-item .pick-row { border-bottom: 0; }
+legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: middle; }
+.ex-pic-btn { position: relative; flex: none; display: inline-block; line-height: 0; text-decoration: none; }
+.ex-pic-i { position: absolute; right: -0.3rem; bottom: -0.3rem; width: 1.3rem; height: 1.3rem; display: grid; place-items: center; border-radius: 50%; font-size: 0.85rem; line-height: 1; background: var(--pico-background-color); color: var(--pico-muted-color); border: 1px solid var(--dm-tile-border); }
+.ex-frames { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 0.5rem; max-width: 34rem; margin: 0 0 0.75rem; }
+.ex-frames figure { margin: 0; position: relative; }
+.ex-frames img { width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; display: block; border-radius: 8px; border: 1px solid var(--dm-tile-border); background: var(--dm-tile-bg); }
+.ex-frames figcaption { position: absolute; left: 0.35rem; top: 0.35rem; padding: 0 0.4rem; border-radius: 4px; font-size: 0.75rem; background: rgb(0 0 0 / 0.55); color: #fff; }
+.ex-guide { margin-bottom: 1rem; }
+.ex-guide h3 { font-size: 1rem; margin: 0.75rem 0 0.35rem; }
+.ex-guide ol, .ex-guide ul { margin: 0 0 0.5rem; padding-left: 1.25rem; }
+.ex-guide li { margin-bottom: 0.3rem; }
+
 /* 📤 shared from another app */
 .share-what { margin: 0 0 1rem; overflow-wrap: anywhere; }
 .share-what p { margin: 0 0 0.3rem; white-space: pre-line; }
