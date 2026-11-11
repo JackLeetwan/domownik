@@ -1,2 +1,3 @@
-{# the picture of an exercise (free-exercise-db), or its equipment as an emoji; `ex` and optional `pic_class` #}
-{% set src = exercise_image(ex) %}<span class="ex-pic {{ pic_class|default('') }}" aria-hidden="true">{% if src %}<img src="{{ src }}" alt="" loading="lazy" width="64" height="48">{% else %}{{ exercise_icon(ex) }}{% endif %}</span>
+{# the picture of an exercise (free-exercise-db), or its equipment as an emoji; `ex`, optional `pic_class`;
+   `pic_both`: start and end side by side (the workout screen – the whole movement at a glance) #}
+{% set src = exercise_image(ex) %}{% set end = exercise_image_end(ex) if pic_both|default(false) and src else none %}<span class="ex-pic {{ pic_class|default('') }}{% if end %} both{% endif %}" aria-hidden="true">{% if src %}<img src="{{ src }}" alt="" loading="lazy" width="64" height="48">{% if end %}<img src="{{ end }}" alt="" loading="lazy" width="64" height="48">{% endif %}{% else %}{{ exercise_icon(ex) }}{% endif %}</span>

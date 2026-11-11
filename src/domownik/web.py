@@ -100,6 +100,14 @@ def _exercise_image(ex):
     return stretching.image(ex) if isinstance(ex, Stretch) else training.image(ex)
 
 
+def _exercise_image_end(ex):
+    """The end frame of a strength exercise (None for a stretch or without one)."""
+    from domownik import training
+    from domownik.models import Exercise
+
+    return training.image_end(ex) if isinstance(ex, Exercise) else None
+
+
 def _exercise_icon(ex):
     from domownik import stretching, training
     from domownik.models import Stretch
@@ -115,6 +123,7 @@ env.filters["rule"] = recurrence.describe
 env.filters["week"] = week_title
 env.globals.update(
     exercise_image=_exercise_image,
+    exercise_image_end=_exercise_image_end,
     exercise_icon=_exercise_icon,
     CATEGORIES=CATEGORIES,
     DIRECTIONS=DIRECTIONS,

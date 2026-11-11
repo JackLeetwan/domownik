@@ -220,6 +220,9 @@ def test_full_flow_on_the_phone(auth_client, db, user):
 
     screen = auth_client.get(f"/forma/trening/{wid}").text
     assert "Spanish squat z gumą" in screen and "Superseria A" in screen and "⇄ Zajęte? Zamień" in screen
+    # the picture: start and end side by side – the whole movement at a glance
+    assert 'class="ex-pic  both"' in screen
+    assert "/static/exercises/pullups.webp" in screen and "/static/exercises/pullups-1.webp" in screen
 
     r = auth_client.post(
         f"/forma/trening/{wid}/cw/{bench.id}/seria",
