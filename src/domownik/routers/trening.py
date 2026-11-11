@@ -192,6 +192,8 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
         "rest_ms": rest_ms,
         "next_we": nxt,
         "progress": (done, total),
+        "stretch": st.offer(db, user, w, done),
+        "st": st,
         "errors": errors or {},
         "fmt_kg": tr.fmt_kg,
         "superset_letter": lambda n: "ABCDEFGH"[(n - 1) % 8] if n else "",

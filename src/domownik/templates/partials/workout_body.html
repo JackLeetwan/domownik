@@ -17,6 +17,8 @@
   </details>
   {% endif %}
 
+  {% if not w.finished_at %}{% include "partials/workout_stretch.html" %}{% endif %}
+
   {% if rest_ms %}
   <div class="wo-rest" data-rest-ends="{{ rest_ms }}" role="status">
     <span class="wo-rest-main"><b class="wo-rest-left">Przerwa</b>{% if next_we %} <small class="muted">· dalej: {{ next_we.exercise.name }}</small>{% endif %}</span>
@@ -78,6 +80,8 @@
   {% endfor %}
 
   <a href="/forma/trening/{{ w.id }}/dodaj" role="button" class="outline wo-add">＋ Dodaj ćwiczenie</a>
+
+  {% if w.finished_at %}{% include "partials/workout_stretch.html" %}{% endif %}
 
   <div class="wo-end">
     {% if w.finished_at %}

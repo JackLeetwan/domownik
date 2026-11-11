@@ -184,3 +184,70 @@ def test_session_is_private_and_needs_stretches(auth_client, db):
     assert _post(auth_client, f"/forma/rozciaganie/{rid}/start").status_code >= 400
     st.finish(s, done=99, seconds=-5)
     assert s.done == s.total and s.seconds == 0
+
+
+def test_workout_offers_stretching_before_and_after(auth_client, db, user):
+    plan = tr.plans(db)[0] if tr.plans(db) else None
+    if plan is None:
+        tr.ensure_library(db)
+        tr.seed_plans(db)
+        db.commit()
+        plan = tr.plans(db)[0]
+    r = _post(auth_client, "/forma/trening", {"plan_id": str(plan.id)})
+    wid = int(r.headers["location"].rsplit("/", 1)[1])
+    screen = auth_client.get(f"/forma/trening/{wid}").text
+    before, after = st.for_kind(db, "before"), st.for_kind(db, "after")
+    assert "🤸 Najpierw rozgrzewka" in screen and f"/forma/rozciaganie/{before.id}/start" in screen
+    assert f'name="workout_id" value="{wid}"' in screen and "Rozciąganie po treningu" not in screen
+
+    # the warm-up started from the workout: back to it while unfinished, then done
+    r = _post(auth_client, f"/forma/rozciaganie/{before.id}/start", {"workout_id": str(wid)})
+    sid = int(r.headers["location"].rsplit("/", 1)[1])
+    s = db.get(StretchSession, sid)
+    assert s.workout_id == wid
+    assert f"/forma/rozciaganie/sesja/{sid}" in auth_client.get(f"/forma/trening/{wid}").text
+    assert f'href="/forma/trening/{wid}"' in auth_client.get(f"/forma/rozciaganie/sesja/{sid}").text
+    _post(auth_client, f"/forma/rozciaganie/sesja/{sid}/koniec", {"done": str(s.total), "seconds": "300"})
+    db.refresh(s)
+    s.started_at = s.started_at.replace(year=s.started_at.year - 1)  # well before the workout ends
+    db.commit()
+    screen = auth_client.get(f"/forma/trening/{wid}").text
+    assert "Najpierw rozgrzewka" not in screen and "🤸 Przed treningiem · ✓ · 5 min" in screen
+    assert "Wróć do treningu" in auth_client.get(f"/forma/rozciaganie/sesja/{sid}").text
+
+    # the workout done: stretching after it offered until one is done
+    w = tr.get_own(db, user, wid)
+    we = w.exercises[0]
+    auth_client.post(
+        f"/forma/trening/{wid}/cw/{we.id}/seria",
+        data={"weight": "20", "reps": "10", "seconds": "30"},
+        headers={"HX-Request": "true", "HX-Target": "workout"},
+    )
+    _post(auth_client, f"/forma/trening/{wid}/koniec")
+    screen = auth_client.get(f"/forma/trening/{wid}").text
+    assert "🧘 Rozciąganie po treningu?" in screen and f"/forma/rozciaganie/{after.id}/start" in screen
+    r = _post(auth_client, f"/forma/rozciaganie/{after.id}/start", {"workout_id": str(wid)})
+    sid2 = int(r.headers["location"].rsplit("/", 1)[1])
+    _post(auth_client, f"/forma/rozciaganie/sesja/{sid2}/koniec", {"done": "3", "seconds": "120"})
+    screen = auth_client.get(f"/forma/trening/{wid}").text
+    assert "Rozciąganie po treningu?" not in screen and f"🤸 Po treningu · 3/{len(after.items)} · 2 min" in screen
+
+
+def test_no_offer_for_an_old_workout_or_someone_elses(auth_client, db, user):
+    tr.ensure_library(db)
+    tr.seed_plans(db)
+    db.commit()
+    r = _post(auth_client, "/forma/trening", {"plan_id": "", "day": "2026-01-05"})
+    wid = int(r.headers["location"].rsplit("/", 1)[1])
+    assert "Najpierw rozgrzewka" not in auth_client.get(f"/forma/trening/{wid}").text
+    other = User(email="paula@example.com", name="Paula", password_hash=hash_password("tajnehaslo2"))
+    db.add(other)
+    db.flush()
+    w2 = tr.start(db, other, None)
+    db.commit()
+    st.prepare(db)
+    db.commit()
+    before = st.for_kind(db, "before")
+    r = _post(auth_client, f"/forma/rozciaganie/{before.id}/start", {"workout_id": str(w2.id)})
+    s = db.get(StretchSession, int(r.headers["location"].rsplit("/", 1)[1]))
+    assert s.workout_id is None  # someone else's workout is not linked

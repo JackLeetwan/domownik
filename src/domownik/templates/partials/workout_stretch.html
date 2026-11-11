@@ -1,0 +1,20 @@
+{# 🤸 stretching with the workout: "Najpierw rozgrzewka" before the first set, "Rozciąganie po treningu?" after the end #}
+{% set o = stretch %}
+{% if o.kind %}
+<article class="wo-stretch">
+  <p class="wo-stretch-q"><b>{{ '🤸 Najpierw rozgrzewka' if o.kind == 'before' else '🧘 Rozciąganie po treningu?' }}</b>
+    {% if o.pending %}<small class="muted">{{ o.pending.name }} – zaczęte, niedokończone</small>
+    {% else %}<small class="muted">{{ o.routine.name }} · {{ o.routine.items|length }} ćw. · ok. {{ st.fmt_duration(st.total_seconds(o.routine)) }}</small>{% endif %}</p>
+  {% if o.pending %}
+  <a href="/forma/rozciaganie/sesja/{{ o.pending.id }}" role="button" class="wo-stretch-go">▶ Wróć do sesji</a>
+  {% else %}
+  <form method="post" action="/forma/rozciaganie/{{ o.routine.id }}/start"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="workout_id" value="{{ w.id }}">
+    <button type="submit" class="wo-stretch-go">▶ Start</button></form>
+  {% endif %}
+  <a href="/forma/rozciaganie" class="wo-stretch-more"><small>inny zestaw</small></a>
+</article>
+{% endif %}
+{% for s in o.done %}
+<p class="wo-stretch-done"><a href="/forma/rozciaganie/sesja/{{ s.id }}"><small>🤸 {{ s.name }} · {% if s.done == s.total %}✓{% else %}{{ s.done }}/{{ s.total }}{% endif %} · {{ st.fmt_duration(s.seconds) }}</small></a></p>
+{% endfor %}

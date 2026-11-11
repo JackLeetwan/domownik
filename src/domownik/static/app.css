@@ -1850,6 +1850,12 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .wo-partner-badge { display: inline-block; margin: 0.15rem 0 0.2rem; padding: 0.05rem 0.5rem; border-radius: 999px; font-size: 0.8rem; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }
 .wo-partner-badge.done { border-color: var(--pico-primary); color: var(--pico-primary); }
 .wo-invite { margin: 0 0 0.75rem; }
+.wo-stretch { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0.25rem 0.75rem; padding: 0.75rem 1rem; margin: 0 0 0.75rem; }
+.wo-stretch-q { margin: 0; display: grid; }
+.wo-stretch form { margin: 0; }
+.wo-stretch-go { width: auto; margin: 0; white-space: nowrap; }
+.wo-stretch-more { grid-column: 1 / -1; justify-self: start; }
+.wo-stretch-done { margin: 0 0 0.5rem; }
 .wo-invite summary[role=button] { width: 100%; }
 .wo-invite form { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0 0; }
 .wo-invite form p { flex-basis: 100%; margin: 0; }

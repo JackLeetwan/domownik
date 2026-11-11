@@ -8,6 +8,7 @@ are made on the first visit and then changed freely.
 from __future__ import annotations
 
 import functools
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -188,7 +189,7 @@ def start(db: Session, user: User, r: StretchRoutine, workout: Workout | None = 
         name=r.name,
         steps=steps,
         total=len(steps),
-        started_at=now(),
+        started_at=now().replace(tzinfo=None, microsecond=0),
     )
     db.add(s)
     db.flush()
@@ -198,7 +199,7 @@ def start(db: Session, user: User, r: StretchRoutine, workout: Workout | None = 
 def finish(s: StretchSession, done: int, seconds: int) -> None:
     s.done = max(0, min(done, s.total))
     s.seconds = max(0, min(seconds, 4 * 3600))
-    s.finished_at = now()
+    s.finished_at = now().replace(tzinfo=None, microsecond=0)
 
 
 def get_own(db: Session, user: User, session_id: int) -> StretchSession | None:
@@ -215,3 +216,50 @@ def recent(db: Session, user: User, limit: int = 5) -> list[StretchSession]:
             .limit(limit)
         )
     )
+
+
+# ---------------------------------------------------------------- with a workout: before / after
+
+
+@dataclass
+class Offer:
+    """What the workout screen shows about stretching: a routine to start (or the started one to go back to)
+    and the sessions already done with this workout."""
+
+    kind: str | None = None  # before | after – which card
+    routine: StretchRoutine | None = None
+    pending: StretchSession | None = None  # started from this workout, not finished
+    done: list[StretchSession] = field(default_factory=list)
+
+
+def for_workout(db: Session, user: User, w: Workout) -> list[StretchSession]:
+    return list(
+        db.scalars(
+            select(StretchSession)
+            .where(StretchSession.user_id == user.id, StretchSession.workout_id == w.id)
+            .order_by(StretchSession.started_at)
+        )
+    )
+
+
+def offer(db: Session, user: User, w: Workout, sets_done: int) -> Offer:
+    """Before: today's workout with no set done yet and no warm-up done. After: today's finished workout with
+    no stretching since it ended. The routine is the first one of that kind (the list order)."""
+    sessions = for_workout(db, user, w)
+    o = Offer(done=[s for s in sessions if s.finished_at is not None])
+    if w.day != now().date():
+        return o
+    if w.finished_at is None:
+        if sets_done == 0 and not o.done:
+            o.kind = "before"
+    elif not any(s.started_at >= w.finished_at for s in o.done):
+        o.kind = "after"
+    if o.kind:
+        prepare(db)  # the default routines on the first look – kept, the start form posts their id
+        db.commit()
+        r = for_kind(db, o.kind)
+        o.routine = r if r is not None and r.items else None
+        o.pending = next((s for s in sessions if s.finished_at is None), None)
+        if o.routine is None and o.pending is None:
+            o.kind = None
+    return o
