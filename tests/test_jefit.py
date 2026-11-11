@@ -15,7 +15,7 @@ DATA = {
     "exercises": {
         "d_2": {"name": "Barbell Bench Press", "body": "Chest"},
         "d_86": {"name": "Leg Press", "body": "Upper Legs"},
-        "d_999": {"name": "Cable Wood Chop", "body": "Abs"},
+        "d_999": {"name": "Cable Oblique Twist", "body": "Abs"},
         "d_77": {"name": "Barbell Curl", "body": "Biceps"},
         "d_78": {"name": "Cable Kneeling Crunch (Rope)", "body": "Abs"},
     },
@@ -40,7 +40,7 @@ def test_import(db, user):
     res = jefit.run(db, user, DATA)
     db.commit()
     assert (res.workouts, res.sessions, res.sets) == (2, 4, 13)
-    assert res.new_exercises == ["Cable Wood Chop"]
+    assert res.new_exercises == ["Cable Oblique Twist"]
 
     ws = tr.mine(db, user)
     nov = ws[0]
@@ -48,7 +48,7 @@ def test_import(db, user):
     assert [we.exercise.key for we in nov.exercises] == ["bench_press", "leg_press", None]
     assert [(s.weight, s.reps) for s in nov.exercises[1].done] == [(59, 12), (61.25, 7)]
     assert tr.sets_text(list(nov.exercises[0].done)) == "80 kg × 8, 8, 8, 8"
-    chop = db.query(Exercise).filter_by(name="Cable Wood Chop").one()
+    chop = db.query(Exercise).filter_by(name="Cable Oblique Twist").one()
     assert (chop.equipment, chop.muscle, chop.step) == ("cable", "core", 2.5)
 
     octo = ws[1]

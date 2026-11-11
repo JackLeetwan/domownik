@@ -1,8 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} · Domownik{% endblock %}
+{% block title %}{{ title }} · Domownik<p class="muted" data-pick-none hidden>Nic nie pasuje{% if muscle_filter or filtered %}{% set reset = (filter_url ~ 'wszystko=1') if filter_url is defined else all_url %} – spróbuj bez filtrów: <a href="{{ reset }}">wszystkie ćwiczenia</a>{% endif %}.</p>
+{% endblock %}
 {% block content %}
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="{{ back }}" class="home-link">← Wróć</a></li></ul></nav>
 <header class="item-head"><h1>{{ title }}</h1></header>
+<input type="search" class="pick-search" placeholder="Szukaj: nazwa, partia, sprzęt…" aria-label="Szukaj ćwiczenia" autocomplete="off" enterkeyhint="search" data-pick-filter>
 {% if filter_url is defined %}
 <p class="pick-chips">
   <a href="{{ filter_url }}" class="chip{% if not muscle_filter %} on{% endif %}">Wszystko</a>
@@ -18,14 +20,16 @@
 {% if filtered %}<p class="muted"><small>🧳 Tylko to, co masz pod ręką (masa ciała, gumy, drążek). <a href="{{ all_url }}">Pokaż wszystko</a></small></p>{% endif %}
 {% for heading, items in sections %}
 {% if items %}
+<section data-pick-section>
 <h2 class="pick-head">{{ heading }}</h2>
 <ul class="pick-list">
   {% for ex in items %}
-  <li class="pick-item"><form method="post" action="{{ action }}{{ ex.id }}{{ action_query|default('') }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <li class="pick-item" data-pick-text="{{ ex.name }} {{ heading }} {{ equipment_label(ex.equipment) }} {{ muscle_label(ex.muscle) }} {{ (ex.en or '')|replace('|', ' ') }}"><form method="post" action="{{ action }}{{ ex.id }}{{ action_query|default('') }}"><input type="hidden" name="csrf" value="{{ csrf }}">
     <button type="submit" class="pick-row">{% include "partials/ex_pic.html" %}<span><b>{{ ex.name }}</b><small class="muted">{{ equipment_label(ex.equipment) }} · {{ muscle_label(ex.muscle) }}</small></span><span aria-hidden="true">＋</span></button></form>
     {% include "partials/ex_info.html" %}</li>
   {% endfor %}
 </ul>
+</section>
 {% endif %}
 {% else %}
 <p class="muted">Nic tu nie pasuje.</p>

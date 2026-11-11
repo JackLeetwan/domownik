@@ -100,6 +100,50 @@ by_key:
   side_plank: Side Bridge
   ab_wheel: Ab Roller
   dead_bug: Dead Bug
+  bb_lunge: Barbell Lunge
+  kb_front_squat: Front Squats With Two Kettlebells
+  smith_split_squat: Smith Single-Leg Split Squat
+  plie_squat: Plie Dumbbell Squat
+  sumo_deadlift: Sumo Deadlift
+  good_morning: Good Morning
+  back_extension: Hyperextensions (Back Extensions)
+  pull_through: Pull Through
+  rack_pull: Rack Pulls
+  glute_kickback: Glute Kickback
+  hip_adduction: Thigh Adductor
+  db_incline_fly: Incline Dumbbell Flyes
+  low_cable_fly: Low Cable Crossover
+  decline_pushup: Decline Push-Up
+  incline_pushup: Incline Push-Up
+  smith_incline: Smith Machine Incline Bench Press
+  tbar_row: T-Bar Row with Handle
+  kb_row: One-Arm Kettlebell Row
+  reverse_row: Reverse Grip Bent-Over Rows
+  upright_row: Upright Barbell Row
+  bb_shrug: Barbell Shrug
+  cable_rear_delt: Cable Rear Delt Fly
+  cable_ext_rotation: External Rotation with Cable
+  band_ext_rotation: External Rotation with Band
+  kb_press: Two-Arm Kettlebell Military Press
+  smith_ohp: Smith Machine Overhead Shoulder Press
+  ez_curl: EZ-Bar Curl
+  zottman: Zottman Curl
+  spider_curl: Spider Curl
+  reverse_curl: Reverse Barbell Curl
+  machine_curl: Machine Bicep Curl
+  machine_tri_ext: Machine Triceps Extension
+  dip_machine: Dip Machine
+  bar_pushdown: Triceps Pushdown
+  machine_crunch: Ab Crunch Machine
+  reverse_crunch: Reverse Crunch
+  woodchop: Standing Cable Wood Chop
+  sit_up: Sit-Up
+  jackknife: Jackknife Sit-Up
+  tgu: Kettlebell Turkish Get-Up (Squat style)
+  seated_calf: Seated Calf Raise
+  leg_press_calf: Calf Press On The Leg Press Machine
+  bb_calf: Standing Barbell Calf Raise
+  smith_calf: Smith Machine Calf Raise
 by_name:
   Barbell Decline Bench Press: Decline Barbell Bench Press
   Dumbbell Decline Bench Press: Decline Dumbbell Bench Press

@@ -913,6 +913,402 @@ by_key:
     mistakes:
       - "Odrywanie lędźwi od podłogi."
       - "Zbyt szybkie, niekontrolowane ruchy."
+  bb_lunge:
+    steps:
+      - "Ustaw sztangę na górnej części pleców, stań prosto, stopy na szerokość bioder."
+      - "Zrób duży krok do przodu i opuść biodra, aż tylne kolano prawie dotknie podłogi."
+      - "Przednie kolano prowadź nad stopą, tułów trzymaj pionowo."
+      - "Odepchnij się przednią nogą do pozycji wyjściowej i zmień nogę."
+    mistakes:
+      - "Za krótki krok – kolano wychodzi daleko przed palce."
+      - "Chwianie się na boki przez zbyt wąskie ustawienie stóp."
+  kb_front_squat:
+    steps:
+      - "Weź dwa kettlebell do pozycji stojaka: przy barkach, łokcie blisko tułowia."
+      - "Stań na szerokość barków, palce lekko na zewnątrz, napnij brzuch."
+      - "Zejdź w przysiad, trzymając klatkę wysoko i łokcie pod odważnikami."
+      - "Wypchnij się z całych stóp do stania."
+    mistakes:
+      - "Opadanie łokci i pochylanie tułowia do przodu."
+      - "Odrywanie pięt od podłogi."
+  smith_split_squat:
+    steps:
+      - "Ustaw sztangę Smitha na wysokości barków, tylną stopę połóż na ławce za sobą."
+      - "Odblokuj sztangę, przednia stopa wysunięta tak, by kolano było nad stopą w dole."
+      - "Opuść się pionowo w dół, aż przednie udo będzie mniej więcej równoległe do podłogi."
+      - "Wypchnij się przednią nogą do góry; po serii zmień nogę."
+    mistakes:
+      - "Przednia stopa za blisko ławki – kolano ucieka daleko do przodu."
+      - "Odpychanie się tylną nogą zamiast przednią."
+  plie_squat:
+    steps:
+      - "Stań szeroko, palce wyraźnie na zewnątrz, trzymaj hantel oburącz pionowo między nogami."
+      - "Plecy proste, klatka wysoko, napnij brzuch."
+      - "Zejdź w dół, wypychając kolana w linii palców, hantel opada pionowo."
+      - "Wróć do stania, ściskając pośladki na górze."
+    mistakes:
+      - "Kolana uciekają do środka."
+      - "Pochylanie tułowia i zaokrąglanie pleców."
+  sumo_deadlift:
+    steps:
+      - "Stań szeroko, palce na zewnątrz, piszczele blisko sztangi."
+      - "Chwyć sztangę wąsko, ręce pionowo między kolanami, plecy proste."
+      - "Napnij brzuch i wstań, wypychając kolana na zewnątrz i prowadząc sztangę przy nogach."
+      - "Na górze wyprostuj biodra bez odchylania się do tyłu, potem kontrolowanie opuść sztangę."
+    mistakes:
+      - "Zaokrąglanie pleców przy starcie."
+      - "Kolana schodzą do środka."
+  good_morning:
+    steps:
+      - "Ustaw sztangę na górnej części pleców, stopy na szerokość bioder, kolana lekko ugięte."
+      - "Napnij brzuch i cofaj biodra, pochylając tułów z prostymi plecami."
+      - "Schodź, aż poczujesz mocne rozciągnięcie tyłu ud (tułów mniej więcej równolegle do podłogi lub wyżej)."
+      - "Wypchnij biodra do przodu i wróć do pionu."
+    mistakes:
+      - "Zaokrąglanie dolnego odcinka pleców."
+      - "Za duży ciężar na początek – to ćwiczenie na lekkiej sztandze."
+  back_extension:
+    steps:
+      - "Ustaw ławkę rzymską tak, by wałek był tuż pod biodrami, stopy zaczep pod wałkami."
+      - "Skrzyżuj ręce na klatce lub trzymaj przy głowie, ciało w linii prostej."
+      - "Pochyl się powoli w dół z prostymi plecami, zginając się w biodrach."
+      - "Unieś tułów do linii prostej, napinając pośladki i tył ud."
+    mistakes:
+      - "Przeprost w lędźwiach na górze."
+      - "Bujanie się i szarpanie zamiast spokojnego ruchu."
+  pull_through:
+    steps:
+      - "Ustaw linę na dolnym wyciągu, stań tyłem do niego i chwyć linę między nogami."
+      - "Odejdź krok lub dwa, stopy nieco szerzej niż biodra, kolana lekko ugięte."
+      - "Cofnij biodra, pozwalając linie przejść między nogami, plecy proste."
+      - "Wypchnij biodra do przodu i ściśnij pośladki, aż staniesz prosto."
+    mistakes:
+      - "Ciągnięcie rękami zamiast pracy biodrami."
+      - "Przysiadanie zamiast cofania bioder."
+  rack_pull:
+    steps:
+      - "Ustaw sztangę na podporach lub podestach tuż pod kolanami lub nad nimi."
+      - "Chwyć sztangę na szerokość barków, plecy proste, łopatki ściągnięte."
+      - "Napnij brzuch i wyprostuj biodra, prowadząc sztangę blisko ud."
+      - "Na górze ściśnij pośladki, potem kontrolowanie odłóż sztangę na podpory."
+    mistakes:
+      - "Zaokrąglanie pleców."
+      - "Odchylanie się do tyłu na górze."
+  glute_kickback:
+    steps:
+      - "Uklęknij w podporze: dłonie pod barkami, kolana pod biodrami."
+      - "Napnij brzuch, plecy trzymaj płasko."
+      - "Unieś jedną nogę zgiętą w kolanie, wypychając piętę w stronę sufitu."
+      - "Na górze ściśnij pośladek, opuść kolano bez odkładania i powtórz; potem druga noga."
+    mistakes:
+      - "Wyginanie lędźwi, żeby unieść nogę wyżej."
+      - "Obracanie miednicy na bok."
+  hip_adduction:
+    steps:
+      - "Usiądź na maszynie, plecy oparte, nogi na podpórkach od wewnętrznej strony."
+      - "Ustaw rozstaw tak, by czuć lekkie rozciągnięcie wewnętrznej strony ud."
+      - "Ściśnij nogi do siebie spokojnym ruchem."
+      - "Powoli rozsuń je z powrotem, kontrolując ciężar."
+    mistakes:
+      - "Zbyt szeroki start – szarpie pachwiny."
+      - "Puszczanie ciężaru w fazie powrotu."
+  db_incline_fly:
+    steps:
+      - "Połóż się na ławce ustawionej na 30–45°, hantle nad klatką, dłonie do siebie."
+      - "Lekko ugnij łokcie i zablokuj ten kąt."
+      - "Opuszczaj hantle łukiem na boki, aż poczujesz rozciągnięcie klatki."
+      - "Tym samym łukiem połącz hantle nad klatką."
+    mistakes:
+      - "Zginanie i prostowanie łokci – robi się z tego wyciskanie."
+      - "Zbyt nisko opuszczone hantle obciążają barki."
+  low_cable_fly:
+    steps:
+      - "Ustaw uchwyty na dolnych wyciągach, stań pośrodku z lekkim wykrokiem."
+      - "Chwyć uchwyty, ręce lekko ugięte, nisko po bokach."
+      - "Prowadź ręce łukiem w górę i do środka, aż spotkają się na wysokości górnej części klatki."
+      - "Powoli wróć do dołu, czując rozciągnięcie klatki."
+    mistakes:
+      - "Ciągnięcie barkami w górę."
+      - "Zginanie łokci w trakcie ruchu."
+  decline_pushup:
+    steps:
+      - "Połóż stopy na ławce lub skrzyni, dłonie na podłodze nieco szerzej niż barki."
+      - "Ciało w linii prostej, brzuch i pośladki napięte."
+      - "Opuść klatkę w stronę podłogi, łokcie pod kątem ok. 45° od tułowia."
+      - "Wypchnij się do wyprostu rąk."
+    mistakes:
+      - "Opadanie bioder."
+      - "Łokcie szeroko na boki."
+  incline_pushup:
+    steps:
+      - "Oprzyj dłonie na ławce, skrzyni lub blacie, nieco szerzej niż barki."
+      - "Cofnij stopy, by ciało tworzyło linię prostą."
+      - "Opuść klatkę do krawędzi podpory, łokcie ok. 45° od tułowia."
+      - "Wypchnij się do wyprostu rąk. Im niższa podpora, tym trudniej."
+    mistakes:
+      - "Wypychanie bioder do góry."
+      - "Za krótki zakres ruchu."
+  smith_incline:
+    steps:
+      - "Ustaw ławkę na 30–45° pod sztangą Smitha tak, by sztanga schodziła na górną część klatki."
+      - "Chwyć sztangę nieco szerzej niż barki, łopatki ściągnięte, stopy na podłodze."
+      - "Odblokuj sztangę i opuść ją kontrolowanie do klatki."
+      - "Wypchnij sztangę do wyprostu rąk."
+    mistakes:
+      - "Ławka źle ustawiona – sztanga schodzi na szyję lub brzuch."
+      - "Odrywanie pleców od oparcia."
+  tbar_row:
+    steps:
+      - "Stań okrakiem nad sztangą (jeden koniec zablokowany), chwyć uchwyt V lub sztangę przy talerzach."
+      - "Cofnij biodra i pochyl tułów ok. 45°, plecy proste."
+      - "Przyciągnij ciężar do brzucha, ściągając łopatki."
+      - "Opuść powoli do wyprostu rąk."
+    mistakes:
+      - "Zaokrąglanie pleców."
+      - "Prostowanie tułowia przy każdym powtórzeniu (bujanie)."
+  kb_row:
+    steps:
+      - "Oprzyj jedną rękę i kolano na ławce albo stań w wykroku z ręką na udzie."
+      - "Chwyć kettlebell drugą ręką, plecy płasko, ramię wyprostowane."
+      - "Przyciągnij kettlebell do biodra, łokieć blisko tułowia."
+      - "Opuść powoli; po serii zmień stronę."
+    mistakes:
+      - "Skręcanie tułowia przy przyciąganiu."
+      - "Ciągnięcie barkiem w górę zamiast łokciem do tyłu."
+  reverse_row:
+    steps:
+      - "Chwyć sztangę podchwytem, na szerokość barków."
+      - "Cofnij biodra i pochyl tułów ok. 45°, plecy proste, kolana lekko ugięte."
+      - "Przyciągnij sztangę do dołu brzucha, łokcie blisko tułowia."
+      - "Opuść powoli do wyprostu rąk."
+    mistakes:
+      - "Bujanie tułowiem."
+      - "Zaokrąglanie pleców."
+  upright_row:
+    steps:
+      - "Stań prosto, trzymaj sztangę nachwytem, dłonie nieco szerzej niż barki."
+      - "Unieś sztangę wzdłuż tułowia, prowadząc łokcie w górę i na boki."
+      - "Zatrzymaj, gdy łokcie są na wysokości barków."
+      - "Opuść sztangę powoli."
+    mistakes:
+      - "Zbyt wąski chwyt – drażni barki."
+      - "Unoszenie łokci wyżej niż barki."
+  bb_shrug:
+    steps:
+      - "Stań prosto, trzymaj sztangę przed udami nachwytem na szerokość barków."
+      - "Unieś barki prosto w górę w stronę uszu."
+      - "Zatrzymaj się na sekundę na górze."
+      - "Opuść barki powoli."
+    mistakes:
+      - "Krążenie barkami."
+      - "Zginanie łokci i pomaganie rękami."
+  cable_rear_delt:
+    steps:
+      - "Ustaw wyciągi na wysokości barków, chwyć przeciwległe uchwyty (lub same linki) skrzyżowanymi rękami."
+      - "Stań pośrodku, ręce wyprostowane przed sobą, łokcie lekko ugięte."
+      - "Rozciągnij ręce szeroko na boki i do tyłu, prowadząc ruch łokciami."
+      - "Powoli wróć do skrzyżowania przed sobą."
+    mistakes:
+      - "Ściąganie samymi łopatkami zamiast pracy tylnej części barków."
+      - "Za duży ciężar i szarpanie tułowiem."
+  cable_ext_rotation:
+    steps:
+      - "Ustaw uchwyt wyciągu na wysokości łokcia i stań bokiem do niego."
+      - "Chwyć uchwyt dalszą ręką, łokieć zgięty pod kątem prostym, przyciśnięty do boku."
+      - "Obracaj przedramię na zewnątrz, odsuwając dłoń od brzucha."
+      - "Wróć powoli; po serii zmień stronę."
+    mistakes:
+      - "Odrywanie łokcia od tułowia."
+      - "Za duży ciężar – to ćwiczenie na lekko."
+  band_ext_rotation:
+    steps:
+      - "Przymocuj gumę na wysokości łokcia lub trzymaj ją oburącz przed sobą."
+      - "Łokcie zgięte pod kątem prostym, przyciśnięte do boków."
+      - "Obracaj przedramiona na zewnątrz, rozciągając gumę."
+      - "Wróć powoli do pozycji wyjściowej."
+    mistakes:
+      - "Odsuwanie łokci od tułowia."
+      - "Unoszenie barków."
+  kb_press:
+    steps:
+      - "Weź kettlebell do pozycji stojaka: odważnik przy barku, łokieć pod nim."
+      - "Napnij brzuch i pośladki, stań stabilnie."
+      - "Wyciśnij kettlebell pionowo nad głowę do wyprostu ręki."
+      - "Opuść go kontrolowanie do barku. Można jednorącz albo dwoma naraz."
+    mistakes:
+      - "Odchylanie się do tyłu w lędźwiach."
+      - "Wyciskanie przed głową zamiast nad nią."
+  smith_ohp:
+    steps:
+      - "Ustaw ławkę z oparciem pionowo pod sztangą Smitha."
+      - "Chwyć sztangę nieco szerzej niż barki, łopatki przy oparciu."
+      - "Opuść sztangę przed twarzą do wysokości brody."
+      - "Wypchnij ją w górę do wyprostu rąk."
+    mistakes:
+      - "Wyginanie pleców w łuk."
+      - "Opuszczanie sztangi za głowę."
+  ez_curl:
+    steps:
+      - "Stań prosto, trzymaj sztangę łamaną podchwytem na skośnych uchwytach."
+      - "Łokcie przy tułowiu, ramiona nieruchome."
+      - "Uginaj ręce, unosząc sztangę do barków."
+      - "Opuść powoli do prawie pełnego wyprostu."
+    mistakes:
+      - "Bujanie tułowiem."
+      - "Wysuwanie łokci do przodu."
+  zottman:
+    steps:
+      - "Stań z hantlami w dłoniach, dłonie skierowane do przodu (podchwyt)."
+      - "Ugnij ręce, unosząc hantle do barków."
+      - "Na górze obróć dłonie w dół (nachwyt)."
+      - "Opuść hantle powoli nachwytem, na dole wróć do podchwytu."
+    mistakes:
+      - "Zbyt szybkie opuszczanie – to w nim jest cała praca przedramion."
+      - "Ruszanie łokciami."
+  spider_curl:
+    steps:
+      - "Połóż się klatką na ławce skośnej, ręce zwisają pionowo w dół."
+      - "Trzymaj sztangę łamaną (lub hantle) podchwytem."
+      - "Uginaj ręce, nie ruszając ramionami."
+      - "Ściśnij biceps na górze i opuść powoli."
+    mistakes:
+      - "Wysuwanie łokci do przodu."
+      - "Odbijanie się od ławki."
+  reverse_curl:
+    steps:
+      - "Stań prosto, trzymaj sztangę nachwytem na szerokość barków."
+      - "Łokcie przy tułowiu, nadgarstki proste."
+      - "Uginaj ręce, unosząc sztangę do barków."
+      - "Opuść powoli."
+    mistakes:
+      - "Zginanie nadgarstków."
+      - "Bujanie tułowiem."
+  machine_curl:
+    steps:
+      - "Ustaw siedzisko tak, by łokcie leżały na podkładce w osi obrotu maszyny."
+      - "Chwyć uchwyty podchwytem."
+      - "Uginaj ręce do pełnego skurczu."
+      - "Opuść powoli do prawie pełnego wyprostu."
+    mistakes:
+      - "Odrywanie łokci od podkładki."
+      - "Skracanie ruchu na dole."
+  machine_tri_ext:
+    steps:
+      - "Ustaw siedzisko tak, by łokcie były w osi obrotu maszyny, oparte na podkładce."
+      - "Chwyć uchwyty, plecy przy oparciu."
+      - "Prostuj ręce do pełnego wyprostu, ściskając triceps."
+      - "Wróć powoli do zgięcia."
+    mistakes:
+      - "Odrywanie łokci od podkładki."
+      - "Pomaganie sobie barkami i tułowiem."
+  dip_machine:
+    steps:
+      - "Usiądź w maszynie, chwyć uchwyty po bokach tułowia."
+      - "Łokcie trzymaj blisko ciała, plecy przy oparciu."
+      - "Wypchnij uchwyty w dół do wyprostu rąk."
+      - "Wróć powoli, aż łokcie zegną się mniej więcej do kąta prostego."
+    mistakes:
+      - "Rozchodzenie się łokci na boki."
+      - "Unoszenie barków do uszu."
+  bar_pushdown:
+    steps:
+      - "Załóż prosty lub łamany drążek na górny wyciąg, chwyć nachwytem."
+      - "Stań blisko wyciągu, łokcie przy bokach, tułów lekko pochylony."
+      - "Prostuj ręce w dół do pełnego wyprostu."
+      - "Wróć powoli, łokcie zostają w miejscu."
+    mistakes:
+      - "Odsuwanie łokci od tułowia."
+      - "Dociskanie całym ciałem zamiast tricepsem."
+  machine_crunch:
+    steps:
+      - "Usiądź w maszynie, ustaw siedzisko i ciężar, chwyć uchwyty lub oprzyj ramiona na podkładkach."
+      - "Stopy zaczep pod wałkami, plecy przy oparciu."
+      - "Zwiń tułów do przodu siłą brzucha, zbliżając żebra do bioder."
+      - "Wróć powoli, nie puszczając ciężaru."
+    mistakes:
+      - "Ciągnięcie rękami zamiast pracy brzucha."
+      - "Szarpanie i odbijanie ciężaru."
+  reverse_crunch:
+    steps:
+      - "Połóż się na plecach, ręce wzdłuż ciała, nogi zgięte i uniesione, uda pionowo."
+      - "Napnij brzuch i podwiń biodra, unosząc pośladki od podłogi w stronę klatki."
+      - "Zatrzymaj się na chwilę na górze."
+      - "Opuść biodra powoli na podłogę."
+    mistakes:
+      - "Wymachiwanie nogami zamiast podwijania miednicy."
+      - "Odpychanie się rękami od podłogi."
+  woodchop:
+    steps:
+      - "Ustaw uchwyt na górnym wyciągu, stań bokiem do niego, stopy szeroko."
+      - "Chwyć uchwyt oburącz nad barkiem bliższym wyciągowi, ręce prawie proste."
+      - "Ciągnij uchwyt po skosie w dół do przeciwnego biodra, obracając tułów i obracając się na tylnej stopie."
+      - "Wróć powoli; po serii zmień stronę."
+    mistakes:
+      - "Ciągnięcie samymi rękami bez skrętu tułowia."
+      - "Zaokrąglanie pleców."
+  sit_up:
+    steps:
+      - "Połóż się na plecach, nogi zgięte, stopy na podłodze (można je zaczepić)."
+      - "Ręce skrzyżuj na klatce lub połóż przy głowie bez ciągnięcia szyi."
+      - "Unieś cały tułów do pozycji siedzącej, zwijając się kręg po kręgu."
+      - "Opuść się powoli na podłogę."
+    mistakes:
+      - "Ciągnięcie głowy rękami."
+      - "Rzucanie się w górę z rozmachu."
+  jackknife:
+    steps:
+      - "Połóż się na plecach, nogi proste, ręce wyprostowane za głową."
+      - "Napnij brzuch i jednocześnie unieś proste nogi i tułów."
+      - "Sięgnij dłońmi do stóp nad biodrami – ciało tworzy literę V."
+      - "Opuść się powoli do leżenia, bez odkładania nóg i rąk na podłogę."
+    mistakes:
+      - "Wyginanie lędźwi przy opuszczaniu."
+      - "Zginanie nóg i robienie ruchu z rozmachu."
+  tgu:
+    steps:
+      - "Połóż się na plecach z kettlebell w wyprostowanej ręce nad barkiem, noga po tej stronie zgięta."
+      - "Wstań na łokieć, potem na dłoń drugiej ręki, cały czas patrząc na odważnik."
+      - "Unieś biodra, przełóż prostą nogę pod siebie do klęku."
+      - "Wstań z klęku do stania, ręka z odważnikiem cały czas prosto nad głową; wróć tą samą drogą."
+    mistakes:
+      - "Zginanie ręki z odważnikiem."
+      - "Za duży ciężar – najpierw opanuj ruch bez odważnika lub z butem na pięści."
+  seated_calf:
+    steps:
+      - "Usiądź w maszynie, podkładki oprzyj na udach tuż nad kolanami, przednia część stóp na podeście."
+      - "Zwolnij blokadę i opuść pięty jak najniżej."
+      - "Wspnij się na palce do maksymalnego uniesienia pięt."
+      - "Zatrzymaj się na sekundę i opuść powoli."
+    mistakes:
+      - "Krótki, sprężynujący ruch."
+      - "Odbijanie się na dole."
+  leg_press_calf:
+    steps:
+      - "Usiądź na suwnicy, przednią część stóp postaw na dolnej krawędzi platformy."
+      - "Wypchnij platformę do wyprostu nóg, kolana lekko odblokowane."
+      - "Opuść palce w stronę ciała, by rozciągnąć łydki, potem wypchnij platformę samymi stopami."
+      - "Powtarzaj spokojnie, nie zginając kolan; nie zwalniaj blokad suwnicy."
+    mistakes:
+      - "Uginanie kolan i pchanie udami."
+      - "Stopy za wysoko – zsuwają się z platformy."
+  bb_calf:
+    steps:
+      - "Ustaw sztangę na górnej części pleców, przednia część stóp na talerzu lub stopniu."
+      - "Opuść pięty jak najniżej."
+      - "Wspnij się na palce do pełnego uniesienia."
+      - "Zatrzymaj się na sekundę i opuść powoli."
+    mistakes:
+      - "Uginanie kolan."
+      - "Utrata równowagi przez zbyt szybkie powtórzenia."
+  smith_calf:
+    steps:
+      - "Ustaw sztangę Smitha na barkach, przednia część stóp na stopniu lub talerzu."
+      - "Odblokuj sztangę i opuść pięty jak najniżej."
+      - "Wspnij się na palce do pełnego uniesienia."
+      - "Zatrzymaj się na sekundę i opuść powoli."
+    mistakes:
+      - "Sprężynowanie zamiast pełnego zakresu."
+      - "Uginanie kolan."
 by_name:
   "Barbell Decline Bench Press":
     steps:

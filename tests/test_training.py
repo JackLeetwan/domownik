@@ -251,7 +251,12 @@ def test_full_flow_on_the_phone(auth_client, db, user):
     db.refresh(press)
     assert press.exercise.key == "ohp"
 
-    assert "Dodaj ćwiczenie" in auth_client.get(f"/forma/trening/{wid}/dodaj?partia=core").text
+    core = auth_client.get(f"/forma/trening/{wid}/dodaj?partia=core").text
+    assert "Dodaj ćwiczenie" in core
+    # the search box filters in the browser over name, group, equipment, body part and the Jefit names
+    assert "data-pick-filter" in core and "data-pick-none" in core and "wszystko=1" in core
+    assert 'data-pick-text="Spięcia odwrotne Brzuch – spięcia Masa ciała Brzuch Reverse Crunch"' in core
+    assert "data-pick-filter" in pick
     _post(auth_client, f"/forma/trening/{wid}/koniec")
     db.refresh(w)
     assert w.finished_at is not None and len(w.exercises) == 1
