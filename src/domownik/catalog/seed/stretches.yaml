@@ -136,3 +136,8 @@ routines:
     name: Przerwa przy biurku
     kind: own
     items: [side_neck, chin_to_chest, shoulder_rolls, chest_elbows_back, seated_twist, chair_side_bend, wrist_circles]
+  # 🌙 before sleep – slow, on the floor or in bed, ending lying down; nothing needed (~6½ min)
+  - key: bedtime
+    name: Przed snem
+    kind: own
+    items: [cat_cow, childs_pose, butterfly, knees_to_chest, figure_four, leg_up_hamstring, knee_across]

@@ -99,6 +99,9 @@ def test_gear_labels_and_the_free_filter(auth_client, db):
     long_ = db.query(StretchRoutine).filter_by(seed="legs_long").one()
     assert st.routine_gear(long_) == ["stopień", "pasek lub ręcznik"]
     assert st.routine_gear(db.query(StretchRoutine).filter_by(seed="legs_short").one()) == []
+    bedtime = db.query(StretchRoutine).filter_by(seed="bedtime").one()
+    assert bedtime.name == "Przed snem" and st.routine_gear(bedtime) == []
+    assert 5 * 60 <= st.total_seconds(bedtime) <= 8 * 60
     assert st.snapshot(long_)[3]["gear"] == "stopień"  # quad_step – the timer says "Przygotuj: stopień"
 
     rid = long_.id
