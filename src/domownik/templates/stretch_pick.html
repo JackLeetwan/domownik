@@ -4,6 +4,7 @@
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/rozciaganie/{{ r.id }}?edycja=1" class="home-link">← Wróć</a></li></ul></nav>
 <header class="item-head"><h1>Dodaj do: {{ r.name }}</h1></header>
 {% set base = '/forma/rozciaganie/' ~ r.id ~ '/dodaj' %}
+<input type="search" class="pick-search" placeholder="Szukaj: nazwa, partia, sprzęt…" aria-label="Szukaj ćwiczenia" autocomplete="off" enterkeyhint="search" data-pick-filter>
 <p class="pick-chips pick-types">
   <a href="{{ pick_url(typ=None) }}" class="chip{% if not type_filter %} on{% endif %}">Wszystko</a>
   {% for k, label in st.catalog()['types'].items() %}<a href="{{ pick_url(typ=k) }}" class="chip{% if type_filter == k %} on{% endif %}">{{ label }}</a>{% endfor %}
@@ -17,14 +18,17 @@
 {% elif type_filter == 'static' %}<p class="muted"><small>Statyczne – utrzymanie pozycji, po treningu.</small></p>{% endif %}
 {% for heading, items in sections %}
 {% if items %}
+<section data-pick-section>
 <h2 class="pick-head">{{ heading }}</h2>
 <ul class="pick-list">
   {% for ex in items %}
-  <li class="pick-item"><form method="post" action="{{ base }}/{{ ex.id }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <li class="pick-item" data-pick-text="{{ ex.name }} {{ heading }} {{ st.type_label(ex.type) }} {{ st.gear(ex) or '' }}"><form method="post" action="{{ base }}/{{ ex.id }}"><input type="hidden" name="csrf" value="{{ csrf }}">
     <button type="submit" class="pick-row">{% include "partials/ex_pic.html" %}<span><b>{{ ex.name }}</b><small class="muted">{% if ex.id in in_routine %}✓ w zestawie · {% endif %}{% include "partials/stretch_meta.html" %}</small></span><span aria-hidden="true">＋</span></button></form>
     {% with info_url = '/forma/rozciaganie/cw/' ~ ex.id %}{% include "partials/ex_info.html" %}{% endwith %}</li>
   {% endfor %}
 </ul>
+</section>
 {% endif %}
 {% endfor %}
+<p class="muted" data-pick-none hidden>Nic nie pasuje{% if type_filter or area_filter or free_filter %} – spróbuj bez filtrów: <a href="{{ base }}">wszystkie ćwiczenia</a>{% endif %}.</p>
 {% endblock %}

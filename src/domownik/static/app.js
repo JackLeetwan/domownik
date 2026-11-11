@@ -440,6 +440,29 @@
     if (none) none.hidden = shown > 0;
   });
 
+  // ------------------------------------------------------------------ 🤸 the stretch picker: search as you type
+  // without Polish letters and case ("lydka" finds "Łydka"), every word anywhere: name, body part, type, gear
+  const plain = (s) => s.toLowerCase().replace(/ł/g, "l").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  document.addEventListener("input", (e) => {
+    const box = e.target.closest && e.target.closest("[data-pick-filter]");
+    if (!box) return;
+    const words = plain(box.value).split(/\s+/).filter(Boolean);
+    let shown = 0;
+    document.querySelectorAll("[data-pick-section]").forEach((sec) => {
+      let here = 0;
+      sec.querySelectorAll("[data-pick-text]").forEach((li) => {
+        const text = li.dataset.pickPlain || (li.dataset.pickPlain = plain(li.dataset.pickText));
+        const hit = words.every((w) => text.includes(w));
+        li.hidden = !hit;
+        if (hit) here += 1;
+      });
+      sec.hidden = !here;
+      shown += here;
+    });
+    const none = document.querySelector("[data-pick-none]");
+    if (none) none.hidden = shown > 0;
+  });
+
   // ------------------------------------------------------------------ a form that comes back to this page
   // A boosted form (✓ Zamknij, ☐ zrobione, ＋ wpis…) posts, and the server answers with the same page;
   // htmx then scrolls to the top as for any new page. When the answer is the page we are on, stay where

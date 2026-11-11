@@ -108,6 +108,9 @@ def test_gear_labels_and_the_free_filter(auth_client, db):
     free = auth_client.get(f"/forma/rozciaganie/{rid}/dodaj?typ=static&partia=glutes&sprzet=0").text
     assert "Bok uda i pośladek" not in free and "czwórka" in free and "· 🧰" not in free
     assert f'/forma/rozciaganie/{rid}/dodaj?typ=static&amp;partia=glutes"' in free  # the chip turns it off
+    # the search box filters in the browser over each stretch's name, body part, type and gear
+    assert "data-pick-filter" in every and 'data-pick-text="Bok uda i pośladek' in every
+    assert "Pośladki Statyczne pasek lub ręcznik" in every
     page = auth_client.get(f"/forma/rozciaganie/{rid}").text
     assert "🧰 Potrzebne: stopień, pasek lub ręcznik" in page
     lst = auth_client.get("/forma/rozciaganie").text
