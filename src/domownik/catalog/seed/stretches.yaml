@@ -5,7 +5,7 @@
 # img: the exercise's name in free-exercise-db (The Unlicense) → static/exercises/<slug>.webp (+ <slug>-1.webp);
 # gear: a key of `gear` above when the stretch needs it
 # pic: which of the two frames is its icon (0 = start; 1 when the start is just a person standing)
-# hold: the frame the timer shows while a static stretch is held (default 1 = the end – the target position)
+# hold: the frame the timer shows – the target position (default 1 = the end; 0 where the start shows it)
 # Instructions: exercise_guides.yaml, section `stretch`.
 types:
   dynamic: Dynamiczne

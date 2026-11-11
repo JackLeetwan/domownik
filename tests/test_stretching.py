@@ -127,12 +127,12 @@ def test_pictures_and_duration(db):
     assert st.image_start(arm) == "/static/exercises/arm-circles.webp"
     cat = db.query(Stretch).filter_by(key="cat_cow").one()
     assert st.image(cat) == st.image_start(cat)
-    # the timer while doing it: dynamic – both frames in turn; static – the target position
-    assert st.frames_live(cat) == [st.image_start(cat), st.image_end(cat)]
+    # the timer: the target position – the end frame, also for a dynamic one
+    assert st.image_target(cat) == st.image_end(cat)
     four = db.query(Stretch).filter_by(key="figure_four").one()  # the icon is the start (lying)
-    assert st.image(four) == st.image_start(four) and st.frames_live(four) == [st.image_end(four)]
+    assert st.image(four) == st.image_start(four) and st.image_target(four) == st.image_end(four)
     chair = db.query(Stretch).filter_by(key="chair_side_bend").one()  # hold: 0 – the start is the bend
-    assert st.frames_live(chair) == [st.image_start(chair)]
+    assert st.image_target(chair) == st.image_start(chair)
     r = st.for_kind(db, "after")
     work = sum((it.stretch.seconds + st.TRANSITION) * (2 if it.stretch.sided else 1) for it in r.items)
     assert st.total_seconds(r) == work
@@ -221,7 +221,7 @@ def test_session_start_finish_and_history(auth_client, db, user):
         "seconds": 30,
         "sided": False,
         "img": "/static/exercises/arm-circles-1.webp",
-        "live": ["/static/exercises/arm-circles.webp", "/static/exercises/arm-circles-1.webp"],
+        "target": "/static/exercises/arm-circles-1.webp",
         "gear": None,
     }
     page = auth_client.get(f"/forma/rozciaganie/sesja/{sid}").text
