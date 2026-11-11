@@ -8,6 +8,19 @@
 <form method="post" action="/forma/rozciaganie/{{ r.id }}/start" class="st-start"><input type="hidden" name="csrf" value="{{ csrf }}">
   <button type="submit">▶ Start</button></form>
 {% endif %}
+{% if not edit %}
+<ol class="st-items st-view">
+  {% for it in r.items %}{% set ex = it.stretch %}
+  <li class="st-item">
+    {% include "partials/ex_pic.html" %}
+    <span class="st-item-main"><b>{{ ex.name }}</b>
+      <small class="muted">{{ st.area_label(ex.area) }} · {{ st.fmt_duration(it.duration) }}{% if ex.sided %} na stronę{% endif %}</small></span>
+    {% with info_url = '/forma/rozciaganie/cw/' ~ ex.id %}{% include "partials/ex_info.html" %}{% endwith %}
+  </li>
+  {% endfor %}
+</ol>
+<a href="/forma/rozciaganie/{{ r.id }}?edycja=1" role="button" class="outline secondary supl-add">✏️ Edytuj zestaw</a>
+{% else %}
 <form method="post" action="/forma/rozciaganie/{{ r.id }}" class="supl-form" id="routine-form"><input type="hidden" name="csrf" value="{{ csrf }}">
   <div class="grid supl-two">
     <label>Nazwa zestawu <input name="name" required maxlength="60" value="{{ r.name }}"></label>
@@ -33,6 +46,7 @@
     {% endfor %}
   </ol>
   <p class="muted"><small>„×2” – ćwiczenie na każdą stronę osobno; czas jest na jedną stronę.</small></p>
+  <p class="muted"><small>„Proponuj” – zestaw, który ekran treningu podsuwa przed pierwszą serią albo po zakończeniu.</small></p>
   <button type="submit">Zapisz zestaw</button>
 </form>
 {% for it in r.items %}
@@ -44,4 +58,5 @@
 <section class="supl-section supl-danger">
   <form method="post" action="/forma/rozciaganie/{{ r.id }}/archiwum" hx-confirm="Schować zestaw „{{ r.name }}”?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline secondary">🗄 Schowaj zestaw</button></form>
 </section>
+{% endif %}
 {% endblock %}

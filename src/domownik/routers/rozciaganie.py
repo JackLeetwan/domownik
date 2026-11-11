@@ -71,8 +71,16 @@ async def new_routine(request: Request, db: Session = Depends(get_db), user: Use
 
 
 @router.get("/{routine_id:int}")
-def routine_page(routine_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    return render(request, "stretch_routine.html", _ctx(user, r=_routine(db, routine_id)))
+def routine_page(
+    routine_id: int,
+    request: Request,
+    edycja: int = 0,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """A preview with ▶ Start; the editing (seconds, order, adding) only after "✏️ Edytuj" – or while it is empty."""
+    r = _routine(db, routine_id)
+    return render(request, "stretch_routine.html", _ctx(user, r=r, edit=bool(edycja) or not r.items))
 
 
 @router.post("/{routine_id:int}", dependencies=[Depends(verify_csrf)])
@@ -119,7 +127,7 @@ def item_action(
     for pos, x in enumerate(x for x in items if x in r.items):
         x.position = pos
     db.commit()
-    return _go(f"/forma/rozciaganie/{r.id}#i{item_id}")
+    return _go(f"/forma/rozciaganie/{r.id}?edycja=1#i{item_id}")
 
 
 @router.get("/{routine_id:int}/dodaj")
@@ -161,7 +169,7 @@ def add(routine_id: int, stretch_id: int, db: Session = Depends(get_db), user: U
     it = StretchRoutineItem(stretch=s, position=top + 1)
     r.items.append(it)
     db.commit()
-    return _go(f"/forma/rozciaganie/{r.id}#i{it.id}")
+    return _go(f"/forma/rozciaganie/{r.id}?edycja=1#i{it.id}")
 
 
 @router.post("/{routine_id:int}/archiwum", dependencies=[Depends(verify_csrf)])

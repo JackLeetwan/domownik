@@ -74,6 +74,19 @@ def test_routines_added_to_the_catalog_later(db):
     assert all(it.stretch.area in {"hips", "glutes", "quads", "hamstrings", "groin", "calves"} for it in short.items)
 
 
+def test_quick_start_puts_the_recent_first(db, user):
+    st.prepare(db)
+    db.commit()
+    first = st.quick(db, user)
+    assert len(first) == 3 and [r.position for r in first] == sorted(r.position for r in first)
+    desk = db.query(StretchRoutine).filter_by(seed="desk").one()
+    assert 3 * 60 <= st.total_seconds(desk) <= 6 * 60
+    st.start(db, user, desk)
+    db.commit()
+    assert st.quick(db, user)[0] == desk
+    assert st.fmt_minutes(395) == "7 min" and st.fmt_minutes(20) == "1 min"
+
+
 def test_pictures_and_duration(db):
     st.prepare(db)
     arm = db.query(Stretch).filter_by(key="arm_circles").one()  # pic: 1 – the start is a person standing
@@ -90,11 +103,14 @@ def test_pictures_and_duration(db):
 def test_routines_on_the_phone(auth_client, db):
     page = auth_client.get("/forma/rozciaganie").text
     assert "Przed treningiem" in page and "Po treningu" in page
-    assert "🤸 Rozciąganie" in auth_client.get("/forma").text
+    forma = auth_client.get("/forma").text
+    assert "🤸 Rozciąganie" in forma and "Wszystkie zestawy" in forma and "/start" in forma
 
     # a new routine: add a stretch from the picker (static only), change its time, reorder, remove
     r = _post(auth_client, "/forma/rozciaganie", {"name": "Plecy po pracy"})
     rid = int(r.headers["location"].rsplit("/", 1)[1])
+    assert "_seconds" not in auth_client.get(f"/forma/rozciaganie/{rid}").text  # empty: straight to editing
+    assert "Jeszcze pusto" in auth_client.get(f"/forma/rozciaganie/{rid}").text
     pick = auth_client.get(f"/forma/rozciaganie/{rid}/dodaj?typ=static").text
     assert "Pozycja dziecka" in pick and "Krążenia ramion" not in pick and "/forma/rozciaganie/cw/" in pick
     # the area chips: only one body part, combined with the type; an unknown area shows everything
@@ -119,8 +135,12 @@ def test_routines_on_the_phone(auth_client, db):
     db.refresh(routine)
     assert routine.name == "Plecy" and routine.kind == "after"
     assert first.seconds == 60 and second.seconds is None and second.duration == twist.seconds
+    # the preview: no fields, "na stronę" for a sided stretch, ✏️ leads to the editing
     page = auth_client.get(f"/forma/rozciaganie/{rid}").text
-    assert "Skręt tułowia na krześle" in page and "×2" in page
+    assert "Skręt tułowia na krześle" in page and "na stronę" in page and "_seconds" not in page
+    assert f"/forma/rozciaganie/{rid}?edycja=1" in page and "Schowaj zestaw" not in page
+    page = auth_client.get(f"/forma/rozciaganie/{rid}?edycja=1").text
+    assert "×2" in page and "_seconds" in page and "Schowaj zestaw" in page
 
     _post(auth_client, f"/forma/rozciaganie/{rid}/cw/{second.id}/gora")
     db.refresh(routine)

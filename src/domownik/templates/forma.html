@@ -40,7 +40,16 @@
   {% endfor %}
 </ul>
 {% endif %}
-<p class="tr-links"><a href="/forma/postepy">📈 Postępy</a> · <a href="/forma/plany">📋 Plany i cel</a> · <a href="/forma/rozciaganie">🤸 Rozciąganie</a></p>
+<p class="tr-links"><a href="/forma/postepy">📈 Postępy</a> · <a href="/forma/plany">📋 Plany i cel</a></p>
+
+<h2 id="rozciaganie">🤸 Rozciąganie</h2>
+<section class="tr-card st-quick">
+  {% for r in stretch_quick %}
+  <form method="post" action="/forma/rozciaganie/{{ r.id }}/start"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit" class="{{ '' if loop.first else 'outline' }}">▶ {{ r.name }} <small>· {{ st.fmt_minutes(st.total_seconds(r)) }}</small></button></form>
+  {% endfor %}
+  <a href="/forma/rozciaganie" class="tr-other">Wszystkie zestawy i edycja ›</a>
+</section>
 
 <h2 id="sylwetka">⚖️ Sylwetka</h2>
 {% include "partials/body_card.html" %}

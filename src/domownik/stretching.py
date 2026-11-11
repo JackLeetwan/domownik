@@ -135,6 +135,21 @@ def routines(db: Session) -> list[StretchRoutine]:
     )
 
 
+def quick(db: Session, user: User, n: int = 3) -> list[StretchRoutine]:
+    """The routines for a quick start on "Forma": the person's most recent ones first, then the list order."""
+    rs = [r for r in routines(db) if r.items]
+    recent = db.scalars(
+        select(StretchSession.routine_id)
+        .where(StretchSession.user_id == user.id, StretchSession.routine_id.is_not(None))
+        .order_by(StretchSession.started_at.desc(), StretchSession.id.desc())
+        .limit(20)
+    )
+    rank = {}
+    for rid in recent:
+        rank.setdefault(rid, len(rank))
+    return sorted(rs, key=lambda r: (rank.get(r.id, len(rank)), r.position, r.id))[:n]
+
+
 def for_kind(db: Session, kind: str) -> StretchRoutine | None:
     """The routine the workout offers before / after (the first one of that kind)."""
     return next((r for r in routines(db) if r.kind == kind), None)
@@ -177,6 +192,11 @@ def fmt_duration(seconds: int) -> str:
     if not m:
         return f"{s} s"
     return f"{m} min" if not s else f"{m} min {s} s"
+
+
+def fmt_minutes(seconds: int) -> str:
+    """A routine's length on a button: rounded to whole minutes ("7 min"), under a minute "1 min"."""
+    return f"{max(1, round(seconds / 60))} min"
 
 
 # ---------------------------------------------------------------- sessions (the timer runs in the browser)

@@ -124,3 +124,8 @@ routines:
     name: Nogi – długo
     kind: own
     items: [leg_swings_front, leg_swings_side, hip_flexor_lunge, quad_step, hamstring_seated, runners_stretch, figure_four, seated_spinal_twist, it_band_strap, butterfly, groin_strap, calf_step, soleus_standing]
+  # 🪑 a break at the desk – on the chair and next to it, nothing needed (~5 min)
+  - key: desk
+    name: Przerwa przy biurku
+    kind: own
+    items: [side_neck, chin_to_chest, shoulder_rolls, chest_elbows_back, seated_twist, chair_side_bend, wrist_circles]

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from domownik import stretching as st
 from domownik import supplements as supl
 from domownik.config import now, today
 from domownik.db import get_db
@@ -48,6 +49,8 @@ def _own(db: Session, user: User, supplement_id: int) -> Supplement:
 
 @router.get("/forma")
 def page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    st.prepare(db)  # the default stretching routines (also ones added to the catalog later)
+    db.commit()
     return render(
         request,
         "forma.html",
@@ -57,6 +60,7 @@ def page(request: Request, db: Session = Depends(get_db), user: User = Depends(c
             "paused": supl.mine(db, user, active=False),
             "days_left": supl.days_left,
             "card_where": "forma",
+            "stretch_quick": st.quick(db, user),
         }
         | card_context(db, user)
         | section_context(db, user)
