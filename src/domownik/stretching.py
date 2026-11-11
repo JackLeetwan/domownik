@@ -137,10 +137,22 @@ def library(db: Session) -> list[Stretch]:
     return sorted(db.scalars(select(Stretch)), key=lambda s: order.get(s.key, len(order)))
 
 
-def groups(db: Session, type_: str | None) -> list[tuple[str, list[Stretch]]]:
-    """The picker: stretches by area (in the catalog's order of areas), optionally only dynamic / static."""
+def groups(db: Session, type_: str | None, area: str | None = None) -> list[tuple[str, list[Stretch]]]:
+    """The picker: stretches by area (in the catalog's order of areas), optionally only dynamic / static
+    and only one area."""
     rows = [s for s in library(db) if type_ is None or s.type == type_]
-    return [(label, [s for s in rows if s.area == k]) for k, label in catalog()["areas"].items()]
+    return [
+        (label, [s for s in rows if s.area == k])
+        for k, label in catalog()["areas"].items()
+        if area is None or k == area
+    ]
+
+
+def areas_with(db: Session, type_: str | None) -> list[tuple[str, str, int]]:
+    """The picker's area chips: (key, label, how many) of the areas that have a stretch of the chosen type."""
+    rows = [s for s in library(db) if type_ is None or s.type == type_]
+    counts = {k: sum(1 for s in rows if s.area == k) for k in catalog()["areas"]}
+    return [(k, label, counts[k]) for k, label in catalog()["areas"].items() if counts[k]]
 
 
 def steps_count(item: StretchRoutineItem) -> int:

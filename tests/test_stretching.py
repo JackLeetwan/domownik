@@ -78,6 +78,11 @@ def test_routines_on_the_phone(auth_client, db):
     rid = int(r.headers["location"].rsplit("/", 1)[1])
     pick = auth_client.get(f"/forma/rozciaganie/{rid}/dodaj?typ=static").text
     assert "Pozycja dziecka" in pick and "Krążenia ramion" not in pick and "/forma/rozciaganie/cw/" in pick
+    # the area chips: only one body part, combined with the type; an unknown area shows everything
+    calves = auth_client.get(f"/forma/rozciaganie/{rid}/dodaj?typ=static&partia=calves").text
+    assert "Łydka przy ścianie" in calves and "Pozycja dziecka" not in calves and "Krążenia stóp" not in calves
+    assert "?typ=static&amp;partia=back" in calves or "?typ=static&partia=back" in calves
+    assert "Pozycja dziecka" in auth_client.get(f"/forma/rozciaganie/{rid}/dodaj?partia=xyz").text
     child = db.query(Stretch).filter_by(key="childs_pose").one()
     twist = db.query(Stretch).filter_by(key="seated_twist").one()
     _post(auth_client, f"/forma/rozciaganie/{rid}/dodaj/{child.id}")

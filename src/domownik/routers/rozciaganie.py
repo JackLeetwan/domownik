@@ -124,17 +124,32 @@ def item_action(
 
 @router.get("/{routine_id:int}/dodaj")
 def add_page(
-    routine_id: int, request: Request, typ: str = "", db: Session = Depends(get_db), user: User = Depends(current_user)
+    routine_id: int,
+    request: Request,
+    typ: str = "",
+    partia: str = "",
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
 ):
     r = _routine(db, routine_id)
     st.ensure_library(db)
     db.commit()
     type_ = typ if typ in st.catalog()["types"] else None
+    areas = st.areas_with(db, type_)
+    area = partia if partia in {k for k, _, _ in areas} else None
     in_routine = {it.stretch_id for it in r.items}
     return render(
         request,
         "stretch_pick.html",
-        _ctx(user, r=r, sections=st.groups(db, type_), type_filter=type_, in_routine=in_routine),
+        _ctx(
+            user,
+            r=r,
+            sections=st.groups(db, type_, area),
+            type_filter=type_,
+            area_filter=area,
+            areas=areas,
+            in_routine=in_routine,
+        ),
     )
 
 

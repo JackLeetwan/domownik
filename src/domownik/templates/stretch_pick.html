@@ -4,10 +4,16 @@
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/rozciaganie/{{ r.id }}" class="home-link">← Wróć</a></li></ul></nav>
 <header class="item-head"><h1>Dodaj do: {{ r.name }}</h1></header>
 {% set base = '/forma/rozciaganie/' ~ r.id ~ '/dodaj' %}
+{% set area_q = '&partia=' ~ area_filter if area_filter else '' %}
 <p class="pick-chips">
-  <a href="{{ base }}" class="chip{% if not type_filter %} on{% endif %}">Wszystko</a>
-  {% for k, label in st.catalog()['types'].items() %}<a href="{{ base }}?typ={{ k }}" class="chip{% if type_filter == k %} on{% endif %}">{{ label }}</a>{% endfor %}
+  <a href="{{ base }}{% if area_filter %}?partia={{ area_filter }}{% endif %}" class="chip{% if not type_filter %} on{% endif %}">Wszystko</a>
+  {% for k, label in st.catalog()['types'].items() %}<a href="{{ base }}?typ={{ k }}{{ area_q }}" class="chip{% if type_filter == k %} on{% endif %}">{{ label }}</a>{% endfor %}
 </p>
+{% set type_q = 'typ=' ~ type_filter ~ '&' if type_filter else '' %}
+<nav class="pick-chips pick-areas" aria-label="Partia ciała">
+  <a href="{{ base }}{% if type_filter %}?typ={{ type_filter }}{% endif %}" class="chip{% if not area_filter %} on{% endif %}">Całe ciało</a>
+  {% for k, label, n in areas %}<a href="{{ base }}?{{ type_q }}partia={{ k }}" class="chip{% if area_filter == k %} on{% endif %}">{{ label }} <small>{{ n }}</small></a>{% endfor %}
+</nav>
 {% if type_filter == 'dynamic' %}<p class="muted"><small>Dynamiczne – w ruchu, na rozgrzewkę przed treningiem.</small></p>
 {% elif type_filter == 'static' %}<p class="muted"><small>Statyczne – utrzymanie pozycji, po treningu.</small></p>{% endif %}
 {% for heading, items in sections %}

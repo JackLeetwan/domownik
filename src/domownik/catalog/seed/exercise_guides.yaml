@@ -1495,3 +1495,234 @@ stretch:  # 🤸 the stretches (stretches.yaml) by key
     mistakes:
       - "Unoszenie barku do ucha."
       - "Mocne ciągnięcie głowy ręką."
+  shoulder_rolls:
+    steps:
+      - "Stań prosto, ramiona luźno wzdłuż tułowia."
+      - "Unieś barki do uszu, cofnij je w tył i opuść – zataczaj spokojne koła."
+      - "Rób duże, płynne kręgi, ściągając łopatki w ich tylnej części."
+      - "W połowie czasu zmień kierunek na przeciwny."
+    mistakes:
+      - "Krótkie, szarpane ruchy zamiast pełnych kół."
+  elbow_circles:
+    steps:
+      - "Stań prosto, połóż palce na barkach, łokcie na wysokości barków."
+      - "Zataczaj łokciami duże koła – do przodu, w górę, w tył i w dół."
+      - "Oddychaj spokojnie: wydech na początku koła, wdech przy jego końcu."
+      - "W połowie czasu zmień kierunek."
+    mistakes:
+      - "Garbienie się i wysuwanie głowy w przód."
+  wrist_circles:
+    steps:
+      - "Stań prosto i unieś ramiona w bok do wysokości barków, dłonie w dół."
+      - "Zataczaj dłońmi kółka, poruszając tylko nadgarstkami."
+      - "Rób jak największe, spokojne kółka."
+      - "W połowie czasu zmień kierunek."
+    mistakes:
+      - "Krążenie całym ramieniem zamiast nadgarstkiem."
+  arm_swings_up:
+    steps:
+      - "Stań w lekkim rozkroku, ramiona wyprostowane wzdłuż tułowia."
+      - "Wymachuj prostymi ramionami przed sobą w górę i z powrotem w dół."
+      - "Z każdym powtórzeniem zwiększaj zakres, aż dłonie znajdą się nad głową."
+      - "Utrzymuj brzuch napięty i tułów nieruchomo."
+    mistakes:
+      - "Wyginanie lędźwi w łuk przy ramionach w górze."
+  windmills:
+    steps:
+      - "Połóż się na plecach, ramiona szeroko w bok, nogi proste."
+      - "Unieś jedną prostą nogę i przenieś ją nad ciałem w stronę przeciwnej dłoni."
+      - "Wróć do pozycji wyjściowej i powtórz drugą nogą."
+      - "Barki trzymaj przy podłodze, ruch prowadź spokojnie i rytmicznie."
+    mistakes:
+      - "Odrywanie barków od podłogi."
+      - "Rzucanie nogą bez kontroli."
+  scorpion:
+    steps:
+      - "Połóż się na brzuchu, ramiona szeroko w bok, dłonie na podłodze."
+      - "Ugnij jedno kolano i przenieś nogę za plecami w stronę przeciwnej dłoni."
+      - "Wróć do pozycji wyjściowej i powtórz drugą nogą."
+      - "Klatkę i dłonie trzymaj przy podłodze, zakres zwiększaj stopniowo."
+    mistakes:
+      - "Szarpanie nogą na siłę przy sztywnych plecach."
+  pelvic_tilt_bridge:
+    steps:
+      - "Połóż się na plecach, stopy na podłodze, pięty pod kolanami."
+      - "Napnij brzuch i podwiń kość ogonową, dociskając lędźwie do podłogi."
+      - "Unoś kręg po kręgu cały kręgosłup do mostka, bez szyi."
+      - "Opuszczaj się powoli kręg po kręgu i powtarzaj."
+    mistakes:
+      - "Unoszenie bioder jednym ruchem, bez rolowania kręgosłupa."
+      - "Przeprost w lędźwiach w górnej pozycji."
+  hip_circles_fours:
+    steps:
+      - "Uklęknij w podporze: dłonie pod barkami, kolana pod biodrami."
+      - "Unieś jedno ugięte kolano nad podłogę."
+      - "Zataczaj kolanem jak największe koło – w przód, w bok i w tył."
+      - "W połowie czasu na stronę zmień kierunek."
+    mistakes:
+      - "Przechylanie tułowia i bioder na bok."
+  crossover_lunge:
+    steps:
+      - "Stań w lekkim rozkroku, dłonie przed klatką."
+      - "Zrób wykrok w tył, uginając przednie kolano."
+      - "W dole skręć tułów nad przednią nogę."
+      - "Wróć do stania i powtórz na drugą stronę, na zmianę."
+    mistakes:
+      - "Kolano przedniej nogi ucieka do środka."
+  rear_leg_raises:
+    steps:
+      - "Uklęknij w podporze, kolana ugięte pod kątem prostym, wzrok w podłogę."
+      - "Wyprostuj jedną nogę w tył i w górę do linii tułowia."
+      - "Opuść kolano pod biodro i powtarzaj rytmicznie."
+      - "Brzuch napięty, plecy proste przez cały czas."
+    mistakes:
+      - "Wyginanie lędźwi i unoszenie nogi zbyt wysoko."
+  half_locust:
+    steps:
+      - "Połóż się na brzuchu, jedną dłoń wsuń pod biodro jako podkładkę."
+      - "Ugnij drugie kolano i chwyć stopę ręką z tej samej strony."
+      - "Delikatnie unieś stopę i barki nad podłogę."
+      - "Czujesz rozciąganie z przodu uda i biodra; oddychaj spokojnie."
+    mistakes:
+      - "Mocne wyginanie lędźwi."
+      - "Szarpanie stopy w górę."
+  leg_up_hamstring:
+    steps:
+      - "Połóż się na plecach, jedną nogę ugnij ze stopą na podłodze."
+      - "Drugą nogę unieś w górę i chwyć ją pod udem lub łydką."
+      - "Prostuj kolano tak, by podeszwa kierowała się do sufitu."
+      - "Delikatnie przyciągaj nogę do siebie, aż poczujesz tył uda."
+    mistakes:
+      - "Odrywanie bioder i głowy od podłogi."
+  seated_spinal_twist:
+    steps:
+      - "Usiądź z prostą jedną nogą, drugą ugnij i postaw stopę za jej kolanem."
+      - "Przeciwny łokieć oprzyj o zewnętrzną stronę ugiętego kolana."
+      - "Drugą dłoń postaw za sobą i skręć tułów w stronę ugiętej nogi."
+      - "Wydłużaj kręgosłup przy wdechu, pogłębiaj skręt przy wydechu."
+    mistakes:
+      - "Garbienie się w trakcie skrętu."
+  straddle:
+    steps:
+      - "Usiądź prosto i rozłóż proste nogi szeroko w literę V."
+      - "Połóż dłonie na podłodze przed sobą."
+      - "Pochylaj się do przodu z prostymi plecami, tak daleko, jak możesz."
+      - "Palce stóp i kolana kieruj w sufit."
+    mistakes:
+      - "Zaokrąglanie pleców zamiast pochylania z bioder."
+      - "Kolana rotują do środka."
+  side_lying_groin:
+    steps:
+      - "Połóż się na boku, dolne kolano ugnij przed sobą dla stabilności."
+      - "Górną nogę unieś i chwyć za tył kolana (łatwiej) lub stopę (trudniej)."
+      - "Przyciągaj kolano w stronę barku, a stopę kieruj w dół."
+      - "Aby pogłębić, wyprostuj górną nogę."
+    mistakes:
+      - "Przetaczanie się na plecy."
+  calf_seated:
+    steps:
+      - "Usiądź prosto, jedną nogę ugnij ze stopą na podłodze."
+      - "Drugą nogę wyprostuj, palce stopy skieruj do siebie."
+      - "Przyciągaj palce dłonią, ręcznikiem lub gumą."
+      - "Czujesz rozciąganie w łydce; plecy trzymaj prosto."
+    mistakes:
+      - "Uginanie kolana prostej nogi."
+  calf_step:
+    steps:
+      - "Połóż piętę na stopniu, kolano wyprostowane."
+      - "Drugie kolano lekko ugnij i oprzyj na nim dłoń."
+      - "Pochyl się z prostymi plecami i przyciągnij palce stopy do siebie."
+      - "Czujesz rozciąganie w łydce i pod kolanem."
+    mistakes:
+      - "Zaokrąglanie pleców przy sięganiu do stopy."
+  soleus_standing:
+    steps:
+      - "Stań ze stopami na szerokość bioder, jedna stopa lekko przed drugą."
+      - "Ugnij oba kolana, tylną piętę trzymaj przy podłodze."
+      - "Czujesz rozciąganie nisko w łydce i w ścięgnie Achillesa."
+      - "Utrzymaj pozycję, oddychaj spokojnie."
+    mistakes:
+      - "Odrywanie tylnej pięty od podłogi."
+  standing_twist:
+    steps:
+      - "Stań w rozkroku na szerokość barków, dłonie na biodrach."
+      - "Skręć tułów w talii w jedną stronę, biodra zostają przodem."
+      - "Zatrzymaj się, gdy poczujesz rozciąganie w środkowej części pleców."
+      - "Wróć i powtórz w drugą stronę."
+    mistakes:
+      - "Skręcanie bioder razem z tułowiem."
+  chair_side_bend:
+    steps:
+      - "Usiądź prosto na krześle, stopy płasko na podłodze."
+      - "Unieś jedno ramię nad głowę, drugą ręką przytrzymaj krzesło."
+      - "Pochyl tułów w bok, w stronę trzymanej ręki."
+      - "Czujesz rozciąganie wzdłuż boku i pleców."
+    mistakes:
+      - "Pochylanie się do przodu zamiast w bok."
+  thighs_hug:
+    steps:
+      - "Usiądź z prostymi nogami złączonymi przed sobą."
+      - "Pochyl się i obejmij uda od spodu obiema rękami."
+      - "Przybliżaj klatkę do kolan."
+      - "Aby rozciągnąć środek pleców, odpychaj plecy od kolan, trzymając uda."
+    mistakes:
+      - "Uginanie kolan i odrywanie pięt."
+  full_torso:
+    steps:
+      - "Stań prosto, spleć palce i odwróć dłonie do sufitu."
+      - "Wyciągnij ramiona w górę, barki trzymaj nisko."
+      - "Kość ogonową kieruj w dół, brzuch lekko napięty."
+      - "Czujesz wydłużenie całego tułowia z przodu i z tyłu."
+    mistakes:
+      - "Unoszenie barków do uszu."
+      - "Wyginanie lędźwi w łuk."
+  side_lying_reach:
+    steps:
+      - "Połóż się na boku, dolne kolano ugnij przed sobą."
+      - "Górną nogę wyprostuj i oprzyj stopę na podłodze za dolną."
+      - "Górne ramię wyprostuj nad głową."
+      - "Delikatnie ciągnij za nadgarstek, rozciągając cały bok ciała."
+    mistakes:
+      - "Przetaczanie się na plecy lub brzuch."
+  seated_side_bend:
+    steps:
+      - "Usiądź prosto, złącz podeszwy stóp przed sobą."
+      - "Jedną dłoń połóż na podłodze obok siebie, drugą za głową."
+      - "Unieś łokieć do sufitu i pochyl tułów w bok, w stronę dłoni na podłodze."
+      - "Czujesz rozciąganie boku tułowia."
+    mistakes:
+      - "Pochylanie się do przodu zamiast w bok."
+  kneeling_backbend:
+    steps:
+      - "Uklęknij, stopy za sobą, palce stóp podwinięte lub płasko."
+      - "Sięgnij dłońmi do pięt."
+      - "Wypchnij biodra w przód i odchyl głowę, patrząc w sufit."
+      - "Czujesz rozciąganie brzucha i przodu ud; zakres zwiększaj ostrożnie."
+    mistakes:
+      - "Opadanie biodrami do tyłu na pięty."
+      - "Gwałtowne odchylanie przy bolących lędźwiach."
+  side_wrist_pull:
+    steps:
+      - "Stań prosto, jedną rękę przełóż przed ciałem na drugą stronę."
+      - "Drugą dłonią chwyć jej nadgarstek na wysokości bioder."
+      - "Prostuj rękę i ciągnij ją w bok i w górę, do wysokości barku."
+      - "Czujesz rozciąganie w górnej części pleców i z tyłu barku."
+    mistakes:
+      - "Mocne szarpanie za staw barkowy."
+  triceps_across:
+    steps:
+      - "Stań prosto, przełóż jedną rękę przed ciałem nad przeciwny bark."
+      - "Drugą dłonią chwyć łokieć i dociskaj go w stronę barku."
+      - "Czujesz rozciąganie z tyłu ramienia."
+      - "Utrzymaj pozycję, oddychaj spokojnie."
+    mistakes:
+      - "Unoszenie barku do ucha."
+  chin_to_chest:
+    steps:
+      - "Usiądź lub stań prosto, spleć dłonie na tyle głowy."
+      - "Łokcie skieruj w przód, kciuki w dół."
+      - "Powoli przyciągaj brodę do klatki."
+      - "Czujesz rozciąganie karku; ciężar dłoni wystarczy."
+    mistakes:
+      - "Mocne ciągnięcie głowy rękami."
+      - "Garbienie się całymi plecami."
