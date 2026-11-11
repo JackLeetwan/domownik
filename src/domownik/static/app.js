@@ -941,16 +941,18 @@
       if (!all.length) return undefined; // not loaded yet / the engine picks by lang
       return all.find((v) => /^pl(-|_|$)/i.test(v.lang)) || null;
     };
-    const speak = (text) => {
-      if (!voiceBox || !voiceBox.checked || !("speechSynthesis" in window)) return;
+    // resolves when the sentence has been said (at once without a voice) – the end waits for it before leaving
+    const speak = (text) => new Promise((resolve) => {
+      if (!voiceBox || !voiceBox.checked || !("speechSynthesis" in window)) { resolve(); return; }
       const v = plVoice();
-      if (v === null) { const n = $(".ss-novoice"); if (n) n.hidden = false; return; }
+      if (v === null) { const n = $(".ss-novoice"); if (n) n.hidden = false; resolve(); return; }
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "pl-PL";
       if (v) u.voice = v;
+      u.onend = u.onerror = () => resolve();
       speechSynthesis.speak(u);
-    };
+    });
     const beep = (freq, dur, vol = 0.25) => {
       if (!audio) return;
       const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
@@ -1024,14 +1026,21 @@
       finished = true;
       store.set(key, "");
       unwake();
-      beep(660, 0.15); setTimeout(() => beep(880, 0.15), 160); setTimeout(() => beep(1100, 0.4), 320);
-      buzz([150, 80, 300]);
-      speak("Koniec. Dobra robota.");
+      // louder and longer than the 3-2-1 ticks right before it – the end has to stand out
+      beep(660, 0.25, 0.4); setTimeout(() => beep(880, 0.25, 0.4), 250); setTimeout(() => beep(1100, 0.7, 0.45), 500);
+      buzz([200, 100, 200, 100, 400]);
+      // the summary screen comes only after the signal: the redirect reloads the page and would cut the beeps,
+      // the voice and the buzz short (the voice gets at most 4 s, a missing "end" event must not hold it up)
+      const signal = Promise.all([
+        new Promise((r) => setTimeout(r, 900)),
+        Promise.race([speak("Koniec. Dobra robota."), new Promise((r) => setTimeout(r, 4000))]),
+      ]);
       const form = $(".ss-finish");
       form.elements.done.value = doneCount();
       form.elements.seconds.value = Math.round(activeMs / 1000);
       const submit = () => { if (form.requestSubmit) form.requestSubmit(); else form.submit(); };
-      if (all && shared) pushing.then(submit); else submit(); // "end for everybody" reaches the server first
+      // "end for everybody" reaches the server first
+      Promise.all([signal, all && shared ? pushing : null]).then(submit);
     };
     const go = (i, { natural = false, live = true } = {}) => {
       if (i > idx) mark(natural);

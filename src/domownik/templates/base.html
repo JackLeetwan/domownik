@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="/static/vendor/vis-timeline-graph2d.min.css?v=1">
   {% block head %}{% endblock %}
   {# bump these after changing app.css / app.js – a page opened before the deploy reloads itself (app.js) #}
-  {% set css_v, js_v = 97, 55 %}
+  {% set css_v, js_v = 98, 56 %}
   <link rel="stylesheet" href="/static/app.css?v={{ css_v }}">
   {# in <head>, deferred: run once per full page load – hx-boost swaps only <body>,
      scripts inside <body> would re-run (and stack listeners) on every navigation #}
