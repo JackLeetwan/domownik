@@ -28,8 +28,12 @@
 {% if recent %}
 <h3 class="supl-sub">Ostatnie treningi</h3>
 <ul class="supl-rows">
-  {% for w in recent %}{% set n = w.exercises|map(attribute='done')|map('length')|sum %}
+  {% for kind, w in recent %}
+  {% if kind == 's' %}
+  <li><a class="supl-row" href="/forma/rozciaganie/sesja/{{ w.id }}"><span class="supl-row-main"><b>🤸 {{ w.name }}</b><small class="muted">{{ w.started_at.date()|d(weekday=True) }} · {{ w.done }}/{{ w.total }} ćw. · {{ st.fmt_duration(w.seconds) }}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
+  {% else %}{% set n = w.exercises|map(attribute='done')|map('length')|sum %}
   <li><a class="supl-row" href="/forma/trening/{{ w.id }}"><span class="supl-row-main"><b>{{ w.plan.name if w.plan else 'Trening' }}</b><small class="muted">{{ w.day|d(weekday=True) }} · {{ w.exercises|length }} ćw. · {{ n }} serii{% if w.equipment %} · 🧳{% endif %}{% if w.group_id %} · 👫{% endif %}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
+  {% endif %}
   {% endfor %}
 </ul>
 {% endif %}

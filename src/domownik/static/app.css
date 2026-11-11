@@ -1894,6 +1894,45 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .st-secs input { width: 5.5rem; margin: 0; padding-block: 0.35rem; }
 .st-item-actions { grid-area: actions; display: flex; gap: 0.3rem; }
 .st-item-actions button { margin: 0; width: 2.4rem; padding-inline: 0; }
+.st-start { margin-bottom: 1rem; }
+.st-start button { width: 100%; font-size: 1.15rem; }
+.st-row-start { margin: 0; }
+.st-row-start button { margin: 0 0 0 0.5rem; padding: 0.4rem 0.8rem; }
+.st-list li.pick-item .supl-row { flex: 1; min-width: 0; border-bottom: 0; }
+
+/* 🤸 the session: big, readable from the mat */
+.ss { display: flex; flex-direction: column; align-items: stretch; text-align: center; max-width: 30rem; margin: 0 auto; }
+.ss-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; text-align: left; }
+.ss-title { font-size: 1.15rem; margin: 0; }
+.ss-count { font-weight: 600; color: var(--pico-muted-color); font-variant-numeric: tabular-nums; }
+.ss-bar { height: 6px; border-radius: 3px; background: var(--dm-tile-bg); overflow: hidden; margin: 0.5rem 0 0.75rem; }
+.ss-bar span { display: block; height: 100%; width: 0; background: var(--pico-primary); transition: width 0.3s; }
+.ss-phase { margin: 0 0 0.4rem; font-weight: 700; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--pico-primary); min-height: 1.5em; }
+.ss.prep .ss-phase { color: #c77d00; }
+.ss.paused .ss-phase { color: var(--pico-muted-color); }
+.ss-pic { position: relative; aspect-ratio: 3 / 2; border-radius: 12px; overflow: hidden; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); display: grid; place-items: center; }
+.ss-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ss-emoji { font-size: 4rem; }
+.ss.prep .ss-pic { opacity: 0.75; }
+.ss-name { font-size: 1.35rem; margin: 0.75rem 0 0; display: flex; justify-content: center; align-items: center; gap: 0.25rem; }
+.ss-name .ex-info { width: 2.25rem; height: 2.25rem; padding: 0; margin: 0; border: 0; background: none; }
+.ss-time { font-size: clamp(4rem, 24vw, 6.5rem); font-weight: 700; line-height: 1; margin: 0.4rem 0 0.25rem; font-variant-numeric: tabular-nums; }
+.ss.prep .ss-time { color: #c77d00; }
+.ss.paused .ss-time { opacity: 0.5; }
+.ss-next { min-height: 1.5em; margin-bottom: 0.75rem; }
+.ss-start { font-size: 1.3rem; padding-block: 0.9rem; }
+.ss-controls { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 0.6rem; }
+.ss-controls[hidden] { display: none; }
+.ss-controls button { margin: 0; padding-block: 0.6rem; display: grid; place-items: center; }
+.ss-controls svg { width: 2rem; height: 2rem; fill: currentColor; }
+.ss-options { margin: 1rem 0 0.25rem; display: grid; gap: 0.25rem; justify-items: center; }
+.ss-options label { margin: 0; }
+.ss-finish { margin: 0.5rem 0 0; }
+.ss-finish button { width: auto; }
+.ss-done { text-align: center; max-width: 30rem; margin: 0 auto 1rem; }
+.ss-done-big { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.25rem; }
+.ss-done [role=button], .ss-done form button { width: 100%; margin: 0.5rem 0 0; }
+.ss-done form { margin: 0; }
 
 /* 📤 shared from another app */
 .share-what { margin: 0 0 1rem; overflow-wrap: anywhere; }

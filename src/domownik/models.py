@@ -1526,6 +1526,31 @@ class StretchRoutineItem(Base):
         return self.seconds or self.stretch.seconds
 
 
+class StretchSession(Base):
+    """One stretching session of one person (private, like a workout).
+
+    steps: the routine as it was at the start (JSON list of stretches: id, name, seconds, sided, img) – the timer
+    runs from it, so editing the routine meanwhile changes nothing. done / total: stretches finished by the timer
+    (not skipped) of all; seconds: the time it really took, pauses not counted.
+    """
+
+    __tablename__ = "stretch_session"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    routine_id: Mapped[int | None] = mapped_column(ForeignKey("stretch_routine.id", ondelete="SET NULL"))
+    workout_id: Mapped[int | None] = mapped_column(ForeignKey("workout.id", ondelete="SET NULL"))
+    name: Mapped[str] = mapped_column(String(60))
+    steps: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    started_at: Mapped[datetime] = mapped_column(DateTime)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime)
+    done: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    total: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    seconds: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+
+    routine: Mapped[StretchRoutine | None] = relationship()
+
+
 # ---------------------------------------------------------------- 💪 Forma: sylwetka (strictly the owner's)
 
 

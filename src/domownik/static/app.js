@@ -888,6 +888,242 @@
     const btn = e.target.closest && e.target.closest("[data-cal-add]");
     if (btn) addOnDay(btn.dataset.calAdd);
   });
+  // ------------------------------------------------------------------ 🤸 stretching session
+  // The timer runs here, counted from timestamps (endsAt), so a screen that was off doesn't skew it. Phases:
+  // before every stretch a few seconds to get into position (the voice says what comes), a sided one twice with
+  // "Zmień stronę" in between. Beeps on the last 3 seconds, a buzz when it starts. The state is kept on this
+  // device – a reload (or a killed tab) comes back paused at the same place. At the end the result is posted.
+  function stretchSession(root) {
+    if (!root || root.dataset.ssReady) return;
+    root.dataset.ssReady = "1";
+    const stretches = JSON.parse(root.querySelector(".ss-steps").textContent || "[]");
+    if (!stretches.length) return;
+    const T = Number(root.dataset.transition) || 5;
+    const key = root.dataset.key;
+    const $ = (sel) => root.querySelector(sel);
+    const phases = [];
+    stretches.forEach((s, si) => (s.sided ? ["L", "P"] : [null]).forEach((side, k) => {
+      phases.push({ kind: "prep", si, side, secs: T, first: k === 0 });
+      phases.push({ kind: "work", si, side, secs: s.seconds });
+    }));
+    const firstPrep = (si) => phases.findIndex((p) => p.si === si && p.kind === "prep" && p.first);
+
+    let idx = 0, left = phases[0].secs * 1000, endsAt = 0, paused = true, started = false;
+    let activeMs = 0, runFrom = 0, lastBeep = null, finished = false;
+    let results = {}; // phase index → "done" | "skip" (work phases only)
+    let audio = null, lock = null;
+
+    const remaining = () => (paused ? left : endsAt - Date.now());
+    const active = () => activeMs + (paused || !runFrom ? 0 : Date.now() - runFrom);
+    const save = () => {
+      if (finished) return;
+      store.set(key, JSON.stringify({ idx, left: Math.max(0, remaining()), activeMs: active(), results }));
+    };
+    const saved = (() => { try { return JSON.parse(store.get(key) || "null"); } catch (_) { return null; } })();
+    if (saved && saved.idx < phases.length) {
+      ({ idx, left, activeMs, results } = { idx: saved.idx, left: saved.left, activeMs: saved.activeMs || 0, results: saved.results || {} });
+      started = true;
+    }
+
+    // ---- sound, voice, buzz, screen
+    const voiceBox = $(".ss-voice");
+    if (voiceBox) {
+      voiceBox.checked = store.get("dm-stretch-voice") !== "0";
+      voiceBox.addEventListener("change", () => store.set("dm-stretch-voice", voiceBox.checked ? "1" : "0"));
+    }
+    const plVoice = () => {
+      if (!("speechSynthesis" in window)) return null;
+      const all = speechSynthesis.getVoices();
+      if (!all.length) return undefined; // not loaded yet / the engine picks by lang
+      return all.find((v) => /^pl(-|_|$)/i.test(v.lang)) || null;
+    };
+    const speak = (text) => {
+      if (!voiceBox || !voiceBox.checked || !("speechSynthesis" in window)) return;
+      const v = plVoice();
+      if (v === null) { const n = $(".ss-novoice"); if (n) n.hidden = false; return; }
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "pl-PL";
+      if (v) u.voice = v;
+      speechSynthesis.speak(u);
+    };
+    const beep = (freq, dur, vol = 0.25) => {
+      if (!audio) return;
+      const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g).connect(audio.destination);
+      o.start(t);
+      o.stop(t + dur + 0.02);
+    };
+    const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch (_) { /* not allowed */ } };
+    const wake = async () => {
+      try { if ("wakeLock" in navigator && !lock) { lock = await navigator.wakeLock.request("screen"); lock.addEventListener("release", () => { lock = null; }); } } catch (_) { /* no wake lock */ }
+    };
+    const unwake = () => { if (lock) { lock.release().catch(() => {}); lock = null; } };
+    const onVisible = () => { if (document.visibilityState === "visible" && !paused) wake(); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    // ---- what the screen shows
+    const mmss = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+    const sideName = (side) => (side === "L" ? "Lewa strona" : side === "P" ? "Prawa strona" : "");
+    const secsText = (s) => `${s.seconds} s${s.sided ? " na stronę" : ""}`;
+    const render = () => {
+      const p = phases[Math.min(idx, phases.length - 1)], s = stretches[p.si];
+      root.classList.toggle("prep", p.kind === "prep");
+      root.classList.toggle("work", p.kind === "work");
+      root.classList.toggle("paused", paused && started);
+      $(".ss-count").textContent = `${p.si + 1}/${stretches.length}`;
+      $(".ss-bar span").style.width = `${Math.round((idx / phases.length) * 100)}%`;
+      $(".ss-phase").textContent = paused && started ? "⏸ Pauza"
+        : p.kind === "prep" ? (p.first ? (p.si === 0 && !started ? "Pierwsze ćwiczenie" : "Przygotuj się") : "Zmień stronę")
+        : sideName(p.side) || "Teraz";
+      $(".ss-name span").textContent = s.name;
+      const img = $(".ss-pic img");
+      if (s.img) { if (img.getAttribute("src") !== s.img) img.src = s.img; img.hidden = false; $(".ss-emoji").hidden = true; }
+      else { img.hidden = true; $(".ss-emoji").hidden = false; }
+      $(".ss-time").textContent = mmss(remaining());
+      const next = stretches[p.si + 1];
+      $(".ss-next").textContent = p.kind === "prep" ? secsText(s) + (p.first && s.sided ? " – zaczynasz lewą" : "")
+        : p.side === "L" ? "Potem: prawa strona" : next ? `Następne: ${next.name}` : "To ostatnie ćwiczenie";
+      const pause = $(".ss-pause");
+      const icon = paused ? "M7 5v14l12-7z" : "M6 5h4v14H6zM14 5h4v14h-4z";
+      if (pause.dataset.icon !== icon) { pause.dataset.icon = icon; pause.querySelector("path").setAttribute("d", icon); }
+      pause.setAttribute("aria-label", paused ? "Wznów" : "Pauza");
+      $(".ss-start").textContent = started ? "▶ Wznów" : "▶ Start";
+    };
+    const announce = (p) => {
+      const s = stretches[p.si];
+      if (p.kind === "prep") {
+        beep(660, 0.12);
+        buzz(80);
+        if (!p.first) speak("Zmień stronę");
+        else speak(`${p.si === 0 ? "" : "Następne: "}${s.name}. ${s.seconds} sekund${s.sided ? " na stronę, zaczynasz lewą" : ""}.`);
+      } else {
+        beep(880, 0.4, 0.35);
+        buzz(300);
+      }
+    };
+
+    // ---- moving between phases
+    const mark = (natural) => {
+      const p = phases[idx];
+      if (p && p.kind === "work" && results[idx] !== "done") results[idx] = natural ? "done" : "skip";
+    };
+    const doneCount = () => stretches.filter((_, si) => phases.every((p, i) => p.si !== si || p.kind !== "work" || results[i] === "done")).length;
+    const end = () => {
+      if (finished) return;
+      if (!paused) { activeMs = active(); runFrom = 0; }
+      paused = true;
+      finished = true;
+      store.set(key, "");
+      unwake();
+      beep(660, 0.15); setTimeout(() => beep(880, 0.15), 160); setTimeout(() => beep(1100, 0.4), 320);
+      buzz([150, 80, 300]);
+      speak("Koniec. Dobra robota.");
+      const form = $(".ss-finish");
+      form.elements.done.value = doneCount();
+      form.elements.seconds.value = Math.round(activeMs / 1000);
+      if (form.requestSubmit) form.requestSubmit(); else form.submit();
+    };
+    const go = (i, { natural = false, live = true } = {}) => {
+      if (i > idx) mark(natural);
+      else for (const k of Object.keys(results)) if (Number(k) >= i) delete results[k];
+      idx = i;
+      lastBeep = null;
+      if (idx >= phases.length) { end(); return; }
+      left = phases[idx].secs * 1000;
+      if (!paused) endsAt = Date.now() + left;
+      if (live && !paused) announce(phases[idx]);
+      render();
+      save();
+    };
+
+    const tick = () => {
+      if (!document.body.contains(root)) { // navigated away (hx-boost swaps the page)
+        clearInterval(timer);
+        document.removeEventListener("visibilitychange", onVisible);
+        unwake();
+        if ("speechSynthesis" in window) speechSynthesis.cancel();
+        return;
+      }
+      if (paused || finished) return;
+      let rem = endsAt - Date.now();
+      while (rem <= 0 && !finished) { // also catches up after the tab slept: no sounds for phases long gone
+        const late = -rem;
+        mark(true);
+        idx += 1;
+        lastBeep = null;
+        if (idx >= phases.length) { end(); return; }
+        endsAt += phases[idx].secs * 1000;
+        rem = endsAt - Date.now();
+        if (late < 1500) announce(phases[idx]);
+        save();
+      }
+      const s = Math.ceil(rem / 1000);
+      if (s <= 3 && s >= 1 && s !== lastBeep) { lastBeep = s; beep(520, 0.08, 0.2); }
+      render();
+    };
+    const timer = setInterval(tick, 200);
+
+    // ---- controls
+    const run = () => {
+      paused = false;
+      endsAt = Date.now() + left;
+      runFrom = Date.now();
+      wake();
+    };
+    const pause = () => {
+      left = remaining();
+      activeMs = active();
+      runFrom = 0;
+      paused = true;
+      unwake();
+      if ("speechSynthesis" in window) speechSynthesis.cancel();
+      save();
+    };
+    $(".ss-start").addEventListener("click", () => {
+      try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch (_) { audio = null; }
+      if ("speechSynthesis" in window) speechSynthesis.getVoices(); // starts loading the voices (Chrome)
+      const fresh = !started;
+      started = true;
+      $(".ss-start").hidden = true;
+      $(".ss-controls").hidden = false;
+      run();
+      if (fresh || phases[idx].kind === "prep") announce(phases[idx]);
+      render();
+      save();
+    });
+    $(".ss-pause").addEventListener("click", () => { if (paused) run(); else pause(); render(); });
+    $(".ss-skip").addEventListener("click", () => go(idx + 1));
+    $(".ss-back").addEventListener("click", () => {
+      const p = phases[idx], start = firstPrep(p.si);
+      const elapsed = p.secs * 1000 - remaining();
+      const target = (idx === start || (idx === start + 1 && elapsed < 2000)) && p.si > 0 ? firstPrep(p.si - 1) : start;
+      go(target);
+    });
+    $(".ss-info").addEventListener("click", () => {
+      const s = stretches[phases[Math.min(idx, phases.length - 1)].si];
+      if (typeof htmx !== "undefined") htmx.ajax("GET", `/forma/rozciaganie/cw/${s.id}`, { target: "#modal-body", swap: "innerHTML" });
+    });
+    $(".ss-end").addEventListener("click", async () => {
+      const wasRunning = !paused;
+      if (wasRunning) pause();
+      render();
+      if (await askConfirm("Zakończyć rozciąganie? Zapisze się to, co już zrobione.", "Zakończ")) end();
+      else if (wasRunning) { run(); render(); }
+    });
+    render();
+  }
+  const initStretch = (scope) => {
+    const el = scope && scope.matches && scope.matches("[data-stretch-session]") ? scope : (scope || document).querySelector("[data-stretch-session]");
+    stretchSession(el);
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => initStretch());
+  else initStretch();
+  document.addEventListener("htmx:load", (e) => initStretch(e.detail.elt));
+
   // ------------------------------------------------------------------ confirm
   // the app's own dialog instead of the browser's confirm() (hx-confirm everywhere + deleting a task)
   function askConfirm(text, okLabel) {

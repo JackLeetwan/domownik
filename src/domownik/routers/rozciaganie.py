@@ -1,6 +1,8 @@
-"""🤸 Stretching in "Forma": the saved routines (shared, edited like the strength plans) and the library.
+"""🤸 Stretching in "Forma": the saved routines (shared, edited like the strength plans), the library and the
+session with the timer (▶ Start of a routine). Sessions are private – another person's id is a 404.
 
-The session with the timer comes on top of these (the routine's ▶ Start).
+The timer runs in the browser (app.js, "stretching session"): the server only hands it the routine and stores
+the result at the end.
 """
 
 from __future__ import annotations
@@ -10,8 +12,9 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from domownik import stretching as st
+from domownik import training as tr
 from domownik.db import get_db
-from domownik.models import Stretch, StretchRoutine, StretchRoutineItem, User
+from domownik.models import Stretch, StretchRoutine, StretchRoutineItem, StretchSession, User
 from domownik.security import current_user, verify_csrf
 from domownik.web import render
 
@@ -158,3 +161,60 @@ def stretch_guide(stretch_id: int, request: Request, db: Session = Depends(get_d
     if request.headers.get("hx-target") == "modal-body":
         return render(request, "partials/stretch_guide_modal.html", ctx)
     return render(request, "stretch_guide.html", ctx)
+
+
+# ---------------------------------------------------------------- the session
+
+
+def _session(db: Session, user: User, session_id: int) -> StretchSession:
+    s = st.get_own(db, user, session_id)
+    if s is None:
+        raise HTTPException(404, "Nie ma takiej sesji")
+    return s
+
+
+@router.post("/{routine_id:int}/start", dependencies=[Depends(verify_csrf)])
+async def start(routine_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    r = _routine(db, routine_id)
+    if not r.items:
+        raise ValueError("Zestaw jest pusty – najpierw dodaj ćwiczenia")
+    form = await request.form()
+    workout = None
+    if raw := str(form.get("workout_id") or "").strip():
+        workout = tr.get_own(db, user, int(raw))
+    s = st.start(db, user, r, workout)
+    db.commit()
+    return _go(f"/forma/rozciaganie/sesja/{s.id}")
+
+
+@router.get("/sesja/{session_id:int}")
+def session_page(session_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    s = _session(db, user, session_id)
+    return render(
+        request, "stretch_session.html", _ctx(user, s=s, transition=st.TRANSITION, after=_after_url(db, user, s))
+    )
+
+
+def _after_url(db: Session, user: User, s: StretchSession) -> str:
+    """Where to go when done: back to the workout it was started from, else Forma."""
+    if s.workout_id and (w := tr.get_own(db, user, s.workout_id)) is not None:
+        return f"/forma/trening/{w.id}"
+    return "/forma"
+
+
+@router.post("/sesja/{session_id:int}/koniec", dependencies=[Depends(verify_csrf)])
+async def finish(session_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    s = _session(db, user, session_id)
+    form = await request.form()
+    if s.finished_at is None:
+        st.finish(s, int(str(form.get("done") or 0)), int(str(form.get("seconds") or 0)))
+        db.commit()
+    return _go(f"/forma/rozciaganie/sesja/{s.id}")
+
+
+@router.post("/sesja/{session_id:int}/usun", dependencies=[Depends(verify_csrf)])
+def delete_session(session_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    s = _session(db, user, session_id)
+    db.delete(s)
+    db.commit()
+    return _go("/forma")

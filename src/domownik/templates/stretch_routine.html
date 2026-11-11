@@ -4,6 +4,10 @@
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/rozciaganie" class="home-link">← Rozciąganie</a></li></ul></nav>
 <header class="item-head"><h1>🤸 {{ r.name }}</h1></header>
 <p class="muted"><small>{{ r.items|length }} ćw. · ok. {{ st.fmt_duration(st.total_seconds(r)) }} (z przejściami po {{ st.TRANSITION }} s)</small></p>
+{% if r.items %}
+<form method="post" action="/forma/rozciaganie/{{ r.id }}/start" class="st-start"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit">▶ Start</button></form>
+{% endif %}
 <form method="post" action="/forma/rozciaganie/{{ r.id }}" class="supl-form" id="routine-form"><input type="hidden" name="csrf" value="{{ csrf }}">
   <div class="grid supl-two">
     <label>Nazwa zestawu <input name="name" required maxlength="60" value="{{ r.name }}"></label>

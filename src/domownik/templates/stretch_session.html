@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name }} · Domownik{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="{{ after }}" class="home-link">← {{ 'Trening' if after != '/forma' else 'Forma' }}</a></li></ul></nav>
+{% if s.finished_at %}
+<header class="item-head"><h1>🤸 {{ s.name }}</h1></header>
+<section class="ss-done">
+  <p class="ss-done-big">{% if s.done == s.total %}✓ Całość zrobiona{% else %}{{ s.done }}/{{ s.total }} ćwiczeń{% endif %}</p>
+  <p class="muted">{{ s.started_at.date()|d(weekday=True) }} · {{ s.started_at.strftime('%H:%M') }} · {{ st.fmt_duration(s.seconds) }}{% if s.done != s.total %} · pominięte: {{ s.total - s.done }}{% endif %}</p>
+  <a href="{{ after }}" role="button">{{ 'Wróć do treningu' if after != '/forma' else 'Gotowe' }}</a>
+  {% if s.routine and not s.routine.archived %}
+  <form method="post" action="/forma/rozciaganie/{{ s.routine.id }}/start"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit" class="outline">↻ Jeszcze raz</button></form>
+  {% endif %}
+</section>
+<section class="supl-section supl-danger">
+  <form method="post" action="/forma/rozciaganie/sesja/{{ s.id }}/usun" hx-confirm="Usunąć tę sesję z historii?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="small outline secondary">🗑 Usuń z historii</button></form>
+</section>
+{% else %}
+{# the timer – app.js "stretching session"; the steps are the routine as it was at the start #}
+<section class="ss" data-stretch-session="{{ s.id }}" data-transition="{{ transition }}" data-key="dm-stretch-{{ s.id }}">
+  <script type="application/json" class="ss-steps">{{ s.steps|tojson }}</script>
+  <header class="ss-head">
+    <h1 class="ss-title">🤸 {{ s.name }}</h1>
+    <span class="ss-count" aria-live="polite"></span>
+  </header>
+  <div class="ss-bar" aria-hidden="true"><span></span></div>
+  <p class="ss-phase"></p>
+  <div class="ss-pic"><img alt="" width="320" height="213"><span class="ss-emoji" aria-hidden="true">🧘</span></div>
+  <h2 class="ss-name"><span></span> <button type="button" class="ex-info ss-info" aria-label="Jak wykonać" title="Jak wykonać">ⓘ</button></h2>
+  <p class="ss-time" role="timer" aria-live="off">0:00</p>
+  <p class="ss-next muted"></p>
+
+  <button type="button" class="ss-start">▶ Start</button>
+  <div class="ss-controls" hidden>
+    <button type="button" class="outline secondary ss-back" aria-label="Wstecz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9.5 12z"/></svg></button>
+    <button type="button" class="ss-pause" aria-label="Pauza"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></button>
+    <button type="button" class="outline secondary ss-skip" aria-label="Pomiń"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l10.5-7z"/></svg></button>
+  </div>
+  <p class="ss-options">
+    <label><input type="checkbox" role="switch" class="ss-voice" checked> 🗣 Głos</label>
+    <small class="muted ss-novoice" hidden>Brak polskiego głosu w telefonie – zostają sygnały dźwiękowe.</small>
+  </p>
+  <form method="post" action="/forma/rozciaganie/sesja/{{ s.id }}/koniec" class="ss-finish"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="done" value="0"><input type="hidden" name="seconds" value="0">
+    <button type="button" class="small outline secondary ss-end">⏹ Zakończ</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

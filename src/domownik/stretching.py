@@ -16,10 +16,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from domownik import training as tr
-from domownik.models import Stretch, StretchRoutine, StretchRoutineItem
+from domownik.config import now
+from domownik.models import Stretch, StretchRoutine, StretchRoutineItem, StretchSession, User, Workout
 
 CATALOG = Path(__file__).parent / "catalog" / "seed" / "stretches.yaml"
-TRANSITION = 5  # seconds to get into the next position (step 3: the timer)
+TRANSITION = 5  # seconds to get into the position: before every stretch and before its second side
 
 
 @functools.cache
@@ -145,10 +146,8 @@ def steps_count(item: StretchRoutineItem) -> int:
 
 
 def total_seconds(r: StretchRoutine) -> int:
-    """How long the routine takes: every side of every stretch + a transition before each but the first."""
-    work = sum(it.duration * steps_count(it) for it in r.items)
-    moves = sum(steps_count(it) for it in r.items) - 1
-    return work + max(0, moves) * TRANSITION
+    """How long the routine takes: every side of every stretch, each with a transition before it."""
+    return sum((it.duration + TRANSITION) * steps_count(it) for it in r.items)
 
 
 def fmt_duration(seconds: int) -> str:
@@ -156,3 +155,63 @@ def fmt_duration(seconds: int) -> str:
     if not m:
         return f"{s} s"
     return f"{m} min" if not s else f"{m} min {s} s"
+
+
+# ---------------------------------------------------------------- sessions (the timer runs in the browser)
+
+
+def snapshot(r: StretchRoutine) -> list[dict[str, Any]]:
+    """The routine for the timer – as it is now (editing it during the session changes nothing)."""
+    return [
+        {
+            "id": it.stretch.id,
+            "name": it.stretch.name,
+            "seconds": it.duration,
+            "sided": it.stretch.sided,
+            "img": image(it.stretch),
+        }
+        for it in r.items
+    ]
+
+
+def start(db: Session, user: User, r: StretchRoutine, workout: Workout | None = None) -> StretchSession:
+    """A new session; an unfinished one of the same person is dropped (one at a time, nothing to resume)."""
+    for old in db.scalars(
+        select(StretchSession).where(StretchSession.user_id == user.id, StretchSession.finished_at.is_(None))
+    ):
+        db.delete(old)
+    steps = snapshot(r)
+    s = StretchSession(
+        user_id=user.id,
+        routine_id=r.id,
+        workout_id=workout.id if workout else None,
+        name=r.name,
+        steps=steps,
+        total=len(steps),
+        started_at=now(),
+    )
+    db.add(s)
+    db.flush()
+    return s
+
+
+def finish(s: StretchSession, done: int, seconds: int) -> None:
+    s.done = max(0, min(done, s.total))
+    s.seconds = max(0, min(seconds, 4 * 3600))
+    s.finished_at = now()
+
+
+def get_own(db: Session, user: User, session_id: int) -> StretchSession | None:
+    s = db.get(StretchSession, session_id)
+    return s if s is not None and s.user_id == user.id else None
+
+
+def recent(db: Session, user: User, limit: int = 5) -> list[StretchSession]:
+    return list(
+        db.scalars(
+            select(StretchSession)
+            .where(StretchSession.user_id == user.id, StretchSession.finished_at.is_not(None))
+            .order_by(StretchSession.started_at.desc())
+            .limit(limit)
+        )
+    )

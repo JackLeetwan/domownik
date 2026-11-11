@@ -5,17 +5,28 @@ Workouts are private (another person's id is a 404); the exercise library and th
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from domownik import stretching as st
 from domownik import together
 from domownik import training as tr
 from domownik.config import get_settings, now, today
 from domownik.db import get_db
-from domownik.models import Exercise, PlanItem, User, Workout, WorkoutExercise, WorkoutGroup, WorkoutPlan, WorkoutSet
+from domownik.models import (
+    Exercise,
+    PlanItem,
+    StretchSession,
+    User,
+    Workout,
+    WorkoutExercise,
+    WorkoutGroup,
+    WorkoutPlan,
+    WorkoutSet,
+)
 from domownik.security import current_user, verify_csrf
 from domownik.web import is_htmx, render
 
@@ -73,11 +84,22 @@ def section_context(db: Session, user: User) -> dict:
         "running": tr.active(db, user),
         "next_plan": tr.next_plan(db, user),
         "plans": tr.plans(db),
-        "recent": [w for w in tr.mine(db, user, limit=8) if w.finished_at is not None][:5],
+        "recent": _recent(db, user),
+        "st": st,
         "today": t,
         "invites": together.open_invites(db, user, t),
         "partners": together.partners(db, user),
     }
+
+
+def _recent(db: Session, user: User, limit: int = 5) -> list[tuple[str, Workout | StretchSession]]:
+    """Finished workouts and stretching sessions, newest first: ("w", workout) | ("s", session)."""
+    rows: list[tuple[datetime, str, Workout | StretchSession]] = [
+        (w.started_at, "w", w) for w in tr.mine(db, user, limit=limit + 3) if w.finished_at is not None
+    ]
+    rows += [(s.started_at, "s", s) for s in st.recent(db, user, limit)]
+    rows.sort(key=lambda r: r[0], reverse=True)
+    return [(kind, obj) for _, kind, obj in rows[:limit]]
 
 
 # ---------------------------------------------------------------- start
