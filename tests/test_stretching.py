@@ -295,6 +295,9 @@ def test_workout_offers_stretching_before_and_after(auth_client, db, user):
     before, after = st.for_kind(db, "before"), st.for_kind(db, "after")
     assert "🤸 Najpierw rozgrzewka" in screen and f"/forma/rozciaganie/{before.id}/start" in screen
     assert f'name="workout_id" value="{wid}"' in screen and "Rozciąganie po treningu" not in screen
+    quick = next(r for r in st.routines(db) if r.seed == "before_short")  # the short one: one tap too
+    assert f"/forma/rozciaganie/{quick.id}/start" in screen and "▶ Rozgrzewka – szybka · " in screen
+    assert st.total_seconds(quick) <= 200
 
     # the warm-up started from the workout: back to it while unfinished, then done
     r = _post(auth_client, f"/forma/rozciaganie/{before.id}/start", {"workout_id": str(wid)})

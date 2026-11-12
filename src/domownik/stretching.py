@@ -300,6 +300,7 @@ class Offer:
     kind: str | None = None  # before | after – which card
     routine: StretchRoutine | None = None
     pending: StretchSession | None = None  # started from this workout, not finished
+    alts: list[StretchRoutine] = field(default_factory=list)  # the other routines of that kind (one tap too)
     done: list[StretchSession] = field(default_factory=list)
 
 
@@ -328,8 +329,9 @@ def offer(db: Session, user: User, w: Workout, sets_done: int) -> Offer:
     if o.kind:
         prepare(db)  # the default routines on the first look – kept, the start form posts their id
         db.commit()
-        r = for_kind(db, o.kind)
-        o.routine = r if r is not None and r.items else None
+        same = [r for r in routines(db) if r.kind == o.kind and r.items]
+        o.routine = same[0] if same else None
+        o.alts = same[1:]
         o.pending = next((s for s in sessions if s.finished_at is None), None)
         if o.routine is None and o.pending is None:
             o.kind = None

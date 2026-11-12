@@ -11,6 +11,11 @@
   <form method="post" action="/forma/rozciaganie/{{ o.routine.id }}/start"><input type="hidden" name="csrf" value="{{ csrf }}">
     <input type="hidden" name="workout_id" value="{{ w.id }}">
     <button type="submit" class="wo-stretch-go">▶ Start</button></form>
+  {% for a in o.alts %}
+  <form method="post" action="/forma/rozciaganie/{{ a.id }}/start" class="wo-stretch-alt"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="workout_id" value="{{ w.id }}">
+    <button type="submit" class="small outline secondary">▶ {{ a.name }} · {{ st.fmt_duration(st.total_seconds(a)) }}</button></form>
+  {% endfor %}
   {% endif %}
   <a href="/forma/rozciaganie" class="wo-stretch-more"><small>inny zestaw</small></a>
 </article>

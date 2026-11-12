@@ -1862,6 +1862,8 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .wo-stretch form { margin: 0; }
 .wo-stretch-go { width: auto; margin: 0; white-space: nowrap; }
 .wo-stretch-more { grid-column: 1 / -1; justify-self: start; }
+.wo-stretch-alt { grid-column: 1 / -1; }
+.wo-stretch-alt button { width: 100%; margin: 0; }
 .wo-stretch-done { margin: 0 0 0.5rem; }
 .wo-invite summary[role=button] { width: 100%; }
 .wo-invite form { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0 0; }

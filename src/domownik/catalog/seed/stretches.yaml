@@ -121,6 +121,11 @@ routines:
     name: Przed treningiem
     kind: before
     items: [arm_circles, chest_openers, cat_cow, leg_circles, leg_swings_front, leg_swings_side, worlds_greatest, inchworm, warmup_squats]
+  # ⚡ a short warm-up for a morning workout – standing, nothing needed (~3 min)
+  - key: before_short
+    name: Rozgrzewka – szybka
+    kind: before
+    items: [arm_circles, torso_rotation, leg_swings_front, warmup_squats]
   - key: after
     name: Po treningu
     kind: after
