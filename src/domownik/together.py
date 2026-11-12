@@ -94,6 +94,9 @@ def invite(db: Session, w: Workout, invitees: list[User]) -> WorkoutGroup:
                     "body": "Dotknij, żeby dołączyć. Każde zapisuje swoje serie – widzicie tylko, ile serii zrobiło drugie.",
                     "url": f"/forma/razem/{g.id}",
                     "tag": f"domownik-razem-{g.id}",
+                    # someone is waiting at the gym: high urgency (Android in Doze would hold a normal one back
+                    # for minutes), and it stays on the screen until tapped
+                    "urgent": True,
                 },
             )
     return g

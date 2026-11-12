@@ -65,6 +65,7 @@ def test_invite_and_join(db, user, paula, fbw, sent):
     db.commit()
     assert sent[0][0] == paula.id and sent[0][1]["url"] == f"/forma/razem/{g.id}"
     assert "Jan zaczyna FBW 1" in sent[0][1]["title"]
+    assert sent[0][1]["urgent"] is True  # Urgency: high – a phone asleep gets it at once
     assert together.open_invites(db, paula, D) == [(g, w)]
     assert together.open_invites(db, user, D) == []  # not to oneself
 
