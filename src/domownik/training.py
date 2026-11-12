@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from domownik import webpush
@@ -184,8 +184,33 @@ def range_for(target: int) -> tuple[int, int]:
 # ---------------------------------------------------------------- library and plans
 
 
+def _adopt_imported(db: Session) -> None:
+    """An exercise the Jefit import made under its English name, now in the catalog (by that name in `en`):
+    it becomes the catalog one – takes the key, or, when the catalog one exists already, its history moves there."""
+    by_alias = {a.strip().lower(): row["key"] for row in catalog()["exercises"] for a in row.get("en") or []}
+    have = {e.key: e for e in db.scalars(select(Exercise).where(Exercise.key.is_not(None)))}
+    for ex in list(db.scalars(select(Exercise).where(Exercise.key.is_(None)))):
+        key = next((by_alias[a] for a in (ex.name.lower(), *(ex.en or "").lower().split("|")) if a in by_alias), None)
+        if key is None:
+            continue
+        target = have.get(key)
+        if target is None:
+            ex.key = key
+            have[key] = ex
+            continue
+        db.execute(update(WorkoutExercise).where(WorkoutExercise.exercise_id == ex.id).values(exercise_id=target.id))
+        db.execute(
+            update(WorkoutExercise).where(WorkoutExercise.swapped_from_id == ex.id).values(swapped_from_id=target.id)
+        )
+        db.execute(update(PlanItem).where(PlanItem.exercise_id == ex.id).values(exercise_id=target.id))
+        db.delete(ex)
+    db.flush()
+
+
 def ensure_library(db: Session) -> None:
-    """Seeded exercises missing in the database are added; their Jefit names follow the catalog."""
+    """Seeded exercises missing in the database are added; the existing ones follow the catalog (name, Jefit
+    names, pattern, muscle, equipment, step) – the catalog is the one place they are named."""
+    _adopt_imported(db)
     have = {e.key: e for e in db.scalars(select(Exercise).where(Exercise.key.is_not(None)))}
     for row in catalog()["exercises"]:
         en = "|".join(row.get("en") or [])
@@ -204,7 +229,9 @@ def ensure_library(db: Session) -> None:
                 )
             )
         else:
-            ex.en = en
+            ex.en, ex.name = en, row["name"]
+            ex.pattern, ex.muscle, ex.equipment = row["pattern"], row["muscle"], row["equipment"]
+            ex.step = float(row.get("step", 2.5))
     db.flush()
 
 

@@ -231,7 +231,7 @@ def test_full_flow_on_the_phone(auth_client, db, user):
     bench = next(we for we in w.exercises if we.exercise.key == "db_bench")
 
     screen = auth_client.get(f"/forma/trening/{wid}").text
-    assert "Spanish squat z gumą" in screen and "Superseria A" in screen and "⇄ Zajęte? Zamień" in screen
+    assert "Przysiad hiszpański z gumą (spanish squat)" in screen and "Superseria A" in screen and "⇄ Zajęte? Zamień" in screen
     # the picture: start and end side by side – the whole movement at a glance
     assert 'class="ex-pic  both"' in screen
     assert "/static/exercises/pullups.webp" in screen and "/static/exercises/pullups-1.webp" in screen
@@ -512,3 +512,39 @@ def test_log_a_whole_superset_round(auth_client, db, user, fbw):
     tr.log_set(db, w.exercises[0], weight=36, reps=12)
     db.commit()
     assert "Zapisz rundę" not in auth_client.get(f"/forma/trening/{w.id}").text
+
+
+def test_imported_english_exercises_are_adopted(db, user):
+    """Made by the Jefit import under English names: they become the catalog ones with Polish names."""
+    tr.ensure_library(db)
+    side = Exercise(name="Dumbbell Side Bend", en="Dumbbell Side Bend", pattern="lateral", muscle="shoulders", equipment="bodyweight")
+    dup = Exercise(name="Scissor Kick", en="Scissor Kick", pattern="core_flex", muscle="core", equipment="bodyweight")
+    own = Exercise(name="Moje ćwiczenie", pattern="biceps", muscle="biceps", equipment="dumbbell")
+    db.add_all([side, dup, own])
+    db.flush()
+    db.delete(_ex(db, "db_side_bend"))  # as on the phone before: no catalog row yet → the imported one takes the key
+    db.flush()
+    w = tr.start(db, user, None)
+    we = tr.add_exercise(db, w, dup)  # the catalog row exists → the history moves to it
+    tr.log_set(db, we, weight=None, reps=20)
+    db.commit()
+    side_id = side.id
+    tr.ensure_library(db)
+    db.commit()
+    db.expire_all()
+    s = db.get(Exercise, side_id)
+    assert (s.key, s.name, s.pattern, s.muscle, s.equipment) == ("db_side_bend", "Skłony boczne z hantlem", "core_flex", "core", "dumbbell")
+    kick = _ex(db, "scissor_kick")
+    assert db.get(Workout, w.id).exercises[0].exercise_id == kick.id and kick.name == "Nożyce"
+    assert db.query(Exercise).filter_by(name="Scissor Kick").count() == 0
+    assert db.query(Exercise).filter_by(name="Moje ćwiczenie").one().key is None
+    assert tr.guide(s) is not None and tr.image(s)
+
+
+def test_catalog_names_are_polish():
+    """No bare English names: a gym term may stay only in brackets after the Polish name."""
+    import re
+
+    english = re.compile(r"\b(press|curl|row|raise|squat|pull|push|fly|kick|twist|plank|bench|cable|dumbbell|barbell)\b", re.I)
+    bad = [r["name"] for r in tr.catalog()["exercises"] if english.search(re.sub(r"\([^)]*\)", "", r["name"]))]
+    assert not bad, bad

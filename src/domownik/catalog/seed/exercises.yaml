@@ -22,6 +22,7 @@ patterns:
   calves: Łydki
   core_flex: Brzuch – spięcia
   core_static: Brzuch – stabilizacja
+  mobility: Mobilność / rozgrzewka
 muscles:
   quads: Nogi – przód
   posterior: Pośladki i tył uda
@@ -50,10 +51,10 @@ exercises:
   - {key: leg_press, name: Wypychanie na suwnicy, en: [Leg Press, Sled Leg Press, Machine Leg Press, Seated Leg Press], pattern: squat, muscle: quads, equipment: machine, step: 5}
   - {key: hack_squat, name: Hack przysiad (maszyna), en: [Hack Squat, Machine Hack Squat], pattern: squat, muscle: quads, equipment: machine, step: 5}
   - {key: smith_squat, name: Przysiad na suwnicy Smitha, en: [Smith Machine Squat], pattern: squat, muscle: quads, equipment: machine, step: 2.5}
-  - {key: spanish_squat, name: Spanish squat z gumą, en: [spanish squat with band, Spanish Squat], pattern: squat, muscle: quads, equipment: band, step: 0}
+  - {key: spanish_squat, name: Przysiad hiszpański z gumą (spanish squat), en: [spanish squat with band, Spanish Squat], pattern: squat, muscle: quads, equipment: band, step: 0}
   - {key: bw_squat, name: Przysiad bez obciążenia, en: [Bodyweight Squat, Air Squat], pattern: squat, muscle: quads, equipment: bodyweight, step: 0}
   - {key: leg_extension, name: Prostowanie nóg na maszynie, en: [Leg Extension, Machine Leg Extension], pattern: quad_iso, muscle: quads, equipment: machine, step: 5}
-  - {key: sissy_squat, name: Sissy squat, en: [Sissy Squat], pattern: quad_iso, muscle: quads, equipment: bodyweight, step: 0}
+  - {key: sissy_squat, name: Przysiad sissy, en: [Sissy Squat], pattern: quad_iso, muscle: quads, equipment: bodyweight, step: 0}
   # ---------------------------------------------------------------- lunges / single leg
   - {key: bulgarian, name: Przysiad bułgarski z hantlami, en: [Dumbbell Bulgarian Split Squat, Bulgarian Split Squat], pattern: lunge, muscle: quads, equipment: dumbbell, step: 2}
   - {key: db_lunge, name: Wykroki z hantlami, en: [Dumbbell Lunge, Dumbbell Walking Lunge, Dumbbell Reverse Lunge], pattern: lunge, muscle: quads, equipment: dumbbell, step: 2}
@@ -64,16 +65,16 @@ exercises:
   - {key: deadlift, name: Martwy ciąg, en: [Barbell Deadlift, Deadlift], pattern: hinge, muscle: posterior, equipment: barbell, step: 2.5}
   - {key: rdl, name: Rumuński martwy ciąg ze sztangą, en: [Barbell Romanian Deadlift, Romanian Deadlift, Barbell Stiff-Leg Deadlift], pattern: hinge, muscle: posterior, equipment: barbell, step: 2.5}
   - {key: db_sldl, name: Martwy ciąg na prostych nogach z hantlami, en: [Dumbbell Stiff-Leg Deadlift, Dumbbell Romanian Deadlift], pattern: hinge, muscle: posterior, equipment: dumbbell, step: 2}
-  - {key: kb_swing, name: Swing kettlebell, en: [Kettlebell Swing], pattern: hinge, muscle: posterior, equipment: kettlebell, step: 4}
+  - {key: kb_swing, name: Wymachy kettlebell (swing), en: [Kettlebell Swing], pattern: hinge, muscle: posterior, equipment: kettlebell, step: 4}
   - {key: band_good_morning, name: Skłony z gumą (good morning), en: [Band Good Morning], pattern: hinge, muscle: posterior, equipment: band, step: 0}
   - {key: single_leg_rdl, name: Martwy ciąg na jednej nodze, en: [Single Leg Romanian Deadlift, Bodyweight Single Leg Deadlift], pattern: hinge, muscle: posterior, equipment: bodyweight, step: 0}
-  - {key: hip_thrust, name: Hip thrust ze sztangą, en: [Barbell Hip Thrust, Hip Thrust, Bench Hip Thrust], pattern: glute, muscle: posterior, equipment: barbell, step: 2.5}
-  - {key: machine_hip_thrust, name: Hip thrust na maszynie, en: [Machine Hip Thrust, Glute Drive], pattern: glute, muscle: posterior, equipment: machine, step: 5}
+  - {key: hip_thrust, name: Wypychanie bioder ze sztangą (hip thrust), en: [Barbell Hip Thrust, Hip Thrust, Bench Hip Thrust], pattern: glute, muscle: posterior, equipment: barbell, step: 2.5}
+  - {key: machine_hip_thrust, name: Wypychanie bioder na maszynie (hip thrust), en: [Machine Hip Thrust, Glute Drive], pattern: glute, muscle: posterior, equipment: machine, step: 5}
   - {key: glute_bridge, name: Mostek biodrowy, en: [Glute Bridge, Bodyweight Glute Bridge], pattern: glute, muscle: posterior, equipment: bodyweight, step: 0}
   - {key: single_glute_bridge, name: Mostek biodrowy jednonóż, en: [Single Leg Glute Bridge, Single Leg Hip Thrust], pattern: glute, muscle: posterior, equipment: bodyweight, step: 0}
   - {key: leg_curl, name: Uginanie nóg na maszynie (leżąc), en: [Lying Leg Curl, Machine Lying Leg Curl, Machine Leg Curl (Prone)], pattern: ham_iso, muscle: posterior, equipment: machine, step: 5}
   - {key: seated_leg_curl, name: Uginanie nóg na maszynie (siedząc), en: [Seated Leg Curl, Machine Seated Leg Curl], pattern: ham_iso, muscle: posterior, equipment: machine, step: 5}
-  - {key: nordic_curl, name: Nordic curl, en: [Nordic Hamstring Curl], pattern: ham_iso, muscle: posterior, equipment: bodyweight, step: 0}
+  - {key: nordic_curl, name: Uginanie nordyckie (nordic curl), en: [Nordic Hamstring Curl], pattern: ham_iso, muscle: posterior, equipment: bodyweight, step: 0}
   # ---------------------------------------------------------------- horizontal push
   - {key: bench_press, name: Wyciskanie sztangi na ławce płaskiej, en: [Barbell Bench Press, Bench Press], pattern: push_h, muscle: chest, equipment: barbell, step: 2.5}
   - {key: db_bench, name: Wyciskanie hantli na ławce płaskiej, en: [Dumbbell Bench Press], pattern: push_h, muscle: chest, equipment: dumbbell, step: 2}
@@ -115,10 +116,10 @@ exercises:
   - {key: cable_lateral, name: Unoszenie bokiem na wyciągu, en: [Cable Lateral Raise], pattern: lateral, muscle: shoulders, equipment: cable, step: 2.5}
   - {key: machine_lateral, name: Unoszenie bokiem na maszynie, en: [Machine Lateral Raise], pattern: lateral, muscle: shoulders, equipment: machine, step: 2.5}
   - {key: band_lateral, name: Unoszenie gumy bokiem, en: [Band Lateral Raise], pattern: lateral, muscle: shoulders, equipment: band, step: 0}
-  - {key: face_pull, name: Face pull na wyciągu, en: [Cable Rope Face Pull, Face Pull], pattern: rear_delt, muscle: shoulders, equipment: cable, step: 2.5}
+  - {key: face_pull, name: Przyciąganie liny do twarzy (face pull), en: [Cable Rope Face Pull, Face Pull], pattern: rear_delt, muscle: shoulders, equipment: cable, step: 2.5}
   - {key: reverse_fly, name: Odwrotne rozpiętki z hantlami, en: [Dumbbell Rear Delt Fly, Dumbbell Reverse Fly, Bent Over Dumbbell Rear Delt Raise, Dumbbell Bent-Over Reverse Fly, Dumbbell Bent-Over Raise], pattern: rear_delt, muscle: shoulders, equipment: dumbbell, step: 1}
   - {key: reverse_pec_deck, name: Odwrotne rozpiętki na maszynie, en: [Reverse Pec Deck, Machine Reverse Fly], pattern: rear_delt, muscle: shoulders, equipment: machine, step: 5}
-  - {key: band_pull_apart, name: Rozciąganie gumy (pull-apart), en: [Band Pull Apart, Band Face Pull], pattern: rear_delt, muscle: shoulders, equipment: band, step: 0}
+  - {key: band_pull_apart, name: Rozciąganie gumy przed sobą (pull-apart), en: [Band Pull Apart, Band Face Pull], pattern: rear_delt, muscle: shoulders, equipment: band, step: 0}
   # ---------------------------------------------------------------- arms
   - {key: bb_curl, name: Uginanie ramion ze sztangą, en: [Barbell Curl, Barbell Biceps Curl, EZ Bar Curl], pattern: biceps, muscle: biceps, equipment: barbell, step: 2.5}
   - {key: db_curl, name: Uginanie ramion z hantlami, en: [Dumbbell Curl, Dumbbell Biceps Curl, Dumbbell Alternate Bicep Curl, Dumbbell Alternating Bicep Curl, Dumbbell Alternating Seated Curl], pattern: biceps, muscle: biceps, equipment: dumbbell, step: 1}
@@ -135,13 +136,13 @@ exercises:
   - {key: incline_machine_press, name: Wyciskanie na maszynie na skosie, en: [Machine Incline Chest Press, Leverage Incline Chest Press], pattern: push_h, muscle: chest, equipment: machine, step: 5}
   - {key: arnold_press, name: Wyciskanie Arnolda, en: [Dumbbell Arnold Press, Dumbbell Seated Arnold Press], pattern: push_v, muscle: shoulders, equipment: dumbbell, step: 2}
   - {key: front_raise, name: Unoszenie hantli przodem, en: [Dumbbell Front Raise, Dumbbell One-Arm Front Raise], pattern: lateral, muscle: shoulders, equipment: dumbbell, step: 1}
-  - {key: shrug, name: Szrugsy z hantlami, en: [Dumbbell Shoulder Shrug, Dumbbell Shrug], pattern: rear_delt, muscle: shoulders, equipment: dumbbell, step: 2}
+  - {key: shrug, name: Wzruszanie ramion z hantlami (szrugsy), en: [Dumbbell Shoulder Shrug, Dumbbell Shrug], pattern: rear_delt, muscle: shoulders, equipment: dumbbell, step: 2}
   - {key: hip_abduction, name: Odwodzenie nóg na maszynie, en: [Machine Hip Abduction], pattern: glute, muscle: posterior, equipment: machine, step: 5}
   - {key: rope_overhead_ext, name: Prostowanie ramion nad głową na wyciągu (lina), en: [Cable Rope Overhead Tricep Extension, Cable High Pulley Tricep Extension], pattern: triceps, muscle: triceps, equipment: cable, step: 2.5}
   - {key: preacher_curl, name: Uginanie ramion na modlitewniku, en: [Barbell Preacher Curl, EZ Bar Preacher Curl], pattern: biceps, muscle: biceps, equipment: barbell, step: 2.5}
   - {key: concentration_curl, name: Uginanie w koncentracji, en: [Dumbbell Concentration Curl], pattern: biceps, muscle: biceps, equipment: dumbbell, step: 1}
   - {key: front_squat, name: Przysiad przedni, en: [Barbell Front Squat], pattern: squat, muscle: quads, equipment: barbell, step: 2.5}
-  - {key: pallof, name: Pallof press, en: [Cable Pallof Press, Cable Pallof Press with Rotation], pattern: core_static, muscle: core, equipment: cable, step: 2.5}
+  - {key: pallof, name: Wypychanie Pallofa (anty-rotacja), en: [Cable Pallof Press, Cable Pallof Press with Rotation], pattern: core_static, muscle: core, equipment: cable, step: 2.5}
   # ---------------------------------------------------------------- calves
   - {key: db_calf, name: Wspięcia na palce z hantlami, en: [Dumbbell Calf Raise, Dumbbell Standing Calf Raise], pattern: calves, muscle: calves, equipment: dumbbell, step: 2}
   - {key: machine_calf, name: Wspięcia na palce na maszynie, en: [Machine Calf Raise, Standing Calf Raise], pattern: calves, muscle: calves, equipment: machine, step: 5}
@@ -152,10 +153,10 @@ exercises:
   - {key: captain_chair, name: Unoszenie nóg w podporze (poręcze), en: [Captain's Chair Leg Raise, Captains Chair Knee Raise], pattern: core_flex, muscle: core, equipment: machine, step: 0}
   - {key: crunch, name: Spięcia brzucha, en: [Crunch, Crunches], pattern: core_flex, muscle: core, equipment: bodyweight, step: 0}
   - {key: lying_leg_raise, name: Unoszenie nóg leżąc, en: [Lying Leg Raise, Leg Raise, Bench Leg Raise (Supine)], pattern: core_flex, muscle: core, equipment: bodyweight, step: 0}
-  - {key: plank, name: Plank, en: [Plank, Front Plank], pattern: core_static, muscle: core, equipment: bodyweight, kind: time, step: 0}
-  - {key: side_plank, name: Plank bokiem, en: [Side Plank], pattern: core_static, muscle: core, equipment: bodyweight, kind: time, step: 0}
+  - {key: plank, name: Deska (plank), en: [Plank, Front Plank], pattern: core_static, muscle: core, equipment: bodyweight, kind: time, step: 0}
+  - {key: side_plank, name: Deska bokiem (side plank), en: [Side Plank], pattern: core_static, muscle: core, equipment: bodyweight, kind: time, step: 0}
   - {key: ab_wheel, name: Kółko do brzucha, en: [Ab Wheel Rollout, Ab Roller], pattern: core_static, muscle: core, equipment: bodyweight, step: 0}
-  - {key: dead_bug, name: Dead bug, en: [Dead Bug], pattern: core_static, muscle: core, equipment: bodyweight, step: 0}
+  - {key: dead_bug, name: Martwy robak (dead bug), en: [Dead Bug], pattern: core_static, muscle: core, equipment: bodyweight, step: 0}
   # ---------------------------------------------------------------- more (2026-11): gaps in calves, kettlebell, machines, core
   - {key: bb_lunge, name: Wykroki ze sztangą, en: [Barbell Lunge, Barbell Walking Lunge, Barbell Reverse Lunge], pattern: lunge, muscle: quads, equipment: barbell, step: 2.5}
   - {key: kb_front_squat, name: Przysiad z dwoma kettlebell, en: [Kettlebell Front Squat, Double Kettlebell Front Squat], pattern: squat, muscle: quads, equipment: kettlebell, step: 4}
@@ -177,7 +178,7 @@ exercises:
   - {key: kb_row, name: Wiosłowanie kettlebell jednorącz, en: [Kettlebell One-Arm Row, One-Arm Kettlebell Row], pattern: pull_h, muscle: back, equipment: kettlebell, step: 4}
   - {key: reverse_row, name: Wiosłowanie sztangą podchwytem, en: [Barbell Reverse Grip Bent-Over Row, Reverse Grip Barbell Row], pattern: pull_h, muscle: back, equipment: barbell, step: 2.5}
   - {key: upright_row, name: Podciąganie sztangi wzdłuż tułowia, en: [Barbell Upright Row, Upright Row], pattern: lateral, muscle: shoulders, equipment: barbell, step: 2.5}
-  - {key: bb_shrug, name: Szrugsy ze sztangą, en: [Barbell Shrug, Barbell Shoulder Shrug], pattern: rear_delt, muscle: shoulders, equipment: barbell, step: 2.5}
+  - {key: bb_shrug, name: Wzruszanie ramion ze sztangą (szrugsy), en: [Barbell Shrug, Barbell Shoulder Shrug], pattern: rear_delt, muscle: shoulders, equipment: barbell, step: 2.5}
   - {key: cable_rear_delt, name: Odwrotne rozpiętki na wyciągu, en: [Cable Rear Delt Fly, Cable Reverse Fly, Cable Cross-Over Revers Fly], pattern: rear_delt, muscle: shoulders, equipment: cable, step: 2.5}
   - {key: cable_ext_rotation, name: Rotacja zewnętrzna na wyciągu, en: [Cable External Rotation, Cable Standing Shoulder External Rotation], pattern: rear_delt, muscle: shoulders, equipment: cable, step: 1.25}
   - {key: band_ext_rotation, name: Rotacja zewnętrzna z gumą, en: [Band External Rotation, Band Shoulder External Rotation], pattern: rear_delt, muscle: shoulders, equipment: band, step: 0}
@@ -201,6 +202,48 @@ exercises:
   - {key: leg_press_calf, name: Wspięcia na palce na suwnicy, en: [Leg Press Calf Raise, Calf Press, Sled Calf Press On Leg Press], pattern: calves, muscle: calves, equipment: machine, step: 5}
   - {key: bb_calf, name: Wspięcia na palce ze sztangą, en: [Barbell Standing Calf Raise, Barbell Calf Raise], pattern: calves, muscle: calves, equipment: barbell, step: 2.5}
   - {key: smith_calf, name: Wspięcia na palce na suwnicy Smitha, en: [Smith Machine Calf Raise, Smith Standing Calf Raise], pattern: calves, muscle: calves, equipment: machine, step: 2.5}
+
+  # ---------------------------------------------------------------- from the Jefit history (made by the import
+  # under their English names until 2026-11-12; ensure_library adopts such a row by its name in `en`)
+  - {key: bb_incline_row, name: Wiosłowanie sztangą leżąc na ławce skośnej, en: [Barbell Incline Bench Row], pattern: pull_h, muscle: back, equipment: barbell, step: 2.5}
+  - {key: one_arm_pulldown, name: Ściąganie wyciągu górnego jednorącz, en: [Cable One-Arm Lat Pulldown], pattern: pull_v, muscle: back, equipment: cable, step: 2.5}
+  - {key: one_arm_cable_row, name: Przyciąganie linki wyciągu dolnego jednorącz, en: [Cable One-Arm Seated Row], pattern: pull_h, muscle: back, equipment: cable, step: 2.5}
+  - {key: smith_row, name: Wiosłowanie na suwnicy Smitha, en: [Smith Machine Bent-Over Row], pattern: pull_h, muscle: back, equipment: machine, step: 2.5}
+  - {key: db_pullover, name: Przenoszenie hantla za głowę (pullover), en: [Dumbbell Pullover], pattern: pull_v, muscle: back, equipment: dumbbell, step: 2}
+  - {key: bb_decline, name: Wyciskanie sztangi na skosie ujemnym, en: [Barbell Decline Bench Press], pattern: push_h, muscle: chest, equipment: barbell, step: 2.5}
+  - {key: db_decline, name: Wyciskanie hantli na skosie ujemnym, en: [Dumbbell Decline Bench Press], pattern: push_h, muscle: chest, equipment: dumbbell, step: 2}
+  - {key: decline_machine_press, name: Wyciskanie na maszynie na skosie ujemnym, en: [Leverage Decline Chest Press], pattern: push_h, muscle: chest, equipment: machine, step: 5}
+  - {key: deep_pushup, name: Pompki głębokie na hantlach, en: [Dumbbell Deep Push-Up], pattern: push_h, muscle: chest, equipment: bodyweight, step: 0}
+  - {key: band_fly, name: Rozpiętki z gumą, en: [Band Cross-Over], pattern: fly, muscle: chest, equipment: band, step: 0}
+  - {key: band_reverse_fly, name: Odwrotne rozpiętki z gumą, en: [Band Reverse Fly], pattern: rear_delt, muscle: shoulders, equipment: band, step: 0}
+  - {key: band_upright_row, name: Podciąganie gumy wzdłuż tułowia, en: [Band Upright Row], pattern: lateral, muscle: shoulders, equipment: band, step: 0}
+  - {key: incline_lateral, name: Unoszenie hantla bokiem jednorącz na skosie, en: [Dumbbell One-Arm Incline Lateral Raise], pattern: lateral, muscle: shoulders, equipment: dumbbell, step: 1}
+  - {key: neck_extension, name: Prostowanie szyi z talerzem leżąc przodem, en: [Weight Plate Neck Extension (Prone)], pattern: rear_delt, muscle: shoulders, equipment: bodyweight, step: 0}
+  - {key: neck_flexion, name: Zginanie szyi z talerzem leżąc na plecach, en: [Weight Plate Neck Flexion (Supine)], pattern: rear_delt, muscle: shoulders, equipment: bodyweight, step: 0}
+  - {key: one_arm_reverse_pushdown, name: Prostowanie ramienia na wyciągu jednorącz podchwytem, en: [Cable One-Arm Tricep Pushdown (Reverse Grip)], pattern: triceps, muscle: triceps, equipment: cable, step: 1}
+  - {key: db_kickback, name: Prostowanie ramienia z hantlem w opadzie (kickback), en: [Dumbbell One-Arm Tricep Kickback, Dumbbell Tricep Kickback], pattern: triceps, muscle: triceps, equipment: dumbbell, step: 1}
+  - {key: one_arm_overhead_ext, name: Prostowanie ramienia z hantlem nad głową jednorącz, en: [Dumbbell Seated One-Arm Tricep Extension], pattern: triceps, muscle: triceps, equipment: dumbbell, step: 1}
+  - {key: rope_hammer_curl, name: Uginanie młotkowe na wyciągu (lina), en: [Cable Rope Hammer Curl], pattern: biceps, muscle: biceps, equipment: cable, step: 2.5}
+  - {key: wrist_curl, name: Uginanie nadgarstków z hantlami (podchwyt), en: [Dumbbell Seated Wrist Curl], pattern: biceps, muscle: biceps, equipment: dumbbell, step: 1}
+  - {key: reverse_wrist_curl, name: Prostowanie nadgarstków z hantlami (nachwyt), en: [Dumbbell Wrist Curl (Palms Down)], pattern: biceps, muscle: biceps, equipment: dumbbell, step: 1}
+  - {key: wrist_rotation, name: Rotacje nadgarstków z hantlami, en: [wrist rotations with dumbbells], pattern: biceps, muscle: biceps, equipment: dumbbell, step: 1}
+  - {key: bb_sumo_squat, name: Przysiad sumo ze sztangą, en: [Barbell Sumo Squat], pattern: squat, muscle: quads, equipment: barbell, step: 2.5}
+  - {key: poliquin_step, name: Przysiad Poliquina na stopniu, en: [Poliquin step, Poliquin Step-Up], pattern: lunge, muscle: quads, equipment: bodyweight, step: 0}
+  - {key: cable_kickback, name: Odrzuty nogi na wyciągu, en: [Cable Leg Kickback], pattern: glute, muscle: posterior, equipment: cable, step: 2.5}
+  - {key: copenhagen, name: Deska kopenhaska (przywodziciele), en: [Copenhagen adduction, Copenhagen Plank], pattern: glute, muscle: posterior, equipment: bodyweight, step: 0}
+  - {key: slrdl_rotation, name: Martwy ciąg jednonóż z rotacją biodra, en: [hip rotations in a single-leg deadlift], pattern: hinge, muscle: posterior, equipment: bodyweight, step: 0}
+  - {key: db_side_bend, name: Skłony boczne z hantlem, en: [Dumbbell Side Bend], pattern: core_flex, muscle: core, equipment: dumbbell, step: 2}
+  - {key: bicycle_crunch, name: Rowerek (spięcia skośne), en: [Air Bike, Bicycle Crunch], pattern: core_flex, muscle: core, equipment: bodyweight, step: 0}
+  - {key: scissor_kick, name: Nożyce, en: [Scissor Kick, Scissor Kicks], pattern: core_flex, muscle: core, equipment: bodyweight, step: 0}
+  - {key: russian_twist, name: Skręty rosyjskie z talerzem (russian twist), en: [Weight Plate Russian Twist, Russian Twist], pattern: core_flex, muscle: core, equipment: bodyweight, step: 0}
+  - {key: plate_rotation, name: Rotacje tułowia z talerzem, en: [Weight Plate Rotation], pattern: core_static, muscle: core, equipment: bodyweight, step: 0}
+  - {key: mountain_climber, name: Wspinaczka (mountain climber), en: [Mountain Climber, Mountain Climbers], pattern: core_static, muscle: core, equipment: bodyweight, step: 0}
+  - {key: plank_rotation, name: Deska z rotacją, en: [plank rotations, Plank Rotation], pattern: core_static, muscle: core, equipment: bodyweight, step: 0}
+  # ---------------------------------------------------------------- mobility done inside a workout (the same moves as in stretches.yaml)
+  - {key: arm_circles_ex, name: Krążenia ramion, en: [Arm Circles], pattern: mobility, muscle: shoulders, equipment: bodyweight, step: 0}
+  - {key: leg_swing_ex, name: Wymachy nogą, en: [Leg Swing, Leg Swings], pattern: mobility, muscle: posterior, equipment: bodyweight, step: 0}
+  - {key: toe_touch_ex, name: Skłony do palców, en: [toe touches, Standing Toe Touches], pattern: mobility, muscle: posterior, equipment: bodyweight, step: 0}
+  - {key: quad_stretch_ex, name: Rozciąganie przodu uda w klęku podpartym, en: [All Fours Quad Stretch], pattern: mobility, muscle: quads, equipment: bodyweight, step: 0}
 
 # starter plans (FBW from Jefit); reps: the target = top of the range, the bottom is derived (12 → 8–12)
 # key: remembered on the plan (seed); later: true = also added to a household that already has plans;

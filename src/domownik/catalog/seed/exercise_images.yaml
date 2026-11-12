@@ -144,33 +144,40 @@ by_key:
   leg_press_calf: Calf Press On The Leg Press Machine
   bb_calf: Standing Barbell Calf Raise
   smith_calf: Smith Machine Calf Raise
+  one_arm_pulldown: One Arm Lat Pulldown
+  one_arm_cable_row: Seated One-arm Cable Pulley Rows
+  smith_row: Smith Machine Bent Over Row
+  db_pullover: Straight-Arm Dumbbell Pullover
+  bb_decline: Decline Barbell Bench Press
+  db_decline: Decline Dumbbell Bench Press
+  decline_machine_press: Leverage Decline Chest Press
+  band_fly: Cross Over - With Bands
+  band_reverse_fly: Back Flyes - With Bands
+  band_upright_row: Upright Row - With Bands
+  incline_lateral: One-Arm Incline Lateral Raise
+  neck_extension: Lying Face Down Plate Neck Resistance
+  neck_flexion: Lying Face Up Plate Neck Resistance
+  one_arm_reverse_pushdown: Reverse Grip Triceps Pushdown
+  db_kickback: Tricep Dumbbell Kickback
+  one_arm_overhead_ext: Dumbbell One-Arm Triceps Extension
+  rope_hammer_curl: Cable Hammer Curls - Rope Attachment
+  wrist_curl: Seated Dumbbell Palms-Up Wrist Curl
+  reverse_wrist_curl: Seated Dumbbell Palms-Down Wrist Curl
+  cable_kickback: One-Legged Cable Kickback
+  db_side_bend: Dumbbell Side Bend
+  bicycle_crunch: Air Bike
+  scissor_kick: Scissor Kick
+  russian_twist: Russian Twist
+  mountain_climber: Mountain Climbers
+  arm_circles_ex: Arm Circles
+  toe_touch_ex: Standing Toe Touches
+  quad_stretch_ex: All Fours Quad Stretch
+  bb_incline_row: Dumbbell Incline Row
+  deep_pushup: Close-Grip Push-Up off of a Dumbbell
+  wrist_rotation: Wrist Rotations with Straight Bar
+  plate_rotation: Plate Twist
+  slrdl_rotation: Kettlebell One-Legged Deadlift
+  leg_swing_ex: Front Leg Raises
+
 by_name:
-  Barbell Decline Bench Press: Decline Barbell Bench Press
-  Dumbbell Decline Bench Press: Decline Dumbbell Bench Press
-  Band Cross-Over: Cross Over - With Bands
-  Band Reverse Fly: Back Flyes - With Bands
-  Air Bike: Air Bike
-  Dumbbell Side Bend: Dumbbell Side Bend
-  Smith Machine Bent-Over Row: Smith Machine Bent Over Row
   Dumbbell Hammer Curl: Hammer Curls
-  Dumbbell Wrist Curl (Palms Down): Seated Dumbbell Palms-Down Wrist Curl
-  Dumbbell One-Arm Tricep Kickback: Tricep Dumbbell Kickback
-  Band Upright Row: Upright Row - With Bands
-  Cable One-Arm Tricep Pushdown (Reverse Grip): Reverse Grip Triceps Pushdown
-  Dumbbell Seated One-Arm Tricep Extension: Dumbbell One-Arm Triceps Extension
-  Cable Rope Hammer Curl: Cable Hammer Curls - Rope Attachment
-  Weight Plate Russian Twist: Russian Twist
-  Scissor Kick: Scissor Kick
-  Dumbbell Pullover: Straight-Arm Dumbbell Pullover
-  Weight Plate Neck Extension (Prone): Lying Face Down Plate Neck Resistance
-  Weight Plate Neck Flexion (Supine): Lying Face Up Plate Neck Resistance
-  Dumbbell One-Arm Incline Lateral Raise: One-Arm Incline Lateral Raise
-  All Fours Quad Stretch: All Fours Quad Stretch
-  Mountain Climber: Mountain Climbers
-  Cable One-Arm Lat Pulldown: One Arm Lat Pulldown
-  Leverage Decline Chest Press: Leverage Decline Chest Press
-  Arm Circles: Arm Circles
-  Cable One-Arm Seated Row: Seated One-arm Cable Pulley Rows
-  Cable Leg Kickback: One-Legged Cable Kickback
-  Dumbbell Seated Wrist Curl: Seated Dumbbell Palms-Up Wrist Curl
-  toe touches: Standing Toe Touches
