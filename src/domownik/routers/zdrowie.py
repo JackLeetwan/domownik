@@ -6,13 +6,25 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from domownik import documents, health, privacy, supplements
 from domownik.config import get_settings, today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
-from domownik.models import DOC_KINDS, MEDICAL_DOC_KINDS, HealthLink, Issue, Item, Medication, Task, User
+from domownik.models import (
+    DOC_KINDS,
+    MEDICAL_DOC_KINDS,
+    HealthLink,
+    HealthReading,
+    Issue,
+    Item,
+    Medication,
+    Supplement,
+    Task,
+    User,
+)
 from domownik.routers.contacts import tel_href
 from domownik.routers.documents import _form_error, too_big
 from domownik.security import current_user, verify_csrf
@@ -86,6 +98,7 @@ def overview(request: Request, db: Session = Depends(get_db), user: User = Depen
         issues = [i for i in p.issues if i.resolved_on is None]
         meds_now, _ = health.split_meds(health.medications(db, p.id), t)
         cards.append({"item": p, "rows": ov.rows_by_person[p.id], "issues": issues, "meds": meds_now})
+    money = health.spending(db, tree, people, t.year)
     return render(
         request,
         "zdrowie.html",
@@ -94,6 +107,8 @@ def overview(request: Request, db: Session = Depends(get_db), user: User = Depen
             "cards": cards,
             "other_rows": ov.other_rows,
             "calendar": health.calendar_visits(db, t),
+            "money": money,
+            "year": t.year,
         },
     )
 
@@ -108,7 +123,14 @@ def person(request: Request, item_id: int, db: Session = Depends(get_db), user: 
     meds_now, meds_past = health.split_meds(health.medications(db, item.id), t)
     files = health.medical_files(db, item)
     issues = list(item.issues)
-    own_supps = supplements.mine(db, user) if item.user_id == user.id else []
+    own_supps = [s for s in supplements.mine(db, user) if s.medication_id is None] if item.user_id == user.id else []
+    reminders = {
+        s.medication_id: s
+        for s in db.scalars(
+            select(Supplement).where(Supplement.user_id == user.id, Supplement.medication_id.is_not(None))
+        )
+    }
+    money = health.spending(db, tree, people, t.year)
     return render(
         request,
         "zdrowie_osoba.html",
@@ -128,6 +150,16 @@ def person(request: Request, item_id: int, db: Session = Depends(get_db), user: 
             "other_contacts": [c for c in item.contacts if not (c.role or "").startswith("Lekarz")],
             "supplements": own_supps,
             "issue_names": {i.id: i.title for i in issues},
+            "reminders": reminders,
+            "profile": health.profile(item),
+            "profile_fields": health.PROFILE,
+            "blood_types": health.BLOOD_TYPES,
+            "series": health.readings(db, item.id),
+            "reading_kinds": health.READING_KINDS,
+            "spent": money["by_person"].get(item.id, 0),
+            "spent_rows": money["recent"].get(item.id, [])[:10],
+            "money_found": money["found"],
+            "year": t.year,
         },
     )
 
@@ -156,6 +188,12 @@ def issue_page(request: Request, issue_id: int, db: Session = Depends(get_db), u
             "tasks": [x for x in health.issue_tasks(db, issue.id) if x.active],
             "done_tasks": [x for x in health.issue_tasks(db, issue.id) if not x.active],
             "label": tree.label,
+            "reminders": {
+                s.medication_id: s
+                for s in db.scalars(
+                    select(Supplement).where(Supplement.user_id == user.id, Supplement.medication_id.is_not(None))
+                )
+            },
         },
     )
 
@@ -242,7 +280,29 @@ def _apply_med(m: Medication, form) -> None:
     if m.started_on and m.ends_on and m.ends_on < m.started_on:
         raise HTTPException(400, "Koniec jest przed początkiem")
     m.prescription = (form.get("prescription") or "").strip()[:200] or None
+    m.rx_until = _date(form.get("rx_until"))
     m.notes = (form.get("notes") or "").strip() or None
+
+
+def _after_med(db: Session, m: Medication, form, user: User) -> None:
+    """Prescription task and "🔔 Przypominaj mi" (only the viewer's own reminder) from the form."""
+    health.sync_rx_task(db, m)
+    if "remind_field" in form:
+        time = supplements.parse_time(form.get("remind_time")) if form.get("remind") else None
+        if form.get("remind") and time is None:
+            raise HTTPException(400, "Podaj godzinę przypomnienia, np. 8:00")
+        health.set_reminder(db, m, user, time, today())
+
+
+def _drop_med_extras(db: Session, m: Medication) -> None:
+    """The medicine is over: its reminders stop, an open renewal task goes."""
+    for s in db.scalars(select(Supplement).where(Supplement.medication_id == m.id)):
+        s.active = False
+    if m.rx_task_id:
+        t = db.get(Task, m.rx_task_id)
+        if t is not None and t.active:
+            db.delete(t)
+        m.rx_task_id = None
 
 
 def _get_med(db: Session, med_id: int) -> Medication:
@@ -268,6 +328,8 @@ async def add_med(request: Request, item_id: int, db: Session = Depends(get_db),
         m.started_on = today()
     m.private_to_id = _private(form, user, issue)
     db.add(m)
+    db.flush()
+    _after_med(db, m, form, user)
     db.commit()
     return _back(form, f"/zdrowie/{item.id}#leki")
 
@@ -281,6 +343,7 @@ async def edit_med(request: Request, med_id: int, db: Session = Depends(get_db),
     m.issue_id = issue.id if issue else None
     if privacy.FIELD in form:
         m.private_to_id = _private(form, user, issue)
+    _after_med(db, m, form, user)
     db.commit()
     return _back(form, f"/zdrowie/{m.item_id}#leki")
 
@@ -293,6 +356,7 @@ async def end_med(request: Request, med_id: int, db: Session = Depends(get_db), 
     m.ends_on = yesterday
     if m.started_on and m.started_on > yesterday:
         m.started_on = yesterday
+    _drop_med_extras(db, m)
     db.commit()
     return _back(form, f"/zdrowie/{m.item_id}#leki")
 
@@ -302,6 +366,9 @@ async def delete_med(request: Request, med_id: int, db: Session = Depends(get_db
     m = _get_med(db, med_id)
     form = await request.form()
     item_id = m.item_id
+    _drop_med_extras(db, m)
+    for s in db.scalars(select(Supplement).where(Supplement.medication_id == m.id)):
+        db.delete(s)
     db.delete(m)
     db.commit()
     return _back(form, f"/zdrowie/{item_id}#leki")
@@ -372,3 +439,59 @@ async def delete_link(
     db.delete(h)
     db.commit()
     return _back(form, f"/zdrowie/{item_id}#dokumentacja")
+
+
+# ---------------------------------------------------------------- medical profile and readings
+
+
+@router.post("/{item_id}/profil", dependencies=[Depends(verify_csrf)])
+async def save_profile(
+    request: Request, item_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    item = _member(db, item_id)
+    health.save_profile(item, await request.form())
+    db.commit()
+    return _redirect(f"/zdrowie/{item.id}#profil")
+
+
+@router.post("/{item_id}/pomiary", dependencies=[Depends(verify_csrf)])
+async def add_reading(
+    request: Request, item_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    item = _member(db, item_id)
+    form = await request.form()
+    name = (form.get("name") or "").strip()[:60]
+    value = health.parse_number(form.get("value"))
+    if not name or value is None:
+        raise HTTPException(400, "Podaj, co zmierzone i wynik")
+    kind = health.READING_KINDS.get(name)
+    value2 = health.parse_number(form.get("value2")) if kind is None or kind[1] else None
+    if kind and kind[1] and value2 is None:
+        raise HTTPException(400, "Ciśnienie: podaj obie wartości, np. 120 / 80")
+    unit = (form.get("unit") or "").strip()[:20] or (kind[0] if kind else None)
+    db.add(
+        HealthReading(
+            item_id=item.id,
+            name=name,
+            value=value,
+            value2=value2,
+            unit=unit,
+            measured_on=_date(form.get("measured_on")) or today(),
+            note=(form.get("note") or "").strip()[:200] or None,
+            private_to_id=user.id if form.get("private") else None,
+            created_by_id=user.id,
+        )
+    )
+    db.commit()
+    return _redirect(f"/zdrowie/{item.id}#pomiary")
+
+
+@router.post("/pomiary/{reading_id}/delete", dependencies=[Depends(verify_csrf)])
+def delete_reading(reading_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    r = db.get(HealthReading, reading_id)
+    if r is None:
+        raise HTTPException(404, "Nie ma takiego pomiaru")
+    item_id = r.item_id
+    db.delete(r)
+    db.commit()
+    return _redirect(f"/zdrowie/{item_id}#pomiary")

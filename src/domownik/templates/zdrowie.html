@@ -30,6 +30,15 @@
   {% endfor %}
 </section>
 
+{% if money.found and money.total %}
+<section class="hl-money">
+  <h2>💸 Wydatki na zdrowie {{ year }}: {{ money.total|pln }}</h2>
+  {% set named = cards|selectattr('item.id', 'in', money.by_person)|list %}
+  {% if named %}<p class="hl-line">{% for c in named %}{{ c.item.display_icon }} {{ c.item.name }} {{ money.by_person[c.item.id]|pln }}{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+  <p class="muted"><small>Z kategorii budżetu „Zdrowie”. Wydatek przypisany do osoby (strefa w budżecie) liczy się przy niej. <a href="/budzet">Budżet →</a></small></p>
+</section>
+{% endif %}
+
 {% if other_rows %}
 <section>
   <h2>Inne zdrowotne</h2>

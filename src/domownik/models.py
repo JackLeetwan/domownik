@@ -1314,6 +1314,9 @@ class Medication(Base):
     started_on: Mapped[date | None] = mapped_column(Date)
     ends_on: Mapped[date | None] = mapped_column(Date)
     prescription: Mapped[str | None] = mapped_column(String(200))  # e-prescription code, who prescribed it
+    # the prescription runs out / has to be renewed by → a health task (rx_task_id) that reminds a week before
+    rx_until: Mapped[date | None] = mapped_column(Date)
+    rx_task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id", ondelete="SET NULL"))
     notes: Mapped[str | None] = mapped_column(Text)
     # visible only to this account (None = shared with the household) – see db.private_filter
     private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
@@ -1322,6 +1325,7 @@ class Medication(Base):
 
     item: Mapped[Item] = relationship()
     issue: Mapped[Issue | None] = relationship()
+    rx_task: Mapped[Task | None] = relationship()
 
     def current(self, day: date) -> bool:
         return (self.started_on is None or self.started_on <= day) and (self.ends_on is None or self.ends_on >= day)
@@ -1337,6 +1341,25 @@ class HealthLink(Base):
     issue_id: Mapped[int | None] = mapped_column(ForeignKey("issue.id", ondelete="SET NULL"), index=True)
     title: Mapped[str] = mapped_column(String(200))
     url: Mapped[str] = mapped_column(String(1000))
+    # visible only to this account (None = shared with the household) – see db.private_filter
+    private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class HealthReading(Base):
+    """A measured number of a person: blood pressure (value / value2), pulse, sugar, cholesterol, temperature."""
+
+    __tablename__ = "health_reading"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(60))
+    value: Mapped[float]
+    value2: Mapped[float | None]  # the diastolic pressure
+    unit: Mapped[str | None] = mapped_column(String(20))
+    measured_on: Mapped[date] = mapped_column(Date)
+    note: Mapped[str | None] = mapped_column(String(200))
     # visible only to this account (None = shared with the household) – see db.private_filter
     private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
@@ -1365,6 +1388,8 @@ class Supplement(Base):
     restock_listed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
     started_on: Mapped[date] = mapped_column(Date)  # the streak counts from here (resume sets it again)
+    # a medicine from 🩺 Zdrowie reminded like a supplement ("🔔 Przypominaj mi") – paused once it ends
+    medication_id: Mapped[int | None] = mapped_column(ForeignKey("medication.id", ondelete="SET NULL"))
     pushed_on: Mapped[date | None] = mapped_column(Date)
     again_on: Mapped[date | None] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

@@ -8,7 +8,16 @@
   <label>Od<input type="date" name="started_on" value="{{ mf.started_on.isoformat() if mf and mf.started_on else today().isoformat() }}"></label>
   <label>Do <small class="muted">(puste = na stałe)</small><input type="date" name="ends_on" value="{{ mf.ends_on.isoformat() if mf and mf.ends_on else '' }}"></label>
 </div>
-<label>Recepta<input name="prescription" maxlength="200" value="{{ mf.prescription or '' if mf else '' }}" placeholder="kod e-recepty, kto przepisał, do kiedy ważna"></label>
+<div class="grid">
+  <label>Recepta<input name="prescription" maxlength="200" value="{{ mf.prescription or '' if mf else '' }}" placeholder="kod e-recepty, kto przepisał"></label>
+  <label>Odnowić receptę do <small class="muted">(przypomni tydzień wcześniej)</small><input type="date" name="rx_until" value="{{ mf.rx_until.isoformat() if mf and mf.rx_until else '' }}"></label>
+</div>
+{% set rem = reminders.get(mf.id) if mf and reminders is defined else None %}
+<input type="hidden" name="remind_field" value="1">
+<div class="grid hl-remind">
+  <label class="private-switch"><input type="checkbox" name="remind" value="1" role="switch" {% if rem %}checked{% endif %}> 🔔 Przypominaj mi codziennie <small class="muted">push + ✓ w Formie, do końca brania</small></label>
+  <label>o godzinie<input type="time" name="remind_time" value="{{ rem.time if rem and rem.time else '08:00' }}"></label>
+</div>
 {% if issue is defined %}<input type="hidden" name="issue_id" value="{{ issue.id }}">
 {% elif open_issues or closed_issues %}
 <label>Na co

@@ -69,6 +69,7 @@ class Overview:
     income: list[Row] = field(default_factory=list)
     property: list[Row] = field(default_factory=list)
     documents: list[Row] = field(default_factory=list)
+    health: list[Row] = field(default_factory=list)
     contacts: list[Contact] = field(default_factory=list)
 
 
@@ -121,7 +122,31 @@ def overview(db: Session, today: date) -> Overview:
         if a.item_id in tree.items:
             label = a.description or a.original_name
             out.documents.append(Row(DOC_KINDS[a.doc_kind][1], label, tree.label(a.item_id), DOC_KINDS[a.doc_kind][0]))
+    out.health = _health_rows(db, tree, today)
     out.contacts = list(db.scalars(select(Contact).order_by(Contact.role, Contact.name)))
+    return out
+
+
+def _health_rows(db: Session, tree: Tree, today: date) -> list[Row]:
+    """Per member: blood type, allergies, illnesses (🩺 Zdrowie → Najważniejsze) and the medicines taken now –
+    never a private one (the folder is printed for the whole family)."""
+    from domownik import health
+    from domownik.models import Medication
+
+    out = []
+    for p in health.members(db, tree):
+        prof = health.profile(p)
+        meds = [
+            m
+            for m in db.scalars(select(Medication).where(Medication.item_id == p.id, Medication.private_to_id.is_(None)))
+            if m.current(today) and (m.issue_id is None or (m.issue is not None and m.issue.private_to_id is None))
+        ]
+        if not prof and not meds:
+            continue
+        parts = [f"{lbl}: {prof[k]}" for k, lbl, _ in health.PROFILE if k in prof and k != "health_notes"]
+        if meds:
+            parts.append("Leki: " + ", ".join(" ".join(x for x in (m.name, m.dose, m.schedule) if x) for m in meds))
+        out.append(Row(p.display_icon, p.name, "", " · ".join(parts), prof.get("health_notes", "")))
     return out
 
 

@@ -335,10 +335,12 @@ def payload(user: User, day: date, time: str, sups: list[Supplement], *, again: 
 
 def run(db: Session, at: datetime | None = None) -> int:
     """Scheduler step (every minute). Returns how many pushes went out."""
-    from domownik import notify
+    from domownik import health, notify
 
     at = (at or _now()).replace(tzinfo=None)
     day = at.date()
+    if health.pause_ended(db, day):  # a medicine's reminder ends with the medicine
+        db.commit()
     sups = list(db.scalars(select(Supplement).where(Supplement.active.is_(True), Supplement.time.is_not(None))))
     by_group: dict[tuple[int, str], list[Supplement]] = {}
     for s in sups:

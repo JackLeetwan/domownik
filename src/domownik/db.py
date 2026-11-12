@@ -132,7 +132,17 @@ def _private_filter(state: ORMExecuteState) -> None:
         return
     if state.is_column_load or state.is_relationship_load:
         return  # the criteria below propagate to these loads by themselves
-    from domownik.models import Attachment, BoardNote, ExternalCalendar, HealthLink, Issue, Medication, Task, Todo
+    from domownik.models import (
+        Attachment,
+        BoardNote,
+        ExternalCalendar,
+        HealthLink,
+        HealthReading,
+        Issue,
+        Medication,
+        Task,
+        Todo,
+    )
 
     vid = state.session.info[VIEWER] or 0
     state.statement = state.statement.options(
@@ -140,6 +150,16 @@ def _private_filter(state: ORMExecuteState) -> None:
             with_loader_criteria(
                 model, lambda cls: or_(cls.private_to_id.is_(None), cls.private_to_id == vid), include_aliases=True
             )
-            for model in (Task, BoardNote, Todo, ExternalCalendar, Issue, Attachment, Medication, HealthLink)
+            for model in (
+                Task,
+                BoardNote,
+                Todo,
+                ExternalCalendar,
+                Issue,
+                Attachment,
+                Medication,
+                HealthLink,
+                HealthReading,
+            )
         )
     )

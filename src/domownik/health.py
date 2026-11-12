@@ -22,12 +22,17 @@ from domownik.models import (
     MEDICAL_DOC_KINDS,
     MEMBER_KINDS,
     Attachment,
+    BudgetCategory,
     ExternalEvent,
     HealthLink,
+    HealthReading,
     Issue,
     Item,
     Medication,
+    Supplement,
     Task,
+    Transaction,
+    User,
 )
 
 HEALTH = "health"
@@ -153,3 +158,212 @@ def clean_url(raw: str | None) -> str | None:
             return None
         url = "https://" + url
     return url[:1000] if re.match(r"^https?://[^\s/]+", url, re.IGNORECASE) else None
+
+
+# ---------------------------------------------------------------- medical profile (Item.attributes of a member)
+
+PROFILE: tuple[tuple[str, str, str], ...] = (
+    # attribute key, label, placeholder
+    ("blood_type", "Grupa krwi", "np. A Rh+"),
+    ("allergies", "Alergie", "leki, pokarmy, użądlenia – albo „brak”"),
+    ("chronic", "Choroby przewlekłe", "np. astma, cukrzyca"),
+    ("health_notes", "Ważne dla ratownika / lekarza", "implanty, rozrusznik, przebyte operacje…"),
+)
+BLOOD_TYPES = ("0 Rh+", "0 Rh−", "A Rh+", "A Rh−", "B Rh+", "B Rh−", "AB Rh+", "AB Rh−")
+
+
+def profile(item: Item) -> dict[str, str]:
+    attrs = item.attributes or {}
+    return {k: str(attrs[k]) for k, _, _ in PROFILE if attrs.get(k)}
+
+
+def save_profile(item: Item, form) -> None:
+    attrs = dict(item.attributes or {})
+    for k, _, _ in PROFILE:
+        v = str(form.get(k) or "").strip()[:300]
+        if v:
+            attrs[k] = v
+        else:
+            attrs.pop(k, None)
+    item.attributes = attrs  # a new dict – JSON columns do not track in-place changes
+
+
+# ---------------------------------------------------------------- medicine reminders and prescription renewal
+
+RX_LEAD_DAYS = 7
+
+
+def reminder_of(db: Session, m: Medication, user: User) -> Supplement | None:
+    return db.scalar(select(Supplement).where(Supplement.medication_id == m.id, Supplement.user_id == user.id))
+
+
+def set_reminder(db: Session, m: Medication, user: User, time: str | None, day: date) -> None:
+    """ "🔔 Przypominaj mi o 8:00": the medicine becomes one of the person's supplements (push + ✓ in Forma)."""
+    s = reminder_of(db, m, user)
+    if time is None:
+        if s is not None:
+            db.delete(s)
+        return
+    if s is None:
+        s = Supplement(user_id=user.id, medication_id=m.id, started_on=day, per_take=1)
+        db.add(s)
+    s.name = f"💊 {m.name}"[:60]
+    s.dose = (m.dose or "")[:40] or None
+    s.time = time
+    s.active = m.current(day) or (m.started_on is not None and m.started_on > day)
+
+
+def pause_ended(db: Session, day: date) -> int:
+    """Reminders of medicines that ended stop (the scheduler, once a minute – cheap)."""
+    n = 0
+    for s in db.scalars(select(Supplement).where(Supplement.medication_id.is_not(None), Supplement.active.is_(True))):
+        m = db.get(Medication, s.medication_id)
+        if m is not None and m.ends_on is not None and m.ends_on < day:
+            s.active = False
+            n += 1
+    return n
+
+
+def rx_title(m: Medication) -> str:
+    return f"Recepta: {m.name} – odnowić"[:200]
+
+
+def sync_rx_task(db: Session, m: Medication) -> None:
+    """A one-off health task on rx_until (a week ahead); cleared date → the open task goes away."""
+    t = db.get(Task, m.rx_task_id) if m.rx_task_id else None
+    if m.rx_until is None:
+        if t is not None and t.active:
+            db.delete(t)
+        m.rx_task_id = None
+        return
+    if t is None:
+        t = Task(item_id=m.item_id, category=HEALTH, direction="none", lead_days=RX_LEAD_DAYS)
+        db.add(t)
+    t.title = rx_title(m)
+    t.issue_id = m.issue_id
+    t.private_to_id = m.private_to_id
+    t.recurrence = {"mode": "once", "date": m.rx_until.isoformat()}
+    t.next_due_date = m.rx_until
+    t.active = True
+    t.notes = "Recepta kończy się albo trzeba ją odnowić – umów teleporadę / wizytę. " + (m.prescription or "")
+    db.flush()
+    m.rx_task_id = t.id
+
+
+# ---------------------------------------------------------------- readings (blood pressure, sugar…)
+
+READING_KINDS: dict[str, tuple[str, bool]] = {
+    # name: (unit, two values)
+    "Ciśnienie": ("mmHg", True),
+    "Tętno": ("ud./min", False),
+    "Glukoza": ("mg/dl", False),
+    "Cholesterol całkowity": ("mg/dl", False),
+    "LDL": ("mg/dl", False),
+    "Temperatura": ("°C", False),
+    "Saturacja": ("%", False),
+    "Masa ciała": ("kg", False),
+}
+
+
+def fmt(v: float | None) -> str:
+    if v is None:
+        return ""
+    return (f"{v:.1f}".rstrip("0").rstrip(".")).replace(".", ",")
+
+
+@dataclass
+class Series:
+    name: str
+    unit: str | None
+    rows: list[HealthReading]  # newest first
+
+    @property
+    def last(self) -> HealthReading:
+        return self.rows[0]
+
+    def label(self, r: HealthReading) -> str:
+        v = fmt(r.value) + (f"/{fmt(r.value2)}" if r.value2 is not None else "")
+        return f"{v} {self.unit or ''}".strip()
+
+    def chart(self) -> dict | None:
+        """Up to the last 30 readings as a line (two lines for blood pressure), for an inline SVG."""
+        pts = sorted(self.rows[:30], key=lambda r: (r.measured_on, r.id))
+        if len(pts) < 2:
+            return None
+        vals = [r.value for r in pts] + [r.value2 for r in pts if r.value2 is not None]
+        lo, hi = min(vals), max(vals)
+        pad = max(0.5, (hi - lo) * 0.1)
+        lo, hi = lo - pad, hi + pad
+        w, h = 300, 80
+        first, last = pts[0].measured_on, pts[-1].measured_on
+        span = max(1, (last - first).days)
+
+        def xy(r: HealthReading, v: float) -> str:
+            x = 4 + (r.measured_on - first).days / span * (w - 8)
+            return f"{x:.1f},{4 + (hi - v) / (hi - lo) * (h - 8):.1f}"
+
+        return {
+            "w": w,
+            "h": h,
+            "line": " ".join(xy(r, r.value) for r in pts),
+            "line2": " ".join(xy(r, r.value2) for r in pts if r.value2 is not None),
+            "from": first,
+            "to": last,
+        }
+
+
+def readings(db: Session, item_id: int) -> list[Series]:
+    rows = db.scalars(
+        select(HealthReading)
+        .where(HealthReading.item_id == item_id)
+        .order_by(HealthReading.measured_on.desc(), HealthReading.id.desc())
+    ).all()
+    by: dict[str, list[HealthReading]] = {}
+    for r in rows:
+        by.setdefault(r.name, []).append(r)
+    return sorted(
+        (Series(n, rs[0].unit, rs) for n, rs in by.items()), key=lambda s: s.rows[0].measured_on, reverse=True
+    )
+
+
+def parse_number(raw) -> float | None:
+    v = str(raw or "").strip().replace(",", ".")
+    if not v:
+        return None
+    try:
+        return float(v)
+    except ValueError:
+        return None
+
+
+# ---------------------------------------------------------------- spending (budget category "Zdrowie")
+
+BUDGET_NAME = "zdrowie"
+
+
+def spending(db: Session, tree: Tree, people: list[Item], year: int) -> dict:
+    """Health spending of the year: everything booked in the "Zdrowie" budget category (and its children),
+    per person when the booking is tied to them (or to something under them)."""
+    roots = [c.id for c in db.scalars(select(BudgetCategory)) if c.name.strip().lower() == BUDGET_NAME]
+    if not roots:
+        return {"total": 0, "by_person": {}, "recent": {}, "found": False}
+    ids = set(roots) | {c.id for c in db.scalars(select(BudgetCategory).where(BudgetCategory.parent_id.in_(roots)))}
+    rows = db.scalars(
+        select(Transaction)
+        .where(
+            Transaction.budget_category_id.in_(ids),
+            Transaction.booked_on >= date(year, 1, 1),
+            Transaction.booked_on <= date(year, 12, 31),
+        )
+        .order_by(Transaction.booked_on.desc(), Transaction.id.desc())
+        .execution_options(all_private=True)
+    ).all()
+    total = -sum(t.amount_gr for t in rows)
+    by_person: dict[int, int] = {}
+    recent: dict[int, list[Transaction]] = {}
+    for t in rows:
+        who = member_of(tree, t.item_id, people)
+        if who is not None:
+            by_person[who.id] = by_person.get(who.id, 0) - t.amount_gr
+            recent.setdefault(who.id, []).append(t)
+    return {"total": total, "by_person": by_person, "recent": recent, "found": True}

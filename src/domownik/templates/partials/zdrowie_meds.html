@@ -6,7 +6,7 @@
     <details>
       <summary>
         <b>{% if m.private_to_id %}🔒 {% endif %}{{ m.name }}</b>{% if m.dose %} · {{ m.dose }}{% endif %}{% if m.schedule %} · {{ m.schedule }}{% endif %}
-        <small class="muted">{% if m.started_on %}od {{ m.started_on|d }}{% endif %}{% if m.ends_on %} do {{ m.ends_on|d }}{% elif current %} · na stałe{% endif %}{% if m.issue_id and issue is not defined %} · {{ issue_names.get(m.issue_id, '') }}{% endif %}</small>
+        <small class="muted">{% if m.started_on %}od {{ m.started_on|d }}{% endif %}{% if m.ends_on %} do {{ m.ends_on|d }}{% elif current %} · na stałe{% endif %}{% if m.issue_id and issue is not defined %} · {{ issue_names.get(m.issue_id, '') }}{% endif %}{% set rem = reminders.get(m.id) %}{% if rem and rem.active and current %} · 🔔 {{ rem.time }}{% endif %}{% if m.rx_until and current %} · recepta do {{ m.rx_until|d }}{% endif %}</small>
       </summary>
       {% if m.prescription %}<p class="hl-rx">🧾 {{ m.prescription }}</p>{% endif %}
       {% if m.notes %}<p class="notes">{{ m.notes }}</p>{% endif %}

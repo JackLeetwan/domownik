@@ -41,6 +41,10 @@
 {{ rows(auto.documents, "Brak polis, umów ani dowodów rejestracyjnych w dokumentach stref.") }}
 {% if not print %}</section>{% endif %}
 {% if not print %}<section class="em-section">{% endif %}
+<h3 id="zdrowie">🩺 Zdrowie{% if not print and auto.health %} <small class="muted">({{ auto.health|length }})</small>{% endif %}</h3>
+{{ rows(auto.health, "Grupa krwi, alergie i stałe leki – uzupełnisz w 🩺 Zdrowie → osoba → Najważniejsze.") }}
+{% if not print %}</section>{% endif %}
+{% if not print %}<section class="em-section">{% endif %}
 <h3 id="kontakty">📇 Kontakty{% if not print and auto.contacts %} <small class="muted">({{ auto.contacts|length }})</small>{% endif %}</h3>
 {% if auto.contacts %}
 <ul class="em-rows">

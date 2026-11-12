@@ -9,6 +9,29 @@
 {% if people|length > 1 %}<p class="chips hl-switch">{% for p in people %}<a href="/zdrowie/{{ p.id }}" class="chip{% if p.id == item.id %} active{% endif %}">{{ p.display_icon }} {{ p.name }}</a>{% endfor %}</p>{% endif %}
 
 <div data-fold-scope="zdrowie-{{ item.id }}">
+<section id="profil" data-fold-default="open">
+  <h2>🪪 Najważniejsze</h2>
+  {% if profile %}
+  <dl class="hl-profile">{% for k, lbl, ph in profile_fields if profile.get(k) %}<dt>{{ lbl }}</dt><dd>{{ profile[k] }}</dd>{% endfor %}</dl>
+  {% else %}<p class="muted">Grupa krwi, alergie, choroby – to, co musi wiedzieć lekarz albo ratownik. Trafia też do „🧰 Na wypadek”.</p>{% endif %}
+  <details class="quick-add">
+    <summary>✏️ {% if profile %}Zmień{% else %}Uzupełnij{% endif %}</summary>
+    <form method="post" action="/zdrowie/{{ item.id }}/profil">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      {% for k, lbl, ph in profile_fields %}
+      {% if k == 'blood_type' %}
+      <label>{{ lbl }}<input name="{{ k }}" list="blood-types" maxlength="20" value="{{ profile.get(k, '') }}" placeholder="{{ ph }}"></label>
+      <datalist id="blood-types">{% for b in blood_types %}<option value="{{ b }}">{% endfor %}</datalist>
+      {% else %}
+      <label>{{ lbl }}<textarea name="{{ k }}" rows="2" maxlength="300" placeholder="{{ ph }}">{{ profile.get(k, '') }}</textarea></label>
+      {% endif %}
+      {% endfor %}
+      <small class="muted">Widzą to wszyscy domownicy (i wydruk „Na wypadek”).</small>
+      <button type="submit">Zapisz</button>
+    </form>
+  </details>
+</section>
+
 <section class="member-health" id="wizyty" data-fold-default="open">
   <h2>Wizyty i badania</h2>
   {% if rows %}
@@ -60,6 +83,55 @@
 {% if supplements %}<p class="muted hl-supl"><small>💪 Suplementy ({{ supplements|length }}): {{ supplements|map(attribute='name')|unique|join(', ') }} – <a href="/forma">w Formie</a></small></p>{% endif %}
 
 {% include "partials/zdrowie_docs.html" %}
+
+<section id="pomiary"{% if series %} data-fold-default="open"{% endif %}>
+  <h2>📈 Pomiary</h2>
+  {% for se in series %}
+  <details class="hl-series">
+    <summary><b>{{ se.name }}</b> {{ se.label(se.last) }} <small class="muted">· {{ se.last.measured_on|d }}{% if se.rows|length > 1 %} · {{ se.rows|length }} pomiarów{% endif %}</small></summary>
+    {% set ch = se.chart() %}
+    {% if ch %}
+    <svg class="hl-chart" viewBox="0 0 {{ ch.w }} {{ ch.h }}" role="img" aria-label="{{ se.name }} od {{ ch.from|d }} do {{ ch.to|d }}">
+      <polyline points="{{ ch.line }}" class="l1"/>{% if ch.line2 %}<polyline points="{{ ch.line2 }}" class="l2"/>{% endif %}
+    </svg>
+    <p class="muted hl-chart-range"><small>{{ ch.from|d }} – {{ ch.to|d }}</small></p>
+    {% endif %}
+    <ul class="hl-list">
+      {% for r in se.rows[:12] %}
+      <li>{{ r.measured_on|d }} · <b>{{ se.label(r) }}</b>{% if r.private_to_id %} 🔒{% endif %}{% if r.note %} <small class="muted">{{ r.note }}</small>{% endif %}
+        <form method="post" action="/zdrowie/pomiary/{{ r.id }}/delete" class="inline" hx-confirm="Usunąć ten pomiar?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link" aria-label="Usuń pomiar">✕</button></form></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% else %}<p class="muted">Ciśnienie, cukier, cholesterol z wyników – wpisz, a zobaczysz, jak się zmienia.</p>{% endfor %}
+  <details class="quick-add">
+    <summary>＋ Pomiar</summary>
+    <form method="post" action="/zdrowie/{{ item.id }}/pomiary">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        <label>Co<input name="name" list="reading-kinds" required maxlength="60" placeholder="np. Ciśnienie"></label>
+        <label>Kiedy<input type="date" name="measured_on" value="{{ today().isoformat() }}"></label>
+      </div>
+      <datalist id="reading-kinds">{% for n in reading_kinds %}<option value="{{ n }}">{% endfor %}{% for se in series if se.name not in reading_kinds %}<option value="{{ se.name }}">{% endfor %}</datalist>
+      <div class="grid">
+        <label>Wynik<input name="value" inputmode="decimal" required placeholder="np. 120"></label>
+        <label>Drugi wynik <small class="muted">(ciśnienie: rozkurczowe)</small><input name="value2" inputmode="decimal" placeholder="np. 80"></label>
+        <label>Jednostka <small class="muted">(sama dla znanych)</small><input name="unit" maxlength="20" placeholder="mmHg, mg/dl…"></label>
+      </div>
+      <label>Notatka<input name="note" maxlength="200" placeholder="np. rano, po kawie; wynik z laboratorium"></label>
+      {% with obj = None %}{% include "partials/private_field.html" %}{% endwith %}
+      <button type="submit">Dodaj</button>
+    </form>
+  </details>
+</section>
+
+{% if money_found and (spent or spent_rows) %}
+<section id="wydatki">
+  <h2>💸 Wydatki {{ year }} <small class="muted">{{ spent|pln }}</small></h2>
+  <ul class="hl-list">{% for tx in spent_rows %}<li>{{ tx.booked_on|d }} · <b>{{ (-tx.amount_gr)|pln }}</b>{% if tx.note %} <small class="muted">{{ tx.note }}</small>{% endif %}</li>{% endfor %}</ul>
+  <p class="muted"><small>Wydatki z kategorii budżetu „Zdrowie” przypisane do {{ item.name }}. <a href="/budzet">Budżet →</a></small></p>
+</section>
+{% endif %}
 
 <section id="lekarze">
   <h2>👩‍⚕️ Lekarze i placówki</h2>

@@ -234,3 +234,102 @@ def test_not_a_member_is_404(auth_client, family):
 def test_medication_current():
     m = Medication(name="x", started_on=date(2026, 1, 1), ends_on=date(2026, 1, 10))
     assert m.current(date(2026, 1, 5)) and not m.current(date(2026, 1, 11)) and not m.current(date(2025, 12, 31))
+
+
+# ---------------------------------------------------------------- stage 2
+
+
+def test_profile_shows_and_goes_to_emergency_folder(auth_client, db, family):
+    me = family["me"]
+    auth_client.post(f"/zdrowie/{me.id}/profil", data={"blood_type": "A Rh+", "allergies": "penicylina"})
+    db.add(Medication(item_id=me.id, name="Lek-stały", dose="1 tabl.", started_on=today()))
+    db.add(Medication(item_id=me.id, name="Lek-ukryty", started_on=today(), private_to_id=1))
+    db.commit()
+    db.refresh(me)
+    assert me.attributes["blood_type"] == "A Rh+"
+    assert "penicylina" in auth_client.get(f"/zdrowie/{me.id}").text
+    folder = auth_client.get("/na-wypadek").text
+    assert "Grupa krwi: A Rh+" in folder and "penicylina" in folder and "Lek-stały" in folder
+    assert "Lek-ukryty" not in folder
+    auth_client.post(f"/zdrowie/{me.id}/profil", data={"blood_type": ""})
+    db.refresh(me)
+    assert "blood_type" not in me.attributes
+
+
+def test_medicine_reminder_is_a_supplement_until_it_ends(auth_client, db, user, family):
+    from domownik import supplements
+    from domownik.models import Supplement
+
+    me = family["me"]
+    auth_client.post(
+        f"/zdrowie/{me.id}/leki",
+        data={"name": "Antybiotyk", "dose": "500 mg", "remind_field": "1", "remind": "1", "remind_time": "8:00"},
+    )
+    med = db.scalar(select(Medication).where(Medication.name == "Antybiotyk"))
+    s = db.scalar(select(Supplement).where(Supplement.medication_id == med.id))
+    assert (s.user_id, s.time, s.active, s.name) == (user.id, "08:00", True, "💊 Antybiotyk")
+    assert "🔔 08:00" in auth_client.get(f"/zdrowie/{me.id}").text
+    # ended → the reminder stops (the minute job)
+    med.ends_on = today() - timedelta(days=1)
+    db.commit()
+    supplements.run(db)
+    db.refresh(s)
+    assert s.active is False
+    # switched off in the form → gone
+    med.ends_on = None
+    db.commit()
+    auth_client.post(f"/zdrowie/leki/{med.id}/edit", data={"name": "Antybiotyk", "remind_field": "1"})
+    assert db.scalar(select(Supplement).where(Supplement.medication_id == med.id)) is None
+
+
+def test_prescription_renewal_task(auth_client, db, family):
+    me = family["me"]
+    until = today() + timedelta(days=30)
+    auth_client.post(f"/zdrowie/{me.id}/leki", data={"name": "Euthyrox", "rx_until": until.isoformat()})
+    med = db.scalar(select(Medication).where(Medication.name == "Euthyrox"))
+    t = db.get(Task, med.rx_task_id)
+    tid = t.id
+    assert (t.title, t.next_due_date, t.category, t.lead_days) == ("Recepta: Euthyrox – odnowić", until, "health", 7)
+    assert "Recepta: Euthyrox" in auth_client.get(f"/zdrowie/{me.id}").text  # among the visits
+    auth_client.post(f"/zdrowie/leki/{med.id}/edit", data={"name": "Euthyrox", "rx_until": ""})
+    db.expire_all()
+    assert db.get(Task, tid) is None and db.get(Medication, med.id).rx_task_id is None
+
+
+def test_readings_with_chart(auth_client, db, family):
+    me = family["me"]
+    for d, v, v2 in ((10, "130", "85"), (5, "125", "82"), (0, "120,5", "80")):
+        r = auth_client.post(
+            f"/zdrowie/{me.id}/pomiary",
+            data={
+                "name": "Ciśnienie",
+                "value": v,
+                "value2": v2,
+                "measured_on": (today() - timedelta(days=d)).isoformat(),
+            },
+            follow_redirects=False,
+        )
+        assert r.status_code == 303
+    assert auth_client.post(f"/zdrowie/{me.id}/pomiary", data={"name": "Ciśnienie", "value": "120"}).status_code == 400
+    html = auth_client.get(f"/zdrowie/{me.id}").text
+    assert "120,5/80 mmHg" in html and "hl-chart" in html and "3 pomiarów" in html
+
+
+def test_health_spending_by_person(auth_client, db, family):
+    from domownik.models import BudgetCategory, Transaction
+
+    me = family["me"]
+    cat = BudgetCategory(name="Zdrowie", kind="planned")
+    db.add(cat)
+    db.commit()
+    db.add_all(
+        [
+            Transaction(booked_on=today(), amount_gr=-25000, budget_category_id=cat.id, item_id=me.id, note="Ortopeda"),
+            Transaction(booked_on=today(), amount_gr=-5000, budget_category_id=cat.id, note="Apteka"),
+        ]
+    )
+    db.commit()
+    over = auth_client.get("/zdrowie").text
+    assert "Wydatki na zdrowie" in over and "300\xa0zł" in over
+    person = auth_client.get(f"/zdrowie/{me.id}").text
+    assert "Ortopeda" in person and "Apteka" not in person
