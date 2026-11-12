@@ -743,6 +743,8 @@ class Attachment(Base):
     completion: Mapped[Completion | None] = relationship(back_populates="attachments")
     task: Mapped[Task | None] = relationship(back_populates="attachments")
     created_by: Mapped[User | None] = relationship(foreign_keys=[created_by_id])
+    # reading the document on the PC (domownik.ocr) – None when it was never queued
+    ocr: Mapped[OcrJob | None] = relationship(back_populates="attachment", uselist=False, passive_deletes=True)
 
     @property
     def is_image(self) -> bool:
@@ -763,6 +765,36 @@ class Attachment(Base):
         if self.is_image:
             return "🖼️"
         return DOC_KINDS.get(self.doc_kind, DOC_KINDS["other"])[1]
+
+
+OCR_STATUSES = ("queued", "working", "done", "failed")
+
+
+class OcrJob(Base):
+    """Reading a document (photo, scan, PDF) into text – queued here, done by the worker on the PC (domownik.ocr).
+
+    The text is only ever shown with its attachment, so it is as private as the attachment.
+    """
+
+    __tablename__ = "ocr_job"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    attachment_id: Mapped[int] = mapped_column(ForeignKey("attachment.id", ondelete="CASCADE"), unique=True)
+    status: Mapped[str] = mapped_column(String(10), default="queued", index=True)  # OCR_STATUSES
+    # lower first: 0 = a photo just taken, 10 = an old document read in the background
+    priority: Mapped[int] = mapped_column(Integer, default=0)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    # a job taken by the worker comes back to the queue when it is not answered by then
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime)
+    text: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str | None] = mapped_column(String(20))  # "pdf-text" (the PDF's own text) | "ocr" (the model)
+    model: Mapped[str | None] = mapped_column(String(80))
+    pages: Mapped[int | None] = mapped_column(Integer)
+    error: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    done_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    attachment: Mapped[Attachment] = relationship(back_populates="ocr")
 
 
 class Warranty(Base):

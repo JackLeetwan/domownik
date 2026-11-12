@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     # documents and photos kept with items (data/uploads/files)
     max_upload_mb: int = 20
     max_upload_files: int = 20
+    # reading documents on the PC (domownik.ocr): the worker's token; empty = /api/ocr is off
+    ocr_token: str = ""
 
     @property
     def db_path(self) -> Path:

@@ -36,6 +36,7 @@ from domownik.routers import (
     items,
     kitchen,
     meters,
+    ocr_api,
     points,
     quick,
     rozciaganie,
@@ -211,6 +212,7 @@ def create_app() -> FastAPI:
     app.include_router(sylwetka.router)
     app.include_router(zdrowie.router)
     app.include_router(share.router)
+    app.include_router(ocr_api.router)
 
     @app.exception_handler(LoginRequired)
     async def _login_required(request: Request, _exc: LoginRequired):

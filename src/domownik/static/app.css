@@ -1609,6 +1609,15 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .cap-foot form { margin: 0; }
 .cap-foot label[role=button], .cap-foot button { margin: 0; width: auto; }
 .cap-later { margin: 0.5rem 0 0; }
+.cap-note { display: block; font-size: 0.95rem; font-weight: 600; margin: 0 0 0.6rem; }
+.cap-note input { margin: 0.3rem 0 0; font-weight: 400; }
+.cap-ocr { margin: 0 0 0.7rem; }
+.cap-ocr details { margin: 0; }
+.cap-ocr summary { font-size: 0.95rem; }
+.cap-ocr-text { white-space: pre-wrap; word-break: break-word; max-height: 22rem; overflow: auto; font-size: 0.85rem; padding: 0.6rem 0.7rem; margin: 0.4rem 0; border-radius: 8px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }
+.cap-ocr-state { margin: 0; }
+.cap-ocr-again { display: inline; margin: 0; }
+.cap-ocr-again button { width: auto; margin: 0; padding: 0; font-size: 0.85rem; }
 @media (max-width: 480px) { .cap-tag { flex-direction: column; } .cap-photo { width: 8rem; } }
 .cap-snap { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; }
 .cap-snap label[role=button] { margin: 0; width: auto; }

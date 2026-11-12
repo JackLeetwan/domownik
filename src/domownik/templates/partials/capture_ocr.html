@@ -1,0 +1,28 @@
+{# Reading the document on the PC (domownik.ocr): where it is, and the text once read. Needs: att, csrf #}
+{% set job = att.ocr %}
+{% if job %}
+<div class="cap-ocr" id="cap-ocr-{{ att.id }}"{% if job.status in ('queued', 'working') %} hx-get="/zdjecia/{{ att.id }}/odczyt" hx-trigger="every 20s" hx-swap="outerHTML"{% endif %}>
+  {% if job.status == 'done' %}
+    {% if job.text %}
+    <details>
+      <summary>📝 Tekst z dokumentu{% if job.source == 'pdf-text' %} <small class="muted">(z pliku PDF)</small>{% elif job.pages and job.pages > 1 %} <small class="muted">({{ job.pages }} str.)</small>{% endif %}</summary>
+      <pre class="cap-ocr-text">{{ job.text }}</pre>
+      <form hx-post="/zdjecia/{{ att.id }}/odczytaj" hx-target="#cap-{{ att.id }}" hx-swap="outerHTML" class="cap-ocr-again">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">odczytaj jeszcze raz</button>
+      </form>
+    </details>
+    {% else %}
+    <p class="muted"><small>📝 Na tym zdjęciu nie ma tekstu do odczytania.</small></p>
+    {% endif %}
+  {% elif job.status == 'failed' %}
+    <p class="cap-ocr-state"><small>⚠ Nie udało się odczytać{% if job.error %} ({{ job.error }}){% endif %} – opisz ręcznie albo</small>
+    <form hx-post="/zdjecia/{{ att.id }}/odczytaj" hx-target="#cap-{{ att.id }}" hx-swap="outerHTML" class="cap-ocr-again">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">spróbuj jeszcze raz</button>
+    </form></p>
+  {% elif job.status == 'working' %}
+    <p class="cap-ocr-state muted"><small>🔍 Odczytywanie na komputerze…</small></p>
+  {% else %}
+    <p class="cap-ocr-state muted"><small>⏳ Czeka na odczyt – zrobi to komputer, kiedy będzie włączony (i nie będzie gry).</small></p>
+  {% endif %}
+</div>
+{% endif %}

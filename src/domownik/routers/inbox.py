@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
-from domownik import budget, documents, inbox
+from domownik import budget, documents, inbox, ocr
 from domownik.config import get_settings, today
 from domownik.db import get_db
 from domownik.domain.money import InvalidAmount, parse_pln
@@ -90,6 +90,7 @@ async def upload(request: Request, db: Session = Depends(get_db), user: User = D
         return _error(str(exc))
     for att in created:
         att.inbox = True
+        ocr.enqueue(db, att)
     db.commit()
     if form.get("from") == "page" or not is_htmx(request):
         resp = RedirectResponse("/zdjecia", status_code=303)
@@ -109,6 +110,7 @@ async def mark(request: Request, att_id: int, db: Session = Depends(get_db), use
             att,
             item_id=int(raw_item) if raw_item.isdigit() else None,
             kind=str(form.get("kind")) if form.get("kind") else None,
+            note=str(form.get("note")) if "note" in form else None,
         )
     except inbox.InboxError as exc:
         db.rollback()
@@ -183,6 +185,25 @@ async def finish(request: Request, att_id: int, db: Session = Depends(get_db), u
         db.rollback()
         return _error(str(exc))
     return _saved(request, done.message)
+
+
+@router.get("/{att_id}/odczyt")
+def reading(request: Request, att_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """The reading state of one card – polled while the PC has not read it yet."""
+    return render(request, "partials/capture_ocr.html", {"user": user, "att": _att(db, att_id)})
+
+
+@router.post("/{att_id}/odczytaj", dependencies=[Depends(verify_csrf)])
+def read_again(request: Request, att_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Queue the photo for reading again – after a failure, or when the text came out wrong."""
+    att = _att(db, att_id)
+    job = att.ocr or ocr.enqueue(db, att)
+    if job is None:
+        return _error("Tego pliku nie da się odczytać")
+    ocr.retry(db, job)
+    db.commit()
+    db.refresh(att)
+    return _card(request, db, att, "card", user)
 
 
 @router.post("/{att_id}/usun", dependencies=[Depends(verify_csrf)])

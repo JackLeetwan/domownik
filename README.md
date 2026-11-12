@@ -126,6 +126,15 @@ porannym skrócie. W oknie zadania: kroki (checklista, po „Zrobione” zadania
 następny termin), zdjęcia / pliki z formularza (zostają też w dokumentach elementu) i komentarze (push do
 osoby przypisanej). Punkty ⭐ i „Wymaga zatwierdzenia” – w „Więcej szczegółów”.
 
+## Odczyt dokumentów (📥 → tekst)
+
+Zdjęcie lub PDF dodane przez „＋ → 📷 Zdjęcie / dokument” trafia do kolejki odczytu. Czyta je komputer w domu,
+nie serwer: `deploy/pc/ocr_worker.py` pyta `/api/ocr` o kolejne zadanie, bierze tekst z PDF-a (gdy ma warstwę
+tekstu) albo tnie zdjęcie / stronę na pasy i czyta lokalnym modelem (PaddleOCR-VL przez llama.cpp), po czym
+odsyła tekst. Na karcie w 📥: ⏳ czeka → 🔍 odczytywanie → 📝 tekst z dokumentu. Serwer: `DOMOWNIK_OCR_TOKEN`
+(bez niego API nie istnieje); komputer: te same `DOMOWNIK_URL` i token w pliku env usługi (opis w nagłówku
+skryptu). Zadanie nieoddane w 10 min wraca do kolejki, po 3 nieudanych próbach – opis ręczny jak dawniej.
+
 ## Kalendarz
 
 `/kalendarz` – miesiąc (polskie święta i dni wolne czerwonym numerem) albo `/kalendarz/tydzien` – siedem dni

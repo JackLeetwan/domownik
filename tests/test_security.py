@@ -65,11 +65,18 @@ PUBLIC = {
     ("POST", "/n/timer/{token}/{action}"),  # timer buttons in the push – signed token, like /n/done
     ("GET", "/n/supl/{token}"),  # does nothing on GET
     ("POST", "/n/supl/{token}"),  # "✓ Wzięte" in the supplement push – signed token
+    # the document reader on the PC (domownik.ocr): Bearer DOMOWNIK_OCR_TOKEN, off when no token is set
+    ("POST", "/api/ocr/next"),
+    ("GET", "/api/ocr/{job_id}/plik"),
+    ("POST", "/api/ocr/{job_id}/wynik"),
 }
 NO_CSRF = {
     ("POST", "/n/done/{token}"),
     ("POST", "/n/timer/{token}/{action}"),
     ("POST", "/n/supl/{token}"),
+    # a Bearer token in a header – a browser never sends it on its own, so there is nothing to forge
+    ("POST", "/api/ocr/next"),
+    ("POST", "/api/ocr/{job_id}/wynik"),
     # Android's share sheet posts here (it cannot know our token): a SameSite=Lax session never comes along from
     # another site, a foreign Origin is refused, a text is only shown and files only land in 📥 Do rozpoznania
     ("POST", "/udostepnij"),

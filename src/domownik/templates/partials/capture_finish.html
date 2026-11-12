@@ -41,7 +41,7 @@
       {% for c in categories %}<option value="{{ c.id }}" {% if c.id == suggested_category %}selected{% endif %}>{{ c.icon or '' }} {{ c.name }}</option>{% endfor %}
     </select>
   </label>
-  <label>Za co <small class="muted">(opcjonalnie)</small><input name="note" maxlength="200" placeholder="np. klocki hamulcowe"></label>
+  <label>Za co <small class="muted">(opcjonalnie)</small><input name="note" maxlength="200" placeholder="np. klocki hamulcowe" value="{{ (att.description or '')[:200] }}"></label>
   {% elif att.capture_kind == 'policy' %}
   <div class="seg cap-dockind">
     <label class="seg-btn"><input type="radio" name="doc_kind" value="policy" checked> Polisa</label>
@@ -74,7 +74,7 @@
   </label>
   <label>Nazwa nowego <small class="muted">(gdy wybrany „nowy” – składniki dopiszesz w Kuchni)</small><input name="recipe_name" maxlength="120" placeholder="np. Pierogi babci"></label>
   {% else %}
-  <label>Opis <small class="muted">(opcjonalnie)</small><input name="note" maxlength="300" placeholder="np. tabliczka znamionowa pieca"></label>
+  <label>Opis <small class="muted">(opcjonalnie)</small><input name="note" maxlength="300" placeholder="np. tabliczka znamionowa pieca" value="{{ att.description or '' }}"></label>
   {% endif %}
   <button type="submit">Zapisz</button>
 </form>

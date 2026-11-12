@@ -24,6 +24,10 @@
     <div class="cap-chips">
       {% for k, (ic, lbl) in KINDS.items() %}<button type="button" class="cap-chip" aria-pressed="{{ 'true' if att.capture_kind == k else 'false' }}" hx-post="{{ post }}" hx-vals='{"kind": "{{ k }}", "mode": "{{ mode }}"}' {{ hx|safe }}>{{ ic }} {{ lbl }}</button>{% endfor %}
     </div>
+    {# saved on leaving the field; nothing is re-rendered, so typing is never interrupted #}
+    <label class="cap-note">Notatka <small class="muted">(opcjonalnie)</small>
+      <input name="note" value="{{ att.description or '' }}" maxlength="300" placeholder="np. kolano Pauliny, serwis klimy" autocomplete="off"
+        hx-post="{{ post }}" hx-trigger="change" hx-vals='{"mode": "{{ mode }}"}' hx-swap="none"></label>
   </div>
 </div>
 {% if mode == 'modal' %}

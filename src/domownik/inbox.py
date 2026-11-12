@@ -152,7 +152,12 @@ def next_amount(cost_gr: int) -> int:
     return int(round(cost_gr * NEXT_RAISE / 1000) * 1000)
 
 
-def tag(db: Session, att: Attachment, *, item_id: int | None = None, kind: str | None = None) -> None:
+def tag(
+    db: Session, att: Attachment, *, item_id: int | None = None, kind: str | None = None, note: str | None = None
+) -> None:
+    """The quick answers right after the photo; note: a line of what it is about ("kolano Pauliny"), optional."""
+    if note is not None:
+        att.description = note.strip()[:300] or None
     if item_id is not None:
         if db.get(Item, item_id) is None:
             raise InboxError("Nie ma takiego miejsca")
