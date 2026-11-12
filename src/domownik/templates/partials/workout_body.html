@@ -5,8 +5,8 @@
     <p class="muted"><small>{{ w.day|d(weekday=True) }}{% if w.equipment %} · 🧳 wyjazd / dom{% endif %} · {{ progress[0] }}/{{ progress[1] }} serii{% if w.finished_at %} · ✓ zakończony{% endif %}</small></p>
   </header>
 
-  {% if partner_views or waiting %}{% include "partials/workout_partner.html" %}
-  {% elif can_invite %}
+  {% if partner_views or waiting or switch_to or poll %}{% include "partials/workout_partner.html" %}{% endif %}
+  {% if can_invite and not partner_views and not waiting %}
   <details class="wo-invite">
     <summary role="button" class="outline secondary">👫 Zaproś do treningu</summary>
     <form method="post" action="/forma/trening/{{ w.id }}/zapros">
@@ -32,7 +32,23 @@
 
   {% set ns = namespace(ss=None) %}
   {% for r in rows %}{% set we = r.we %}{% set ex = we.exercise %}
-  {% if we.superset != ns.ss %}{% if ns.ss is not none %}</div>{% endif %}{% if we.superset is not none %}<div class="wo-superset"><p class="wo-ss-label">Superseria {{ superset_letter(we.superset) }} <small class="muted">– na zmianę, przerwa po drugim</small></p>{% endif %}{% set ns.ss = we.superset %}{% endif %}
+  {% if we.superset != ns.ss %}{% if ns.ss is not none %}</div>{% endif %}{% if we.superset is not none %}<div class="wo-superset"><p class="wo-ss-label">Superseria {{ superset_letter(we.superset) }} <small class="muted">– na zmianę, przerwa po drugim</small></p>
+  {% set ms = rounds.get(we.superset) %}{% if ms %}{% set rkey = 'round' ~ we.superset %}
+  <form class="wo-round" hx-post="/forma/trening/{{ w.id }}/runda/{{ we.superset }}" hx-target="#workout" hx-swap="outerHTML">
+    <p class="wo-round-head"><b>⇉ Cała runda naraz</b> <small class="muted">– seria {{ ms[0].done|length + 1 }}/{{ ms[0].sets }} każdego</small></p>
+    {% for m in ms %}{% set mr = row_of[m.id] %}
+    <div class="wo-round-row"><span class="wo-round-name">{{ superset_letter(we.superset) }}{{ loop.index }} {{ m.exercise.name }}</span>
+      {% if m.exercise.kind == 'time' %}
+      <label>s <input name="seconds_{{ m.id }}" inputmode="numeric" value="{{ mr.seconds or '' }}" autocomplete="off"></label>
+      {% else %}
+      <label>kg <input name="weight_{{ m.id }}" inputmode="decimal" value="{{ fmt_kg(mr.weight) if mr.weight else '' }}" placeholder="{{ '—' if m.exercise.step == 0 else '' }}" autocomplete="off"></label>
+      <label>powt. <input name="reps_{{ m.id }}" inputmode="numeric" value="{{ mr.reps or '' }}" autocomplete="off"></label>
+      {% endif %}</div>
+    {% endfor %}
+    <button type="submit">✓ Zapisz rundę {{ ms[0].done|length + 1 }}/{{ ms[0].sets }}</button>
+    {% if errors.get(rkey) %}<p class="error" role="alert">{{ errors.get(rkey) }}</p>{% endif %}
+  </form>
+  {% endif %}{% endif %}{% set ns.ss = we.superset %}{% endif %}
   <article id="we{{ we.id }}" class="wo-ex{% if r.current %} current{% endif %}{% if r.complete %} complete{% endif %}">
     <div class="wo-ex-head">
       <a href="/forma/postepy/{{ ex.id }}" class="ex-pic-btn" hx-get="/forma/cwiczenie/{{ ex.id }}" hx-target="#modal-body" hx-swap="innerHTML" hx-push-url="false" aria-label="Jak wykonać: {{ ex.name }}" title="Jak wykonać">{% set pic_both = true %}{% include "partials/ex_pic.html" %}<span class="ex-pic-i" aria-hidden="true">ⓘ</span></a>
@@ -68,7 +84,13 @@
     </form>
     {% if errors.get(we.id) %}<p class="error" role="alert">{{ errors.get(we.id) }}</p>{% endif %}
     {% endset %}
-    {% if not r.complete or r.current %}
+    {% if rounds.get(we.superset) %}
+    {# the round form above logs both – this one alone stays a tap away #}
+    <details class="wo-more"{% if errors.get(we.id) %} open{% endif %}>
+      <summary role="button" class="small outline secondary">✓ zapisz tylko to ćwiczenie</summary>
+      {{ log_form }}
+    </details>
+    {% elif not r.complete or r.current %}
     {{ log_form }}
     {% else %}
     {# after the plan's sets: one more, with its own weight and reps – the same form, folded #}
@@ -94,6 +116,17 @@
   <a href="/forma/trening/{{ w.id }}/dodaj" role="button" class="outline wo-add">＋ Dodaj ćwiczenie</a>
 
   {% if w.finished_at %}{% include "partials/workout_stretch.html" %}{% endif %}
+
+  {% if not w.plan_id and progress[0] %}
+  <details class="wo-save-plan">
+    <summary role="button" class="outline secondary">💾 Zapisz jako plan</summary>
+    <form method="post" action="/forma/trening/{{ w.id }}/plan"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <p class="muted"><small>Ten układ ćwiczeń (z superseriami) do powtórzenia – na liście planów, poza kolejką FBW.</small></p>
+      <label>Nazwa <input name="name" value="Trening {{ w.day.strftime('%d.%m') }}" maxlength="60" required></label>
+      <button type="submit">💾 Zapisz plan</button>
+    </form>
+  </details>
+  {% endif %}
 
   <div class="wo-end">
     {% if w.finished_at %}

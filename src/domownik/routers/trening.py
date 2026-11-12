@@ -8,7 +8,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from domownik import stretching as st
@@ -73,6 +73,8 @@ def section_context(db: Session, user: User) -> dict:
     tr.seed_plans(db)
     db.commit()
     t = today()
+    if tr.drop_stale_empty(db, user, t):
+        db.commit()
     wk = tr.week(db, user, t)
     monday = t - timedelta(days=t.weekday())
     letters = ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"]
@@ -189,6 +191,8 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
         rest_ms = int(w.rest_until.replace(tzinfo=tz).timestamp() * 1000)
     total = sum(we.sets for we in w.exercises)
     done = sum(min(len(we.done), we.sets) for we in w.exercises)
+    # ⇉ a superset at the start of a round: one form for all its exercises (you did both, then log)
+    rounds = {g: ms for g in {we.superset for we in w.exercises} if (ms := tr.round_members(w, g))}
     return {
         "user": user,
         "w": w,
@@ -196,6 +200,8 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
         "rest_ms": rest_ms,
         "next_we": nxt,
         "progress": (done, total),
+        "rounds": rounds,
+        "row_of": {r["we"].id: r for r in rows},
         "stretch": st.offer(db, user, w, done),
         "st": st,
         "errors": errors or {},
@@ -216,6 +222,11 @@ def _together(db: Session, user: User, w: Workout) -> dict:
         else [],
         "sig": together.signature(w),
         "live_together": live and w.group is not None,
+        # 👫 someone started another training and invited this person: one tap moves over to it
+        "switch_to": [(g, host) for g, host in together.open_invites(db, user, today()) if g.id != w.group_id]
+        if live
+        else [],
+        "poll": live and (w.group is not None or bool(together.partners(db, user))),
     }
 
 
@@ -234,7 +245,9 @@ def workout_page(workout_id: int, request: Request, db: Session = Depends(get_db
 @router.get("/trening/{workout_id:int}/razem")
 def partner_strip(workout_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     """👫 polled every few seconds: how far the partner is (counts only) + the signature of one's own list."""
-    w = _workout(db, user, workout_id)
+    w = tr.get_own(db, user, workout_id)
+    if w is None:  # removed meanwhile (the empty one, when the partner deleted the training) – back to Forma
+        return HTMLResponse("", headers={"HX-Redirect": "/forma"})
     return render(request, "partials/workout_partner.html", {"user": user, "w": w} | _together(db, user, w))
 
 
@@ -314,6 +327,51 @@ async def log_set(
         return _show(request, db, user, w, {we.id: str(exc)})
     db.commit()
     return _show(request, db, user, w)
+
+
+@router.post("/trening/{workout_id:int}/runda/{group:int}", dependencies=[Depends(verify_csrf)])
+async def log_round(
+    workout_id: int, group: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    """⇉ One set of each exercise of the superset at once – the rest starts after them."""
+    w = _workout(db, user, workout_id)
+    members = tr.round_members(w, group)
+    if not members:
+        return _show(request, db, user, w)
+    form = await request.form()
+    entries = []
+    try:
+        for we in members:
+            weight = _num(form.get(f"weight_{we.id}"), label=f"{we.exercise.name} – ciężar")
+            if we.exercise.kind == "time":
+                seconds = _num(form.get(f"seconds_{we.id}"), integer=True, label=f"{we.exercise.name} – czas")
+                if not seconds:
+                    raise ValueError(f"{we.exercise.name}: wpisz czas w sekundach")
+                entries.append((we, weight, None, seconds))
+            else:
+                reps = _num(form.get(f"reps_{we.id}"), integer=True, label=f"{we.exercise.name} – powtórzenia")
+                if not reps:
+                    raise ValueError(f"{we.exercise.name}: wpisz liczbę powtórzeń")
+                entries.append((we, weight, reps, None))
+    except ValueError as exc:
+        return _show(request, db, user, w, {f"round{group}": str(exc)})
+    at = now().replace(tzinfo=None)
+    for i, (we, weight, reps, seconds) in enumerate(entries):
+        tr.log_set(db, we, weight=weight, reps=reps, seconds=seconds, at=at + timedelta(seconds=i))
+    db.commit()
+    return _show(request, db, user, w)
+
+
+@router.post("/trening/{workout_id:int}/plan", dependencies=[Depends(verify_csrf)])
+async def save_as_plan(workout_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """💾 The workout made up on the spot becomes a plan to start next time."""
+    w = _workout(db, user, workout_id)
+    if w.plan_id is not None or not w.exercises:
+        return _go(f"/forma/trening/{w.id}")
+    form = await request.form()
+    p = tr.save_as_plan(db, w, str(form.get("name") or ""))
+    db.commit()
+    return _go(f"/forma/plany/{p.id}")
 
 
 @router.post("/trening/{workout_id:int}/seria/{set_id:int}/usun", dependencies=[Depends(verify_csrf)])
@@ -406,7 +464,11 @@ def reopen(workout_id: int, db: Session = Depends(get_db), user: User = Depends(
 
 @router.post("/trening/{workout_id:int}/usun", dependencies=[Depends(verify_csrf)])
 def delete(workout_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    db.delete(_workout(db, user, workout_id))
+    w = _workout(db, user, workout_id)
+    for o in together.others(w):  # who joined and did nothing yet would stay in a training with nobody
+        if o.finished_at is None and not tr.counts(o):
+            db.delete(o)
+    db.delete(w)
     db.commit()
     return _go("/forma")
 
@@ -503,6 +565,11 @@ def add_page(
     w = _workout(db, user, workout_id)
     eq = None if wszystko else tr.allowed(w)
     base = f"/forma/trening/{w.id}/dodaj"
+    sections = _groups(db, eq, partia or None)
+    if not partia:  # 🕘 what this person did lately, not in this workout yet – the usual pick is at the top
+        have = {we.exercise_id for we in w.exercises}
+        recent = [ex for ex, _, _ in tr.done_exercises(db, user) if ex.id not in have and (eq is None or ex.equipment in eq)]
+        sections = [("🕘 Ostatnio robione", recent[:8])] + sections
     return render(
         request,
         "exercise_pick.html",
@@ -511,7 +578,7 @@ def add_page(
             title="Dodaj ćwiczenie",
             back=f"/forma/trening/{w.id}",
             action=f"{base}/",
-            sections=_groups(db, eq, partia or None),
+            sections=sections,
             muscle_filter=partia,
             filter_url=base + ("?wszystko=1&" if wszystko else "?"),
             filtered=eq is not None,

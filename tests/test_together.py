@@ -185,7 +185,8 @@ def test_http_flow(auth_client, db, user, paula, fbw, sent):
     strip = auth_client.get(f"/forma/trening/{pw.id}/razem").text
     strip = re.sub(r'data-sig="[0-9a-f]+"', "", strip)  # a hash may contain "77" by chance
     assert "Jan" in strip and "77" not in strip
-    assert auth_client.get(f"/forma/trening/{w.id}/razem").status_code == 404  # his workout is his
+    other = auth_client.get(f"/forma/trening/{w.id}/razem")  # his workout is his: nothing, back to Forma
+    assert other.text == "" and other.headers["HX-Redirect"] == "/forma"
     assert auth_client.get(f"/forma/trening/{w.id}").status_code == 404
 
     # her swap page offers "for both" / "only for me"
@@ -245,3 +246,47 @@ def test_superset_buttons_on_the_screen(auth_client, db, user, fbw):
     r = auth_client.post(f"/forma/trening/{w.id}/cw/{b.id}/rozlacz", headers=hx)
     db.refresh(a)
     assert a.superset is None and f'/cw/{a.id}/superseria"' in r.text
+
+
+def test_started_over_moves_the_partner(auth_client, db, user, paula, fbw, sent):
+    """Jan deletes the training Paula joined and starts another: her empty one goes, the new invite is a tap away."""
+    now_ = datetime.now().replace(microsecond=0)
+    w = tr.start(db, user, fbw[0], at=now_)
+    db.commit()
+    together.invite(db, w, [paula])
+    pw = together.join(db, w.group, paula, today=now_.date(), at=now_)
+    db.commit()
+    pw_id = pw.id
+    auth_client.post(f"/forma/trening/{w.id}/usun")
+    db.expire_all()
+    assert db.get(Workout, pw_id) is None  # nothing done in it – gone with his
+
+    # she has a set in hers: kept when he deletes his
+    w2 = tr.start(db, user, fbw[0], at=now_)
+    db.commit()
+    together.invite(db, w2, [paula])
+    pw2 = together.join(db, w2.group, paula, today=now_.date(), at=now_)
+    tr.log_set(db, pw2.exercises[0], weight=10, reps=10, at=now_)
+    db.commit()
+    pw2_id = pw2.id
+    auth_client.post(f"/forma/trening/{w2.id}/usun")
+    db.expire_all()
+    assert db.get(Workout, pw2_id) is not None
+
+    # he starts over in a third one and invites her: her screen offers to move over
+    w3 = tr.start(db, user, fbw[1], at=now_)
+    db.commit()
+    g3 = together.invite(db, w3, [paula])
+    db.commit()
+    _login(auth_client, "paula@example.com", "tajnehaslo2")
+    page = auth_client.get(f"/forma/trening/{pw2.id}").text
+    assert "<b>Jan</b> zaprasza do treningu: FBW 2" in page and f'href="/forma/razem/{g3.id}"' in page
+    assert f'hx-get="/forma/trening/{pw2.id}/razem"' in page  # polled – the offer comes without a reload
+    gone = auth_client.get("/forma/trening/99999/razem")  # her screen of a removed one: back to Forma
+    assert gone.headers["HX-Redirect"] == "/forma"
+    r = auth_client.get(f"/forma/razem/{g3.id}", follow_redirects=False)
+    assert "Masz już swój trening w toku" in r.text  # hers has a set: asked first
+    r = auth_client.post(f"/forma/razem/{g3.id}/dolacz", follow_redirects=False)
+    assert r.status_code == 303
+    db.expire_all()
+    assert together.member(db.get(type(g3), g3.id), paula) is not None

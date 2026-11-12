@@ -1,6 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} · Domownik<p class="muted" data-pick-none hidden>Nic nie pasuje{% if muscle_filter or filtered %}{% set reset = (filter_url ~ 'wszystko=1') if filter_url is defined else all_url %} – spróbuj bez filtrów: <a href="{{ reset }}">wszystkie ćwiczenia</a>{% endif %}.</p>
-{% endblock %}
+{% block title %}{{ title }} · Domownik{% endblock %}
 {% block content %}
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="{{ back }}" class="home-link">← Wróć</a></li></ul></nav>
 <header class="item-head"><h1>{{ title }}</h1></header>
@@ -34,5 +33,6 @@
 {% else %}
 <p class="muted">Nic tu nie pasuje.</p>
 {% endfor %}
+<p class="muted" data-pick-none hidden>Nic nie pasuje{% if muscle_filter or filtered %}{% set reset = (filter_url ~ 'wszystko=1') if filter_url is defined else all_url %} – spróbuj bez filtrów: <a href="{{ reset }}">wszystkie ćwiczenia</a>{% endif %}.</p>
 {% if sections|selectattr(1)|list|length == 0 %}<p class="muted">Brak ćwiczeń dla tego filtra.{% if filtered %} <a href="{{ all_url }}">Pokaż wszystkie</a>{% endif %}</p>{% endif %}
 {% endblock %}

@@ -2023,3 +2023,16 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .st-gear { margin: -0.5rem 0 0.75rem; }
 .pick-search { margin-bottom: 0.6rem; }
 .pick-types { flex-wrap: wrap; }  /* "🙌 Bez sprzętu" goes to its own line on a phone instead of off the edge */
+
+/* ⇉ a whole superset round in one form */
+.wo-round { display: grid; gap: 0.4rem; padding: 0.6rem 0.75rem; margin: 0 0 0.75rem; border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); }
+.wo-round-head { margin: 0; }
+.wo-round-row { display: grid; grid-template-columns: 1fr 5rem 4.5rem; gap: 0.4rem; align-items: end; }
+.wo-round-row label { margin: 0; font-size: 0.8rem; }
+.wo-round-row input { margin: 0; }
+.wo-round-name { font-size: 0.9rem; align-self: center; }
+.wo-round button { margin: 0; }
+.wo-switch a[role="button"] { width: auto; margin: 0; padding: 0.2rem 0.8rem; }
+.wo-save-plan { margin: 0.75rem 0; }
+.wo-save-plan > summary { display: inline-block; width: auto; }
+.wo-partner:not(:has(*)) { display: none; }

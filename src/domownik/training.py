@@ -279,6 +279,19 @@ def get_own(db: Session, user: User, workout_id: int) -> Workout | None:
     return w if w is not None and w.user_id == user.id else None
 
 
+def drop_stale_empty(db: Session, user: User, today: date) -> int:
+    """Workouts left started on an earlier day with not one set – an abandoned start, nothing to keep."""
+    stale = [
+        w
+        for w in db.scalars(select(Workout).where(Workout.user_id == user.id, Workout.finished_at.is_(None), Workout.day < today))
+        if not counts(w)
+    ]
+    for w in stale:
+        db.delete(w)
+    db.flush()
+    return len(stale)
+
+
 def active(db: Session, user: User) -> Workout | None:
     """The workout still going (started, not finished) – the newest one."""
     return db.scalar(
@@ -289,9 +302,13 @@ def active(db: Session, user: User) -> Workout | None:
     )
 
 
+SAVED_SEED = "z-treningu"  # a plan saved from a workout made up on the spot: started on purpose, not in the cycle
+
+
 def _off_rotation() -> set[str]:
-    """Catalog plans done on occasion (`rotation: false` – the one for two), not in the FBW 1 → 2 → 3 cycle."""
-    return {p["key"] for p in catalog()["plans"] if p.get("rotation") is False}
+    """Catalog plans done on occasion (`rotation: false` – the one for two), not in the FBW 1 → 2 → 3 cycle;
+    nor plans saved from a workout."""
+    return {p["key"] for p in catalog()["plans"] if p.get("rotation") is False} | {SAVED_SEED}
 
 
 def next_plan(db: Session, user: User) -> WorkoutPlan | None:
@@ -415,6 +432,44 @@ def swap(db: Session, we: WorkoutExercise, ex: Exercise) -> None:
         we.seconds = 30
     db.flush()
     db.refresh(we)
+
+
+def save_as_plan(db: Session, w: Workout, name: str) -> WorkoutPlan:
+    """The workout as a plan to repeat: its exercises in its order, as many sets as were done (else planned),
+    the supersets kept. Out of the FBW rotation – started from the list when wanted."""
+    top = db.scalar(select(func.max(WorkoutPlan.position)))
+    p = WorkoutPlan(name=name.strip()[:60] or "Mój trening", position=(top or 0) + 1, seed=SAVED_SEED)
+    groups: dict[int, int] = {}
+    for i, we in enumerate(x for x in w.exercises if x.done or w.finished_at is None):
+        ss = groups.setdefault(we.superset, len(groups) + 1) if we.superset is not None else None
+        p.items.append(
+            PlanItem(
+                exercise_id=we.exercise_id,
+                position=i,
+                sets=max(len(we.done), we.sets),
+                reps_min=we.reps_min,
+                reps_max=we.reps_max,
+                seconds=we.seconds,
+                rest_seconds=we.rest_seconds,
+                superset=ss,
+            )
+        )
+    db.add(p)
+    db.flush()
+    if w.plan_id is None:
+        w.plan_id = p.id
+    db.flush()
+    return p
+
+
+def round_members(w: Workout, group: int | None) -> list[WorkoutExercise]:
+    """A superset whose next round can be logged at once: all its exercises at the same set, none complete."""
+    if group is None or w.finished_at is not None:
+        return []
+    ms = [e for e in w.exercises if e.superset == group]
+    if len(ms) < 2 or len({len(e.done) for e in ms}) != 1 or any(len(e.done) >= e.sets for e in ms):
+        return []
+    return ms
 
 
 def following(w: Workout, we: WorkoutExercise) -> WorkoutExercise | None:

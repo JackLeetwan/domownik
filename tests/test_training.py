@@ -7,7 +7,7 @@ import pytest
 
 from domownik import training as tr
 from domownik import webpush
-from domownik.models import Exercise, PushSubscription, User, Workout
+from domownik.models import Exercise, PushSubscription, User, Workout, WorkoutPlan
 from domownik.security import hash_password
 
 D = date(2026, 11, 10)
@@ -438,3 +438,77 @@ def test_guide_modal_and_page(auth_client, db):
     page = auth_client.get(f"/forma/postepy/{squat.id}").text
     assert "Jak wykonać" in page and "Jeszcze nie robione" in page
     assert auth_client.get("/forma/cwiczenie/999999", headers={"HX-Target": "modal-body"}).status_code == 404
+
+
+def test_abandoned_empty_start_is_dropped(auth_client, db, user, fbw):
+    old = tr.start(db, user, fbw[0], at=datetime.now() - timedelta(days=1))
+    kept = tr.start(db, user, fbw[1], at=datetime.now() - timedelta(days=2))
+    tr.log_set(db, kept.exercises[0], weight=20, reps=10)
+    db.commit()
+    old_id, kept_id = old.id, kept.id
+    auth_client.get("/forma")
+    db.expire_all()
+    assert db.get(Workout, old_id) is None and db.get(Workout, kept_id) is not None
+
+
+def test_add_picker_shows_recent_first(auth_client, db, user, fbw):
+    done = tr.start(db, user, None, at=datetime.now() - timedelta(days=1))
+    tr.add_exercise(db, done, _ex(db, "leg_extension"))
+    tr.log_set(db, done.exercises[0], weight=36, reps=12)
+    tr.finish(db, done)
+    w = tr.start(db, user, None)
+    db.commit()
+    page = auth_client.get(f"/forma/trening/{w.id}/dodaj").text
+    recent = page.split("🕘 Ostatnio robione", 1)[1].split("</section>", 1)[0]
+    assert "Prostowanie nóg na maszynie" in recent
+    assert "Ostatnio robione" not in auth_client.get(f"/forma/trening/{w.id}/dodaj?partia=chest").text
+    assert "Nic nie pasuje" not in page.split("<title>", 1)[1].split("</title>", 1)[0]
+
+
+def test_save_made_up_workout_as_plan(auth_client, db, user, fbw):
+    w = tr.start(db, user, None)
+    a, b, c = (tr.add_exercise(db, w, _ex(db, k)) for k in ("leg_press", "leg_extension", "leg_curl"))
+    tr.link_superset(db, w, b, c)
+    for _ in range(4):
+        tr.log_set(db, a, weight=100, reps=10)
+    for we in (b, c):
+        tr.log_set(db, we, weight=30, reps=12)
+    db.commit()
+    page = auth_client.get(f"/forma/trening/{w.id}").text
+    assert f'action="/forma/trening/{w.id}/plan"' in page
+    r = auth_client.post(f"/forma/trening/{w.id}/plan", data={"name": "Nogi rano"}, follow_redirects=False)
+    assert r.status_code == 303
+    db.expire_all()
+    p = db.query(WorkoutPlan).filter_by(name="Nogi rano").one()
+    assert [(i.exercise.key, i.sets, i.superset) for i in p.items] == [
+        ("leg_press", 4, None), ("leg_extension", 3, 1), ("leg_curl", 3, 1)
+    ]
+    assert db.get(Workout, w.id).plan_id == p.id
+    assert tr.next_plan(db, user).id != p.id  # not in the FBW cycle
+    assert "Zapisz jako plan" not in auth_client.get(f"/forma/trening/{w.id}").text
+
+
+def test_log_a_whole_superset_round(auth_client, db, user, fbw):
+    w = tr.start(db, user, None)
+    b, c = (tr.add_exercise(db, w, _ex(db, k)) for k in ("leg_extension", "leg_curl"))
+    tr.link_superset(db, w, b, c)
+    db.commit()
+    hx = {"HX-Request": "true", "HX-Target": "workout"}
+    page = auth_client.get(f"/forma/trening/{w.id}").text
+    assert f'hx-post="/forma/trening/{w.id}/runda/{b.superset}"' in page and "Zapisz rundę 1/3" in page
+    r = auth_client.post(
+        f"/forma/trening/{w.id}/runda/{b.superset}",
+        data={f"weight_{b.id}": "36", f"reps_{b.id}": "12", f"weight_{c.id}": "50", f"reps_{c.id}": "12"},
+        headers=hx,
+    )
+    db.expire_all()
+    w = db.get(Workout, w.id)
+    assert [(s.weight, s.reps) for we in w.exercises for s in we.done] == [(36, 12), (50, 12)]
+    assert w.rest_until is not None  # the rest after the round
+    assert "Zapisz rundę 2/3" in r.text
+    r = auth_client.post(f"/forma/trening/{w.id}/runda/{b.superset}", data={f"weight_{b.id}": "36"}, headers=hx)
+    assert "wpisz liczbę powtórzeń" in r.text
+    # one logged alone: mid-round, the usual forms
+    tr.log_set(db, w.exercises[0], weight=36, reps=12)
+    db.commit()
+    assert "Zapisz rundę" not in auth_client.get(f"/forma/trening/{w.id}").text
