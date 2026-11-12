@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+import re
+from datetime import date, datetime, timedelta
 
 import pytest
 
@@ -182,6 +183,7 @@ def test_http_flow(auth_client, db, user, paula, fbw, sent):
     page = auth_client.get(f"/forma/trening/{pw.id}").text
     assert "Jan 1/" in page and "77,5" not in page and "77.5" not in page
     strip = auth_client.get(f"/forma/trening/{pw.id}/razem").text
+    strip = re.sub(r'data-sig="[0-9a-f]+"', "", strip)  # a hash may contain "77" by chance
     assert "Jan" in strip and "77" not in strip
     assert auth_client.get(f"/forma/trening/{w.id}/razem").status_code == 404  # his workout is his
     assert auth_client.get(f"/forma/trening/{w.id}").status_code == 404
@@ -194,3 +196,52 @@ def test_http_flow(auth_client, db, user, paula, fbw, sent):
     auth_client.post(f"/forma/trening/{pw.id}/cw/{pwe.id}/zamien/{lunge.id}?dla=ja")
     db.expire_all()
     assert w.exercises[1].exercise_id != lunge.id and pw.exercises[1].exercise_id == lunge.id
+
+
+def test_superset_made_during_the_workout(db, user, paula, fbw, sent):
+    """🔗 two added exercises into a superset – for the partner too; ✂ back; the order goes back and forth."""
+    w, pw = _pair(db, user, paula, fbw)
+    a = together.add(db, w, _ex(db, "rope_pulldown"))
+    b = together.add(db, w, _ex(db, "rope_pushdown"))
+    db.commit()
+    assert a.superset is None and tr.following(w, a) is b and tr.following(w, b) is None
+    old_sig = together.signature(pw)
+    together.link_superset(db, w, a)
+    db.commit()
+    assert a.superset is not None and a.superset == b.superset
+    assert a.superset not in {e.superset for e in w.exercises if e not in (a, b)}  # a new letter
+    pa, pb = (together._same_slot(pw, x.slot) for x in (a, b))
+    assert pa.superset is not None and pa.superset == pb.superset
+    assert together.signature(pw) != old_sig  # the partner's screen reloads
+    # back and forth: a → b, rest only after b
+    tr.log_set(db, a, weight=50, reps=12, at=T)
+    assert tr.next_up(w) is b and w.rest_until is None
+    tr.log_set(db, b, weight=20, reps=12, at=T + timedelta(minutes=1))
+    assert tr.next_up(w) is a and w.rest_until is not None
+    # a third one joins the superset of its neighbour
+    c = together.add(db, w, _ex(db, "plank"))
+    together.link_superset(db, w, b)
+    assert c.superset == a.superset
+    with pytest.raises(ValueError):
+        together.link_superset(db, w, c)  # the last one has no next
+    together.unlink_superset(db, w, c)
+    db.commit()
+    assert a.superset is b.superset is c.superset is None
+    assert pa.superset is None and pb.superset is None
+
+
+def test_superset_buttons_on_the_screen(auth_client, db, user, fbw):
+    w = tr.start(db, user, fbw[0], at=datetime.now())
+    a = tr.add_exercise(db, w, _ex(db, "rope_pulldown"))
+    b = tr.add_exercise(db, w, _ex(db, "rope_pushdown"))
+    db.commit()
+    hx = {"HX-Request": "true", "HX-Target": "workout"}
+    page = auth_client.get(f"/forma/trening/{w.id}").text
+    assert f'hx-post="/forma/trening/{w.id}/cw/{a.id}/superseria"' in page
+    assert f'/cw/{b.id}/superseria"' not in page  # the last one
+    r = auth_client.post(f"/forma/trening/{w.id}/cw/{a.id}/superseria", headers=hx)
+    assert r.status_code == 200 and "Superseria" in r.text and f'/cw/{b.id}/rozlacz"' in r.text
+    assert f'/cw/{a.id}/superseria"' not in r.text and f'/cw/{a.id}/rozlacz"' not in r.text
+    r = auth_client.post(f"/forma/trening/{w.id}/cw/{b.id}/rozlacz", headers=hx)
+    db.refresh(a)
+    assert a.superset is None and f'/cw/{a.id}/superseria"' in r.text

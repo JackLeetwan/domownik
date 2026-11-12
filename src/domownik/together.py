@@ -184,6 +184,29 @@ def add(db: Session, w: Workout, ex: Exercise) -> WorkoutExercise:
     return we
 
 
+def link_superset(db: Session, w: Workout, we: WorkoutExercise) -> None:
+    """This exercise and the next one into a superset – for the partner too, where the same two are neighbours."""
+    nxt = tr.following(w, we)
+    if nxt is None:
+        raise ValueError("ostatnie ćwiczenie nie ma następnego")
+    tr.link_superset(db, w, we, nxt)
+    for o in others(w):
+        a, b = _same_slot(o, we.slot), _same_slot(o, nxt.slot)
+        if a is not None and b is not None and tr.following(o, a) is b:
+            tr.link_superset(db, o, a, b)
+
+
+def unlink_superset(db: Session, w: Workout, we: WorkoutExercise) -> None:
+    """The superset of this exercise back to separate ones – for the partner too."""
+    slots = [e.slot for e in w.exercises if we.superset is not None and e.superset == we.superset]
+    tr.unlink_superset(db, w, we.superset)
+    for o in others(w):
+        for slot in slots:
+            x = _same_slot(o, slot)
+            if x is not None and x.superset is not None:
+                tr.unlink_superset(db, o, x.superset)
+
+
 def remove(db: Session, w: Workout, we: WorkoutExercise) -> None:
     """Out of the training – for the partner too, unless they already did sets of it (those stay theirs)."""
     slot = we.slot
@@ -276,9 +299,9 @@ def waiting_for(db: Session, w: Workout) -> list[User]:
 
 
 def signature(w: Workout) -> str:
-    """Changes when the list of one's exercises changes (a partner added / removed / swapped one) or someone
+    """Changes when the list of one's exercises changes (a partner added / removed / swapped one, made a superset) or someone
     joins – the screen then reloads itself."""
-    raw = ",".join(f"{we.id}:{we.exercise_id}" for we in w.exercises)
+    raw = ",".join(f"{we.id}:{we.exercise_id}:{we.superset or ''}" for we in w.exercises)
     if w.group is not None:  # someone joined: the badges by the exercises appear
         raw += "|" + ",".join(str(o.id) for o in w.group.workouts)
     return hashlib.sha1(raw.encode()).hexdigest()[:12]

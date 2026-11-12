@@ -417,6 +417,34 @@ def swap(db: Session, we: WorkoutExercise, ex: Exercise) -> None:
     db.refresh(we)
 
 
+def following(w: Workout, we: WorkoutExercise) -> WorkoutExercise | None:
+    """The exercise after this one on the list (None for the last)."""
+    exs = list(w.exercises)
+    i = exs.index(we)
+    return exs[i + 1] if i + 1 < len(exs) else None
+
+
+def link_superset(db: Session, w: Workout, we: WorkoutExercise, nxt: WorkoutExercise) -> None:
+    """Two neighbours on the list into one superset (back and forth, the rest after the last of it). Either
+    already in one: the other joins it; both in different ones: they become one."""
+    group = we.superset or nxt.superset or max((e.superset or 0 for e in w.exercises), default=0) + 1
+    merged = {g for g in (we.superset, nxt.superset) if g is not None}
+    for e in w.exercises:
+        if e is we or e is nxt or (e.superset is not None and e.superset in merged):
+            e.superset = group
+    db.flush()
+
+
+def unlink_superset(db: Session, w: Workout, group: int | None) -> None:
+    """The whole superset back to separate exercises."""
+    if group is None:
+        return
+    for e in w.exercises:
+        if e.superset == group:
+            e.superset = None
+    db.flush()
+
+
 def _rest_after(we: WorkoutExercise) -> int:
     """Inside a superset the rest comes after its last exercise; until then straight to the partner."""
     if we.superset is None:

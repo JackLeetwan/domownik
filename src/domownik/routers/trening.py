@@ -178,6 +178,9 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
                 "complete": len(we.done) >= we.sets,
                 "current": nxt is not None and nxt.id == we.id,
                 "sets_text": tr.sets_text(list(we.done)),
+                # 🔗 with the next one (not already together); ✂ on the last of a superset
+                "can_link": (f := tr.following(w, we)) is not None and (we.superset is None or f.superset != we.superset),
+                "ss_last": we.superset is not None and (f is None or f.superset != we.superset),
             }
         )
     rest_ms = None
@@ -347,6 +350,29 @@ def change_rest(
     if o in (-tr.REST_STEP, tr.REST_STEP):
         tr.adjust_rest(db, w, o)
         db.commit()
+    return _show(request, db, user, w)
+
+
+@router.post("/trening/{workout_id:int}/cw/{we_id:int}/superseria", dependencies=[Depends(verify_csrf)])
+def link_superset(
+    workout_id: int, we_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    """🔗 This exercise and the next one into a superset."""
+    w = _workout(db, user, workout_id)
+    we = _we(w, we_id)
+    if tr.following(w, we) is not None:
+        together.link_superset(db, w, we)
+        db.commit()
+    return _show(request, db, user, w)
+
+
+@router.post("/trening/{workout_id:int}/cw/{we_id:int}/rozlacz", dependencies=[Depends(verify_csrf)])
+def unlink_superset(
+    workout_id: int, we_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    w = _workout(db, user, workout_id)
+    together.unlink_superset(db, w, _we(w, we_id))
+    db.commit()
     return _show(request, db, user, w)
 
 

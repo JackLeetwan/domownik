@@ -81,6 +81,10 @@
     <div class="wo-ex-actions">
       {% if not we.done %}<a href="/forma/trening/{{ w.id }}/cw/{{ we.id }}/zamien" class="small">⇄ Zajęte? Zamień</a>{% endif %}
       <a href="/forma/postepy/{{ ex.id }}" class="small muted">📈 Historia</a>
+      {% if not w.finished_at %}
+      {% if r.can_link %}<button type="button" class="link small" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/superseria" hx-target="#workout" hx-swap="outerHTML" title="Na zmianę z następnym ćwiczeniem, przerwa po drugim">🔗 Superseria z następnym</button>{% endif %}
+      {% if r.ss_last %}<button type="button" class="link small" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/rozlacz" hx-target="#workout" hx-swap="outerHTML">✂ Rozłącz superserię</button>{% endif %}
+      {% endif %}
       <form method="post" action="/forma/trening/{{ w.id }}/cw/{{ we.id }}/usun" class="inline" hx-confirm="Usunąć „{{ ex.name }}” z tego treningu{% if we.done %} razem z zapisanymi seriami{% endif %}?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link wo-remove">Usuń z treningu</button></form>
     </div>
   </article>
