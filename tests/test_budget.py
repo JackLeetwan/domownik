@@ -82,9 +82,9 @@ def test_postponed_occurrence_moves_to_the_new_month_and_keeps_the_rhythm(db):
 def test_skipped_occurrence_leaves_the_plan(auth_client, db):
     item, cat = _item(db), _cat(db, "Subskrypcje", "fixed")
     t0 = today()
-    task = _task(db, item, "Serwis", {"mode": "monthly", "day": t0.day}, t0 + timedelta(days=1), 3000, cat)
-    task.next_due_date = date(t0.year, t0.month, 1) + timedelta(days=40)  # some day next month
-    db.commit()
+    # due next month on the rule's own day – a due date off the rule would add a second one that month
+    nxt_month = (date(t0.year, t0.month, 1) + timedelta(days=32)).replace(day=5)
+    task = _task(db, item, "Serwis", {"mode": "monthly", "day": 5}, nxt_month, 3000, cat)
     nxt = task.next_due_date
     before = _month(db, nxt.year, nxt.month, t0).line(cat.id).plan_gr
     assert before == 3000
