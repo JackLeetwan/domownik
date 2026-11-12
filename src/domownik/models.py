@@ -1366,6 +1366,49 @@ class HealthReading(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
+class BodySize(Base):
+    """📏 Body measurements for buying clothes online (cm, each optional). One entry = what was measured that
+    day; the current value of a measurement is the newest entry that has it (see sizes.py)."""
+
+    __tablename__ = "body_size"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
+    measured_on: Mapped[date] = mapped_column(Date)
+    height: Mapped[float | None]
+    chest: Mapped[float | None]
+    waist: Mapped[float | None]
+    hips: Mapped[float | None]
+    shoulders: Mapped[float | None]
+    neck: Mapped[float | None]
+    sleeve: Mapped[float | None]
+    inseam: Mapped[float | None]
+    head: Mapped[float | None]
+    hand: Mapped[float | None]
+    wrist: Mapped[float | None]
+    foot_len: Mapped[float | None]
+    foot_width: Mapped[float | None]
+    note: Mapped[str | None] = mapped_column(String(200))
+    # visible only to this account (None = shared with the household) – see db.private_filter
+    private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class FitSize(Base):
+    """A size that fits in a given brand ("Spodnie · Levi's 501 · 32/32") – what decides an online order."""
+
+    __tablename__ = "fit_size"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
+    what: Mapped[str] = mapped_column(String(40))
+    brand: Mapped[str | None] = mapped_column(String(60))
+    size: Mapped[str] = mapped_column(String(30))
+    note: Mapped[str | None] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
 class Supplement(Base):
     """A supplement one person takes every day ("Kreatyna 5 g o 8:00") – strictly private to its owner.
 

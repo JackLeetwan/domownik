@@ -135,6 +135,7 @@ def _private_filter(state: ORMExecuteState) -> None:
     from domownik.models import (
         Attachment,
         BoardNote,
+        BodySize,
         ExternalCalendar,
         HealthLink,
         HealthReading,
@@ -160,6 +161,7 @@ def _private_filter(state: ORMExecuteState) -> None:
                 Medication,
                 HealthLink,
                 HealthReading,
+                BodySize,
             )
         )
     )

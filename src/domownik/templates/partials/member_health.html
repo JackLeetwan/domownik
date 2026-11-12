@@ -1,5 +1,5 @@
 <section class="member-health" id="wizyty">
-  <h2>Wizyty i badania <a href="/zdrowie/{{ item.id }}" class="small-link">🩺 Zdrowie: leki, dokumentacja →</a></h2>
+  <h2>Wizyty i badania <a href="/zdrowie/{{ item.id }}" class="small-link">🩺 Zdrowie: leki, dokumentacja, wymiary →</a></h2>
   {% if health_rows %}
   <ul class="task-list">{% set show_zone = False %}{% for row in health_rows %}{% include "partials/task_row.html" %}{% endfor %}</ul>
   {% else %}

@@ -9,13 +9,15 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import documents, health, privacy, supplements
+from domownik import documents, health, privacy, sizes, supplements
 from domownik.config import get_settings, today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
 from domownik.models import (
     DOC_KINDS,
     MEDICAL_DOC_KINDS,
+    BodySize,
+    FitSize,
     HealthLink,
     HealthReading,
     Issue,
@@ -99,6 +101,9 @@ def overview(request: Request, db: Session = Depends(get_db), user: User = Depen
         meds_now, _ = health.split_meds(health.medications(db, p.id), t)
         cards.append({"item": p, "rows": ov.rows_by_person[p.id], "issues": issues, "meds": meds_now})
     money = health.spending(db, tree, people, t.year)
+    size_remind = sizes.reminders(db, people, user, t)
+    for c in cards:
+        c["size_remind"] = size_remind.get(c["item"].id)
     return render(
         request,
         "zdrowie.html",
@@ -160,6 +165,11 @@ def person(request: Request, item_id: int, db: Session = Depends(get_db), user: 
             "spent_rows": money["recent"].get(item.id, [])[:10],
             "money_found": money["found"],
             "year": t.year,
+            "sz": sizes.load(db, item, user),
+            "size_fields": sizes.FIELDS,
+            "size_what": sizes.WHAT,
+            "fmt_cm": sizes.fmt,
+            "fit_label": sizes.fit_label,
         },
     )
 
@@ -495,3 +505,70 @@ def delete_reading(reading_id: int, db: Session = Depends(get_db), user: User = 
     db.delete(r)
     db.commit()
     return _redirect(f"/zdrowie/{item_id}#pomiary")
+
+
+# ---------------------------------------------------------------- 📏 Wymiary (sizes.py)
+
+
+@router.post("/{item_id}/wymiary", dependencies=[Depends(verify_csrf)])
+async def add_sizes(request: Request, item_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    item = _member(db, item_id)
+    form = await request.form()
+    values = {k: sizes.parse_cm(form.get(k)) for k in sizes.KEYS}
+    if all(v is None for v in values.values()):
+        raise HTTPException(400, "Wpisz choć jeden wymiar w cm, np. 27,5")
+    db.add(
+        BodySize(
+            item_id=item.id,
+            measured_on=_date(form.get("measured_on")) or today(),
+            **values,
+            note=(form.get("note") or "").strip()[:200] or None,
+            private_to_id=user.id if form.get("private") else None,
+            created_by_id=user.id,
+        )
+    )
+    db.commit()
+    return _redirect(f"/zdrowie/{item.id}#wymiary")
+
+
+@router.post("/wymiary/{entry_id}/delete", dependencies=[Depends(verify_csrf)])
+def delete_sizes(entry_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    e = db.get(BodySize, entry_id)
+    if e is None or e.private_to_id not in (None, user.id):
+        raise HTTPException(404, "Nie ma takiego pomiaru")
+    item_id = e.item_id
+    db.delete(e)
+    db.commit()
+    return _redirect(f"/zdrowie/{item_id}#wymiary")
+
+
+@router.post("/{item_id}/rozmiary", dependencies=[Depends(verify_csrf)])
+async def add_fit(request: Request, item_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    item = _member(db, item_id)
+    form = await request.form()
+    what = (form.get("what") or "").strip()[:40]
+    size = (form.get("size") or "").strip()[:30]
+    if not what or not size:
+        raise HTTPException(400, "Podaj, co i jaki rozmiar")
+    db.add(
+        FitSize(
+            item_id=item.id,
+            what=what,
+            brand=(form.get("brand") or "").strip()[:60] or None,
+            size=size,
+            note=(form.get("note") or "").strip()[:200] or None,
+        )
+    )
+    db.commit()
+    return _redirect(f"/zdrowie/{item.id}#wymiary")
+
+
+@router.post("/rozmiary/{fit_id}/delete", dependencies=[Depends(verify_csrf)])
+def delete_fit(fit_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    f = db.get(FitSize, fit_id)
+    if f is None:
+        raise HTTPException(404, "Nie ma takiego rozmiaru")
+    item_id = f.item_id
+    db.delete(f)
+    db.commit()
+    return _redirect(f"/zdrowie/{item_id}#wymiary")

@@ -2069,6 +2069,11 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .hl-profile dt { color: var(--pico-muted-color); font-size: 0.9rem; }
 .hl-profile dd { margin: 0; white-space: pre-line; }
 .hl-series { margin: 0 0 0.25rem; }
+.sz-remind { padding: 0.4rem 0.6rem; border-radius: var(--pico-border-radius); background: var(--pico-mark-background-color); }
+.sz-old { color: var(--pico-del-color); }
+.sz-h { font-size: 1rem; margin: 0.75rem 0 0.25rem; }
+.sz-form fieldset { margin-bottom: 0.75rem; }
+.sz-form fieldset label small { display: block; font-size: 0.8rem; }
 .hl-chart { width: 100%; max-width: 32rem; height: auto; display: block; margin: 0.25rem 0 0; }
 .hl-chart polyline { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .hl-chart .l1 { stroke: var(--pico-primary); }

@@ -23,6 +23,7 @@
     {% if c.rows|length > 3 %}<p class="muted"><small>i {{ c.rows|length - 3 }} więcej</small></p>{% endif %}
     {% else %}<p class="muted"><small>Brak zaplanowanych wizyt.</small></p>{% endif %}
     {% if c.issues %}<p class="hl-line">🤕 {% for i in c.issues %}<a href="/zdrowie/sprawa/{{ i.id }}">{% if i.private_to_id %}🔒 {% endif %}{{ i.title }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+    {% if c.size_remind %}<p class="hl-line">👣 <a href="/zdrowie/{{ p.id }}#wymiary">{{ c.size_remind }}</a></p>{% endif %}
     {% if c.meds %}<p class="hl-line">💊 {% for m in c.meds %}{{ m.name }}{% if m.dose %} <small class="muted">{{ m.dose }}</small>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
   </article>
   {% else %}

@@ -1,0 +1,78 @@
+{# 📏 Wymiary on the person's Zdrowie page. Needs: item, sz (sizes.Sizes), size_fields, size_what, fmt_cm, fit_label #}
+<section id="wymiary"{% if sz.values or sz.fits %} data-fold-default="open"{% endif %}>
+  <h2>📏 Wymiary i rozmiary</h2>
+  {% set remind = sz.remind(today()) %}
+  {% if remind %}<p class="sz-remind">👣 {{ remind }}</p>{% endif %}
+  {% if sz.values or sz.weight %}
+  <dl class="hl-profile sz-values">
+    {% for k, lbl, grp, how in size_fields if sz.values.get(k) %}{% set v = sz.values[k] %}
+    <dt>{{ lbl }}</dt>
+    <dd><b>{{ fmt_cm(v.value) }} cm</b>{% if k == 'foot_len' and sz.shoe %} <span class="chip">≈ EU {{ sz.shoe }}</span>{% endif %}
+      <small class="muted{% if sz.stale(k, today()) %} sz-old{% endif %}">· {{ v.on|d }}{% if v.source %} · z {{ v.source }}{% endif %}{% if v.delta %} · {{ '+' if v.delta > 0 else '' }}{{ fmt_cm(v.delta) }} od {{ v.since|d }}{% endif %}</small></dd>
+    {% endfor %}
+    {% if sz.weight %}<dt>Waga</dt><dd><b>{{ fmt_cm(sz.weight) }} kg</b> <small class="muted">· {{ sz.weight_on|d }} · z Sylwetki</small></dd>{% endif %}
+  </dl>
+  {% else %}<p class="muted">Wzrost, obwody, długość nogawki, stopa – raz zmierzone, a przy zamawianiu ubrań w internecie wystarczy porównać z tabelą rozmiarów sklepu.</p>{% endif %}
+
+  {% if sz.fits %}
+  <h3 class="sz-h">✅ Pasuje</h3>
+  <ul class="hl-list">
+    {% for f in sz.fits %}
+    <li><b>{{ f.what }}</b>{% if f.brand %} · {{ f.brand }}{% endif %} · <b>{{ f.size }}</b>{% if f.note %} <small class="muted">{{ f.note }}</small>{% endif %}
+      <form method="post" action="/zdrowie/rozmiary/{{ f.id }}/delete" class="inline" hx-confirm="Usunąć ten rozmiar?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link" aria-label="Usuń rozmiar">✕</button></form></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if sz.values or sz.fits %}<p><button type="button" class="small outline" data-copy="{{ sz.copy_text() }}">📋 Kopiuj wymiary</button> <small class="muted">do kalkulatora rozmiaru w sklepie albo do czatu</small></p>{% endif %}
+
+  <details class="quick-add">
+    <summary>＋ Zmierz {% if sz.values %}znowu{% endif %}</summary>
+    <form method="post" action="/zdrowie/{{ item.id }}/wymiary" class="sz-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <p class="muted"><small>W centymetrach. Wpisz tylko to, co mierzysz teraz – reszta zostaje z poprzednich pomiarów. Najlepiej krawiecką taśmą, na bieliźnie, taśma przylega, ale nie uciska.</small></p>
+      {% set ns = namespace(group='') %}
+      {% for k, lbl, grp, how in size_fields %}
+      {% if grp != ns.group %}{% if ns.group %}</fieldset>{% endif %}<fieldset><legend>{{ grp }}</legend>{% set ns.group = grp %}{% endif %}
+      <label>{{ lbl }}<input name="{{ k }}" inputmode="decimal" placeholder="{{ fmt_cm(sz.values[k].value) if sz.values.get(k) else 'cm' }}"><small class="muted">{{ how }}</small></label>
+      {% endfor %}
+      </fieldset>
+      <div class="grid">
+        <label>Kiedy<input type="date" name="measured_on" value="{{ today().isoformat() }}"></label>
+        <label>Notatka<input name="note" maxlength="200" placeholder="np. po treningu, rano"></label>
+      </div>
+      {% with obj = None %}{% include "partials/private_field.html" %}{% endwith %}
+      <button type="submit">Zapisz</button>
+    </form>
+  </details>
+
+  <details class="quick-add">
+    <summary>＋ Rozmiar, który pasuje</summary>
+    <form method="post" action="/zdrowie/{{ item.id }}/rozmiary">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        <label>Co<input name="what" list="size-what" required maxlength="40" placeholder="np. Jeansy"></label>
+        <label>Marka / model<input name="brand" maxlength="60" placeholder="np. Levi's 501"></label>
+        <label>Rozmiar<input name="size" required maxlength="30" placeholder="np. 32/32, M, 44,5"></label>
+      </div>
+      <datalist id="size-what">{% for w in size_what %}<option value="{{ w }}">{% endfor %}</datalist>
+      <label>Notatka<input name="note" maxlength="200" placeholder="np. krój slim – raczej o numer większe"></label>
+      <button type="submit">Dodaj</button>
+    </form>
+    <p class="muted"><small>Rozmiary różnią się między markami – to, co już sprawdziło się na Tobie, jest pewniejsze niż tabela.</small></p>
+  </details>
+
+  {% if sz.entries %}
+  <details>
+    <summary>Historia pomiarów ({{ sz.entries|length }})</summary>
+    <ul class="hl-list">
+      {% for e in sz.entries %}
+      <li>{{ e.measured_on|d }}{% if e.private_to_id %} 🔒{% endif %} ·
+        {% for k, lbl, grp, how in size_fields if e[k] is not none %}{{ lbl|lower }} <b>{{ fmt_cm(e[k]) }}</b>{% if not loop.last %}, {% endif %}{% endfor %}
+        {% if e.note %} <small class="muted">{{ e.note }}</small>{% endif %}
+        <form method="post" action="/zdrowie/wymiary/{{ e.id }}/delete" class="inline" hx-confirm="Usunąć ten pomiar?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link" aria-label="Usuń pomiar">✕</button></form></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</section>

@@ -5,8 +5,8 @@
   'apartment': 'nr seryjny, filtr, kod do alarmu…',
   'rental': 'nr licznika, kod do alarmu, kontakt do najemcy…',
   'appliance': 'nr seryjny, filtr, model…',
-  'member': 'rozmiar butów, grupa krwi, PESEL do formularzy…',
-  'child': 'rozmiar butów, grupa krwi, PESEL do formularzy…',
+  'member': 'PESEL do formularzy, numer karty…',
+  'child': 'PESEL do formularzy, numer legitymacji…',
   'person': 'rozmiar ubrań, ulubione rzeczy, adres…',
 } %}
 {% set fact_values = [] %}{% for k, v in item.attributes.items() if not k.startswith('_') and v|string %}{% set _ = fact_values.append(v|string) %}{% endfor %}
