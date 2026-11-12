@@ -2,12 +2,12 @@
 # Daily backup: archive inside the container (data/backups/auto, rotated there),
 # then copy the newest archive off this disk (default: Google Drive mount).
 #   DOMOWNIK_BACKUP_DEST – target dir (default ~/GoogleDrive/Domownik/kopie)
-#   DOMOWNIK_BACKUP_KEEP – archives kept in the target dir (default 30)
+#   DOMOWNIK_BACKUP_KEEP – archives kept in the target dir (default 14)
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/.."
 
 dest="${DOMOWNIK_BACKUP_DEST:-$HOME/GoogleDrive/Domownik/kopie}"
-keep="${DOMOWNIK_BACKUP_KEEP:-30}"
+keep="${DOMOWNIK_BACKUP_KEEP:-14}"
 
 docker compose exec -T app domownik backup --keep 14 >/dev/null
 latest=$(ls -1t data/backups/auto/domownik-*.tar.gz | head -n1)

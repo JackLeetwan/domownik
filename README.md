@@ -208,7 +208,9 @@ urządzenia trzeba włączyć ponownie.
 
 **Serwer na telefonie:** cron o 3:30 `domownik backup --keep 30` w katalogu danych telefonu, a PC
 co 15 minut (timer `domownik-pull-phone-backups`) sprawdza, czy telefon jest podłączony przez USB,
-i ściąga nowe archiwa na Dysk Google (`scripts/pull-phone-backups.sh`, 30 ostatnich):
+i ściąga na Dysk Google najwyżej jedno archiwum dziennie – pierwsze z każdego nowego dnia
+(`scripts/pull-phone-backups.sh`, 14 ostatnich dni; usunięte przy rotacji leżą jeszcze 30 dni w koszu Dysku
+i zajmują miejsce):
 
 ```bash
 ln -sf ~/domownik/deploy/systemd/domownik-pull-phone-backups.{service,timer} ~/.config/systemd/user/
@@ -217,7 +219,7 @@ systemctl --user daemon-reload && systemctl --user enable --now domownik-pull-ph
 
 **Serwer w Dockerze:** codziennie o 3:30 (timer systemd użytkownika) `scripts/backup.sh`:
 1. w kontenerze `domownik backup` → `data/backups/auto/` (14 ostatnich, bez klucza sesji),
-2. kopiuje najnowsze archiwum na Dysk Google: `~/GoogleDrive/Domownik/kopie` (30 ostatnich).
+2. kopiuje najnowsze archiwum na Dysk Google: `~/GoogleDrive/Domownik/kopie` (14 ostatnich).
 
 ```bash
 ln -sf ~/domownik/deploy/systemd/domownik-backup.{service,timer} ~/.config/systemd/user/
