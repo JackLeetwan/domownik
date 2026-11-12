@@ -147,30 +147,35 @@ def add_page(
     free = sprzet == "0"
     areas = st.areas_with(db, type_, free)
     area = partia if partia in {k for k, _, _ in areas} else None
-    in_routine = {it.stretch_id for it in r.items}
     base = f"/forma/rozciaganie/{r.id}/dodaj"
-
-    def pick_url(**change) -> str:
-        """The picker with one filter changed and the others kept (None drops it)."""
-        q = {"typ": type_, "partia": area, "sprzet": "0" if free else None} | change
-        query = "&".join(f"{k}={v}" for k, v in q.items() if v)
-        return f"{base}?{query}" if query else base
-
     return render(
         request,
         "stretch_pick.html",
         _ctx(
             user,
-            r=r,
+            title=f"Dodaj do: {r.name}",
+            back_url=f"/forma/rozciaganie/{r.id}?edycja=1",
+            base=base,
             sections=st.groups(db, type_, area, free),
             type_filter=type_,
             area_filter=area,
             areas=areas,
             free_filter=free,
-            pick_url=pick_url,
-            in_routine=in_routine,
+            pick_url=_pick_url(base, {"typ": type_, "partia": area, "sprzet": "0" if free else None}),
+            marked={it.stretch_id for it in r.items},
+            mark_label="✓ w zestawie",
         ),
     )
+
+
+def _pick_url(base: str, now: dict):
+    def pick_url(**change) -> str:
+        """The picker with one filter changed and the others kept (None drops it; "" – explicitly none)."""
+        q = now | change
+        query = "&".join(f"{k}={v}" for k, v in q.items() if v is not None)
+        return f"{base}?{query}" if query else base
+
+    return pick_url
 
 
 @router.post("/{routine_id:int}/dodaj/{stretch_id:int}", dependencies=[Depends(verify_csrf)])
@@ -248,7 +253,9 @@ def session_page(session_id: int, request: Request, db: Session = Depends(get_db
 
 def _group_state(g: StretchGroup, user: User) -> dict:
     """What a browser on the shared timer needs: the state, its rev, the server's clock, who else is in."""
+    mine = st.member(g, user)
     return {
+        "plan": [x["id"] for x in (mine.steps if mine else [])],  # changed by 🔄 – the timer reloads
         "rev": g.rev,
         "state": g.state or {},
         "now": int(time.time() * 1000),
@@ -262,6 +269,78 @@ def _after_url(db: Session, user: User, s: StretchSession) -> str:
     if s.workout_id and (w := tr.get_own(db, user, s.workout_id)) is not None:
         return f"/forma/trening/{w.id}"
     return "/forma"
+
+
+@router.get("/sesja/{session_id:int}/zamien")
+def swap_page(
+    session_id: int,
+    request: Request,
+    poz: int = 0,
+    typ: str | None = None,
+    partia: str | None = None,
+    sprzet: str = "",
+    stale: str = "",
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """🔄 In the middle of stretching: another stretch in place of this one; at first the same kind and area."""
+    s = _session(db, user, session_id)
+    if s.finished_at is not None or not 0 <= poz < len(s.steps):
+        return _go(f"/forma/rozciaganie/sesja/{s.id}")
+    st.ensure_library(db)
+    db.commit()
+    cur = db.get(Stretch, s.steps[poz]["id"])
+    type_ = (typ or None) if typ is not None else (cur.type if cur else None)
+    type_ = type_ if type_ in st.catalog()["types"] else None
+    free = sprzet == "0"
+    areas = st.areas_with(db, type_, free)
+    area = (partia or None) if partia is not None else (cur.area if cur else None)
+    area = area if area in {k for k, _, _ in areas} else None
+    routine = s.routine if s.routine is not None and not s.routine.archived else None
+    base = f"/forma/rozciaganie/sesja/{s.id}/zamien"
+    pick_url = _pick_url(
+        base,
+        {"poz": poz, "typ": type_ or "", "partia": area or "", "sprzet": "0" if free else None, "stale": stale or None},
+    )
+    return render(
+        request,
+        "stretch_pick.html",
+        _ctx(
+            user,
+            title=f"Zamień: {s.steps[poz]['name']}",
+            back_url=f"/forma/rozciaganie/sesja/{s.id}",
+            base=base,
+            hidden={"poz": poz, "stale": "1" if stale and routine else ""},
+            sections=st.groups(db, type_, area, free),
+            type_filter=type_,
+            area_filter=area,
+            areas=areas,
+            free_filter=free,
+            pick_url=pick_url,
+            marked={x["id"] for x in s.steps},
+            mark_label="✓ w tej sesji",
+            current_id=cur.id if cur else None,
+            permanent=bool(stale) and routine is not None,
+            permanent_url=pick_url(stale=None if stale else "1") if routine else None,
+            routine=routine,
+            together=s.group is not None,
+        ),
+    )
+
+
+@router.post("/sesja/{session_id:int}/zamien/{stretch_id:int}", dependencies=[Depends(verify_csrf)])
+async def swap(
+    session_id: int,
+    stretch_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    s = _session(db, user, session_id)
+    form = await request.form()
+    st.swap(s, int(str(form.get("poz") or 0)), _stretch(db, stretch_id), permanent=bool(form.get("stale")))
+    db.commit()
+    return _go(f"/forma/rozciaganie/sesja/{s.id}")
 
 
 @router.post("/sesja/{session_id:int}/koniec", dependencies=[Depends(verify_csrf)])

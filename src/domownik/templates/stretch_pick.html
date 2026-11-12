@@ -1,17 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Dodaj do: {{ r.name }} · Domownik{% endblock %}
+{# picking a stretch: adding to a routine, or 🔄 swapping one in a running session (hidden: extra form fields) #}
+{% block title %}{{ title }} · Domownik{% endblock %}
 {% block content %}
-<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma/rozciaganie/{{ r.id }}?edycja=1" class="home-link">← Wróć</a></li></ul></nav>
-<header class="item-head"><h1>Dodaj do: {{ r.name }}</h1></header>
-{% set base = '/forma/rozciaganie/' ~ r.id ~ '/dodaj' %}
+<nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="{{ back_url }}" class="home-link">← Wróć</a></li></ul></nav>
+<header class="item-head"><h1>{{ title }}</h1></header>
+{% if routine %}
+<p class="pick-chips"><a href="{{ permanent_url }}" class="chip{% if permanent %} on{% endif %}" aria-pressed="{{ 'true' if permanent else 'false' }}">📌 Też na stałe w zestawie „{{ routine.name }}”</a></p>
+{% endif %}
+{% if together is defined and together %}<p class="muted"><small>👫 Zamiana działa u wszystkich – timer wraca na początek tego ćwiczenia.</small></p>{% endif %}
 <input type="search" class="pick-search" placeholder="Szukaj: nazwa, partia, sprzęt…" aria-label="Szukaj ćwiczenia" autocomplete="off" enterkeyhint="search" data-pick-filter>
 <p class="pick-chips pick-types">
-  <a href="{{ pick_url(typ=None) }}" class="chip{% if not type_filter %} on{% endif %}">Wszystko</a>
+  <a href="{{ pick_url(typ='') }}" class="chip{% if not type_filter %} on{% endif %}">Wszystko</a>
   {% for k, label in st.catalog()['types'].items() %}<a href="{{ pick_url(typ=k) }}" class="chip{% if type_filter == k %} on{% endif %}">{{ label }}</a>{% endfor %}
   <a href="{{ pick_url(sprzet=None if free_filter else '0') }}" class="chip{% if free_filter %} on{% endif %}" aria-pressed="{{ 'true' if free_filter else 'false' }}">🙌 Bez sprzętu</a>
 </p>
 <nav class="pick-chips pick-areas" aria-label="Partia ciała">
-  <a href="{{ pick_url(partia=None) }}" class="chip{% if not area_filter %} on{% endif %}">Całe ciało</a>
+  <a href="{{ pick_url(partia='') }}" class="chip{% if not area_filter %} on{% endif %}">Całe ciało</a>
   {% for k, label, n in areas %}<a href="{{ pick_url(partia=k) }}" class="chip{% if area_filter == k %} on{% endif %}">{{ label }} <small>{{ n }}</small></a>{% endfor %}
 </nav>
 {% if type_filter == 'dynamic' %}<p class="muted"><small>Dynamiczne – w ruchu, na rozgrzewkę przed treningiem.</small></p>
@@ -21,14 +25,15 @@
 <section data-pick-section>
 <h2 class="pick-head">{{ heading }}</h2>
 <ul class="pick-list">
-  {% for ex in items %}
+  {% for ex in items %}{% if ex.id != current_id %}
   <li class="pick-item" data-pick-text="{{ ex.name }} {{ heading }} {{ st.type_label(ex.type) }} {{ st.gear(ex) or '' }}"><form method="post" action="{{ base }}/{{ ex.id }}"><input type="hidden" name="csrf" value="{{ csrf }}">
-    <button type="submit" class="pick-row">{% include "partials/ex_pic.html" %}<span><b>{{ ex.name }}</b><small class="muted">{% if ex.id in in_routine %}✓ w zestawie · {% endif %}{% include "partials/stretch_meta.html" %}</small></span><span aria-hidden="true">＋</span></button></form>
+    {% for k, v in (hidden or {}).items() %}{% if v != '' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+    <button type="submit" class="pick-row">{% include "partials/ex_pic.html" %}<span><b>{{ ex.name }}</b><small class="muted">{% if ex.id in marked %}{{ mark_label }} · {% endif %}{% include "partials/stretch_meta.html" %}</small></span><span aria-hidden="true">{{ '⇄' if current_id is defined else '＋' }}</span></button></form>
     {% with info_url = '/forma/rozciaganie/cw/' ~ ex.id %}{% include "partials/ex_info.html" %}{% endwith %}</li>
-  {% endfor %}
+  {% endif %}{% endfor %}
 </ul>
 </section>
 {% endif %}
 {% endfor %}
-<p class="muted" data-pick-none hidden>Nic nie pasuje{% if type_filter or area_filter or free_filter %} – spróbuj bez filtrów: <a href="{{ base }}">wszystkie ćwiczenia</a>{% endif %}.</p>
+<p class="muted" data-pick-none hidden>Nic nie pasuje{% if type_filter or area_filter or free_filter %} – spróbuj bez filtrów: <a href="{{ pick_url(typ='', partia='', sprzet=None) }}">wszystkie ćwiczenia</a>{% endif %}.</p>
 {% endblock %}

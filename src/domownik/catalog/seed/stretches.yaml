@@ -129,12 +129,12 @@ routines:
   - key: after
     name: Po treningu
     kind: after
-    items: [quad_all_fours, hip_flexor_kneeling, hamstring_seated, figure_four, butterfly, calf_wall, chest_elbows_back, cross_body_shoulder, triceps_overhead, childs_pose]
+    items: [quad_side, hip_flexor_kneeling, hamstring_seated, figure_four, butterfly, calf_wall, chest_elbows_back, cross_body_shoulder, triceps_overhead, childs_pose]
   # 🦵 legs – on the floor and at a wall, nothing needed (~6½ min)
   - key: legs_short
     name: Nogi – krótko
     kind: own
-    items: [hip_flexor_kneeling, quad_all_fours, runners_stretch, figure_four, butterfly, calf_wall]
+    items: [hip_flexor_kneeling, quad_side, runners_stretch, figure_four, butterfly, calf_wall]
   # 🦵 legs – a few swings to warm up, then every part of the leg (~15 min; a step and a strap or towel)
   - key: legs_long
     name: Nogi – długo

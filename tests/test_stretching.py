@@ -442,3 +442,63 @@ def test_together_forma_shows_invite(auth_client, db, user, monkeypatch):
     assert f'data-group="{g.id}"' in page
     # the partner's own session stays private
     assert auth_client.get(f"/forma/rozciaganie/sesja/{host.id}").status_code == 404
+
+
+def test_swap_a_stretch_in_the_session(auth_client, db, user, monkeypatch):
+    from domownik import together
+
+    monkeypatch.setattr(together, "_send", lambda db, u, body: 1)
+    st.prepare(db)
+    db.commit()
+    after = st.for_kind(db, "after")
+    r = _post(auth_client, f"/forma/rozciaganie/{after.id}/start")
+    sid = int(r.headers["location"].rsplit("/", 1)[1])
+    assert "🔄 Zamień ćwiczenie" in auth_client.get(f"/forma/rozciaganie/sesja/{sid}").text
+    s = db.get(StretchSession, sid)
+    first = db.get(Stretch, s.steps[0]["id"])
+
+    # the picker: at first the same kind and area, without the current one; "📌" keeps the routine choice
+    page = auth_client.get(f"/forma/rozciaganie/sesja/{sid}/zamien?poz=0").text
+    assert f"Zamień: {first.name}" in page and f'/zamien/{first.id}"' not in page
+    half = db.query(Stretch).filter_by(key="half_locust").one()
+    assert f"/zamien/{half.id}" in page and "📌 Też na stałe" in page
+    assert 'name="stale"' in auth_client.get(f"/forma/rozciaganie/sesja/{sid}/zamien?poz=0&stale=1").text
+
+    # only in this session: the routine stays
+    _post(auth_client, f"/forma/rozciaganie/sesja/{sid}/zamien/{half.id}", {"poz": "0"})
+    db.refresh(s)
+    db.refresh(after)
+    assert s.steps[0]["id"] == half.id and s.steps[0]["name"] == half.name and s.total == len(s.steps)
+    assert after.items[0].stretch_id == first.id
+    # also for good
+    _post(auth_client, f"/forma/rozciaganie/sesja/{sid}/zamien/{half.id}", {"poz": "1", "stale": "1"})
+    db.refresh(s)
+    db.refresh(after)
+    assert (
+        s.steps[1]["id"] == half.id and after.items[1].stretch_id == half.id and after.items[0].stretch_id == first.id
+    )
+    assert _post(auth_client, f"/forma/rozciaganie/sesja/{sid}/zamien/{half.id}", {"poz": "99"}).status_code == 400
+
+    # together: everybody's steps change, the shared timer goes back to the start of that stretch, paused
+    paula = _paula(db)
+    g = st.invite(db, s, [paula])
+    mine = st.join(db, g, paula)
+    sided = [4 if x["sided"] else 2 for x in s.steps]
+    g.state = {
+        "idx": sum(sided[:3]) + 1,
+        "endsAt": 10**13,
+        "runFrom": 1,
+        "activeMs": 0,
+        "left": 0,
+        "started": True,
+        "results": {"0": "done", str(sum(sided[:3]) + 1): "done"},
+    }
+    rev = g.rev
+    db.commit()
+    _post(auth_client, f"/forma/rozciaganie/sesja/{sid}/zamien/{first.id}", {"poz": "3"})
+    db.refresh(g)
+    db.refresh(mine)
+    assert mine.steps[3]["id"] == first.id and g.rev == rev + 1
+    assert g.state["idx"] == sum(sided[:3]) and g.state["endsAt"] is None and g.state["left"] == st.TRANSITION * 1000
+    assert g.state["results"] == {"0": "done"} and g.state["activeMs"] > 0
+    assert auth_client.get(f"/forma/rozciaganie/razem/{g.id}/stan").json()["plan"][3] == first.id

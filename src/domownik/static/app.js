@@ -958,11 +958,21 @@
 
     const remaining = () => (paused ? left : endsAt - Date.now());
     const active = () => activeMs + (paused || !runFrom ? 0 : Date.now() - runFrom);
+    const plan = stretches.map((s) => s.id);
     const save = () => {
       if (finished || shared) return;
-      store.set(key, JSON.stringify({ idx, left: Math.max(0, remaining()), activeMs: active(), results }));
+      store.set(key, JSON.stringify({ idx, left: Math.max(0, remaining()), activeMs: active(), results, plan }));
     };
     const saved = (() => { try { return JSON.parse(store.get(key) || "null"); } catch (_) { return null; } })();
+    if (saved && saved.plan) { // 🔄 a stretch was swapped meanwhile: from it on, back to its start
+      const at = plan.findIndex((id, i) => saved.plan[i] !== id);
+      const from = at < 0 ? (saved.plan.length > plan.length ? phases.length : -1) : firstPrep(at);
+      if (from >= 0 && saved.idx >= from) {
+        saved.idx = from;
+        saved.left = T * 1000;
+        for (const k of Object.keys(saved.results || {})) if (Number(k) >= from) delete saved.results[k];
+      }
+    }
     if (saved && saved.idx < phases.length) {
       ({ idx, left, activeMs, results } = { idx: saved.idx, left: saved.left, activeMs: saved.activeMs || 0, results: saved.results || {} });
       started = true;
@@ -1026,6 +1036,8 @@
         : p.kind === "prep" ? (p.first ? (p.si === 0 && !started ? "Pierwsze ćwiczenie" : "Przygotuj się") : "Zmień stronę")
         : sideName(p.side) || "Teraz";
       $(".ss-name span").textContent = s.name;
+      const swap = $(".ss-swap");
+      if (swap) swap.href = swap.href.replace(/poz=\d+/, `poz=${p.si}`);
       const img = $(".ss-pic img");
       const src = s.target || s.img; // the target position (sessions started before it: the icon)
       if (src) { if (img.getAttribute("src") !== src) img.src = src; img.hidden = false; $(".ss-emoji").hidden = true; }
@@ -1139,8 +1151,10 @@
         : n ? "👫 Czekam, aż dołączy – timer jest wspólny" : "";
     };
     const showControls = () => { $(".ss-start").hidden = true; $(".ss-controls").hidden = false; };
+    const replanned = (d) => d.plan && d.plan.length && d.plan.join() !== plan.join();
     const adopt = (d) => {
       if (finished) return;
+      if (replanned(d)) { finished = true; location.reload(); return; } // 🔄 someone swapped a stretch
       rev = d.rev;
       showWith(d);
       const g = d.state || {};
@@ -1194,7 +1208,7 @@
         if (r.ok) {
           const d = await r.json();
           clock(d, t0, Date.now());
-          if (force || d.rev > rev) adopt(d); else showWith(d);
+          if (force || d.rev > rev || replanned(d)) adopt(d); else showWith(d);
         }
       } catch (_) { /* offline */ }
       polling = false;
@@ -1239,6 +1253,13 @@
       const target = (idx === start || (idx === start + 1 && elapsed < 2000)) && p.si > 0 ? firstPrep(p.si - 1) : start;
       go(target);
       push();
+    });
+    // 🔄 swap: paused first (kept on this device / on the shared timer), the picker opens as a page
+    const swapLink = $(".ss-swap");
+    if (swapLink) swapLink.addEventListener("click", () => {
+      if (!started) return;
+      if (!paused) { pause(); push(); }
+      save();
     });
     $(".ss-info").addEventListener("click", () => {
       const s = stretches[phases[Math.min(idx, phases.length - 1)].si];

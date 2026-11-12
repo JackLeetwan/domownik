@@ -1943,6 +1943,8 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .ss.prep .ss-time { color: #c77d00; }
 .ss.paused .ss-time { opacity: 0.5; }
 .ss-next { min-height: 1.5em; margin-bottom: 0.75rem; }
+.ss-swap-row { margin: -0.25rem 0 0.75rem; text-align: center; }
+.ss-swap-row .ss-swap { width: auto; padding: 0.3rem 0.8rem; font-size: 0.85rem; }
 .ss-start { font-size: 1.3rem; padding-block: 0.9rem; }
 .ss-controls { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 0.6rem; }
 .ss-controls[hidden] { display: none; }

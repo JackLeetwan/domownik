@@ -8,6 +8,7 @@ are made on the first visit and then changed freely.
 from __future__ import annotations
 
 import functools
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -226,20 +227,21 @@ def fmt_minutes(seconds: int) -> str:
 # ---------------------------------------------------------------- sessions (the timer runs in the browser)
 
 
+def _step(s: Stretch, seconds: int) -> dict[str, Any]:
+    return {
+        "id": s.id,
+        "name": s.name,
+        "seconds": seconds,
+        "sided": s.sided,
+        "img": image(s),
+        "target": image_target(s),
+        "gear": gear(s),
+    }
+
+
 def snapshot(r: StretchRoutine) -> list[dict[str, Any]]:
     """The routine for the timer – as it is now (editing it during the session changes nothing)."""
-    return [
-        {
-            "id": it.stretch.id,
-            "name": it.stretch.name,
-            "seconds": it.duration,
-            "sided": it.stretch.sided,
-            "img": image(it.stretch),
-            "target": image_target(it.stretch),
-            "gear": gear(it.stretch),
-        }
-        for it in r.items
-    ]
+    return [_step(it.stretch, it.duration) for it in r.items]
 
 
 def _drop_unfinished(db: Session, user: User) -> None:
@@ -271,6 +273,53 @@ def finish(s: StretchSession, done: int, seconds: int) -> None:
     s.done = max(0, min(done, s.total))
     s.seconds = max(0, min(seconds, 4 * 3600))
     s.finished_at = now().replace(tzinfo=None, microsecond=0)
+
+
+def first_phase(steps: list[dict[str, Any]], pos: int) -> int:
+    """The timer's phase where stretch `pos` starts (app.js: a prep and a work phase per side)."""
+    return sum(4 if x.get("sided") else 2 for x in steps[:pos])
+
+
+def swap(s: StretchSession, pos: int, new: Stretch, permanent: bool = False) -> None:
+    """🔄 Another stretch in place of one of the session (the timer goes back to its start, paused).
+
+    Together: everybody's session gets it and the shared timer moves there (the others' browsers reload).
+    permanent: the routine gets it too (the item that had the old stretch, its own time dropped).
+    """
+    if s.finished_at is not None:
+        raise ValueError("Ta sesja już się skończyła")
+    if not 0 <= pos < len(s.steps):
+        raise ValueError("Nie ma takiego ćwiczenia w sesji")
+    old_id = s.steps[pos]["id"]
+    steps = list(s.steps)
+    steps[pos] = _step(new, new.seconds)
+    g = s.group
+    for x in g.sessions if g is not None else [s]:
+        if x.finished_at is None:
+            x.steps = steps
+    if g is not None and "idx" in (g.state or {}) and g.state["idx"] >= (at := first_phase(steps, pos)):
+        state = dict(g.state)
+        active = int(state.get("activeMs") or 0)
+        if state.get("endsAt") is not None and state.get("runFrom"):
+            active += max(0, int(time.time() * 1000) - int(state["runFrom"]))
+        state.update(
+            idx=at,
+            endsAt=None,
+            left=TRANSITION * 1000,
+            runFrom=0,
+            activeMs=active,
+            results={k: v for k, v in (state.get("results") or {}).items() if int(k) < at},
+        )
+        g.state = state
+        g.rev += 1
+    r = s.routine
+    if permanent and r is not None and not r.archived:
+        items = list(r.items)
+        it = items[pos] if pos < len(items) and items[pos].stretch_id == old_id else None
+        it = it or next((i for i in items if i.stretch_id == old_id), None)
+        if it is not None:
+            it.stretch = new
+            it.seconds = None
 
 
 def get_own(db: Session, user: User, session_id: int) -> StretchSession | None:
