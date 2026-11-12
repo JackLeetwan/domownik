@@ -22,7 +22,11 @@
   {% if rest_ms %}
   <div class="wo-rest" data-rest-ends="{{ rest_ms }}" role="status">
     <span class="wo-rest-main"><b class="wo-rest-left">Przerwa</b>{% if next_we %} <small class="muted">· dalej: {{ next_we.exercise.name }}</small>{% endif %}</span>
-    <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/przerwa-koniec" hx-target="#workout" hx-swap="outerHTML">Pomiń</button>
+    <span class="wo-rest-btns">
+      <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/przerwa?o=-30" hx-target="#workout" hx-swap="outerHTML" aria-label="Przerwa krócej o 30 sekund">−30 s</button>
+      <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/przerwa?o=30" hx-target="#workout" hx-swap="outerHTML" aria-label="Przerwa dłużej o 30 sekund">+30 s</button>
+      <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/przerwa-koniec" hx-target="#workout" hx-swap="outerHTML">Pomiń</button>
+    </span>
   </div>
   {% endif %}
 
@@ -52,7 +56,7 @@
     </ol>
     {% endif %}
 
-    {% if not r.complete or r.current %}
+    {% set log_form %}
     <form class="wo-log" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/seria" hx-target="#workout" hx-swap="outerHTML">
       {% if ex.kind == 'time' %}
       <label>Sekundy <input name="seconds" inputmode="numeric" value="{{ r.seconds or '' }}" autocomplete="off"></label>
@@ -63,11 +67,15 @@
       <button type="submit">✓ Seria {{ we.done|length + 1 }}{% if we.done|length < we.sets %}/{{ we.sets }}{% endif %}</button>
     </form>
     {% if errors.get(we.id) %}<p class="error" role="alert">{{ errors.get(we.id) }}</p>{% endif %}
+    {% endset %}
+    {% if not r.complete or r.current %}
+    {{ log_form }}
     {% else %}
-    <form class="wo-more" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/seria" hx-target="#workout" hx-swap="outerHTML">
-      <input type="hidden" name="weight" value="{{ fmt_kg(r.weight) if r.weight else '' }}"><input type="hidden" name="reps" value="{{ r.reps or '' }}"><input type="hidden" name="seconds" value="{{ r.seconds or '' }}">
-      <button type="submit" class="small outline secondary">＋ jeszcze jedna seria</button>
-    </form>
+    {# after the plan's sets: one more, with its own weight and reps – the same form, folded #}
+    <details class="wo-more"{% if errors.get(we.id) %} open{% endif %}>
+      <summary role="button" class="small outline secondary">＋ jeszcze jedna seria</summary>
+      {{ log_form }}
+    </details>
     {% endif %}
 
     <div class="wo-ex-actions">

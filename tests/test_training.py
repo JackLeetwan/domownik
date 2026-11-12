@@ -151,6 +151,18 @@ def test_rest_and_superset(db, user, fbw):
     assert w.rest_until is None  # straight to the partner of the superset
     tr.log_set(db, pull, weight=None, reps=10, at=T)
     assert w.rest_until == T + timedelta(seconds=90)
+    # −30 / +30 s: the current rest moves and the exercise keeps the new length (the plan does not change)
+    w.rest_pushed = True
+    tr.adjust_rest(db, w, 30, at=T + timedelta(seconds=10))
+    assert w.rest_until == T + timedelta(seconds=120) and pull.rest_seconds == 120 and not w.rest_pushed
+    tr.adjust_rest(db, w, -30, at=T + timedelta(seconds=10))
+    tr.adjust_rest(db, w, -30, at=T + timedelta(seconds=10))
+    assert w.rest_until == T + timedelta(seconds=60) and pull.rest_seconds == 60
+    tr.adjust_rest(db, w, -30, at=T + timedelta(seconds=50))  # never into the past: the rest is over now
+    assert w.rest_until == T + timedelta(seconds=50)
+    tr.adjust_rest(db, w, 30, at=T + timedelta(seconds=70))  # ran out → +30 s from now
+    assert w.rest_until == T + timedelta(seconds=100) and pull.rest_seconds == 60
+    assert all(it.rest_seconds == 90 for it in fbw[0].items if it.superset)
     backfill = tr.start(db, user, fbw[1], day=D - timedelta(days=1), at=T)
     tr.log_set(db, backfill.exercises[0], weight=20, reps=12, at=T)
     assert backfill.rest_until is None  # an old day typed in later has no rest
@@ -231,6 +243,26 @@ def test_full_flow_on_the_phone(auth_client, db, user):
     )
     assert r.status_code == 200 and r.text.lstrip().startswith('<div id="workout"')
     assert "22,5 kg × 10" in r.text and "data-rest-ends" in r.text
+    assert f'hx-post="/forma/trening/{wid}/przerwa?o=30"' in r.text and "−30 s" in r.text
+    rest = bench.rest_seconds
+    hx = {"HX-Request": "true", "HX-Target": "workout"}
+    r = auth_client.post(f"/forma/trening/{wid}/przerwa?o=30", headers=hx)
+    assert r.status_code == 200 and f"przerwa {rest + 30} s" in r.text
+    auth_client.post(f"/forma/trening/{wid}/przerwa?o=500", headers=hx)  # only ±30
+    db.refresh(bench)
+    assert bench.rest_seconds == rest + 30
+    # the plan's sets done: "＋ jeszcze jedna seria" opens the usual form – its own weight and reps
+    for _ in range(bench.sets - len(bench.done)):
+        tr.log_set(db, bench, weight=25, reps=8)
+    db.commit()
+    screen = auth_client.get(f"/forma/trening/{wid}").text
+    more = screen.split(f'id="we{bench.id}"', 1)[1].split("</article>", 1)[0]
+    assert '<details class="wo-more"' in more and "＋ jeszcze jedna seria" in more
+    assert 'name="weight" inputmode="decimal" value="25"' in more and f"✓ Seria {bench.sets + 1}<" in more
+    assert "&lt;form" not in more  # the folded form is markup, not text
+    for s in bench.done[-(bench.sets - 1):]:
+        tr.undo_set(db, s)
+    db.commit()
     r = auth_client.post(
         f"/forma/trening/{wid}/cw/{bench.id}/seria",
         data={"weight": "22,5", "reps": ""},

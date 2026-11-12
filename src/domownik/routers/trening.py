@@ -334,6 +334,22 @@ def skip_rest(workout_id: int, request: Request, db: Session = Depends(get_db), 
     return _show(request, db, user, w)
 
 
+@router.post("/trening/{workout_id:int}/przerwa", dependencies=[Depends(verify_csrf)])
+def change_rest(
+    workout_id: int,
+    request: Request,
+    o: int = 0,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """−30 s / +30 s on the rest bar."""
+    w = _workout(db, user, workout_id)
+    if o in (-tr.REST_STEP, tr.REST_STEP):
+        tr.adjust_rest(db, w, o)
+        db.commit()
+    return _show(request, db, user, w)
+
+
 @router.post("/trening/{workout_id:int}/cw/{we_id:int}/usun", dependencies=[Depends(verify_csrf)])
 def remove_exercise(workout_id: int, we_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     w = _workout(db, user, workout_id)

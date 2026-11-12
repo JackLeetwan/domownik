@@ -447,6 +447,26 @@ def log_set(
     return s
 
 
+REST_STEP = 30
+
+
+def adjust_rest(db: Session, w: Workout, delta: int, at: datetime | None = None) -> None:
+    """−30 s / +30 s during a rest: the current one moves, and the exercise that started it keeps the new length
+    for its next rests in this workout (the plan stays as it is). +30 s after the rest ran out starts it again."""
+    at = (at or _now()).replace(microsecond=0)
+    if w.rest_until is None or w.finished_at is not None:
+        return
+    base = max(w.rest_until, at) if delta > 0 else w.rest_until
+    w.rest_until = max(at, base + timedelta(seconds=delta))
+    if w.rest_until > at:
+        w.rest_pushed = False  # the push "koniec przerwy" comes at the new end
+    sets = [s for we in w.exercises for s in we.done]
+    if sets:
+        we = max(sets, key=lambda s: (s.done_at, s.id)).workout_exercise
+        we.rest_seconds = min(900, max(0, (we.rest_seconds or 0) + delta))
+    db.flush()
+
+
 def undo_set(db: Session, s: WorkoutSet) -> None:
     we = s.workout_exercise
     we.done.remove(s)
