@@ -404,6 +404,19 @@
     }
     toast("Brak połączenia z serwerem Domownika – sprawdź, czy działa, i spróbuj ponownie.");
   });
+  // A request that hangs (the VPN or the signal dropped – at the gym) must not wait forever: htmx would
+  // silently drop every next tap on the same button ("✓ Seria" did nothing). 20 s, an upload longer.
+  document.addEventListener("htmx:configRequest", (e) => {
+    if (e.detail.timeout) return; // set on the element (hx-request)
+    const fd = e.detail.formData;
+    const upload = fd && typeof fd.values === "function" && [...fd.values()].some((v) => v instanceof File && v.size);
+    e.detail.timeout = upload ? 180000 : 20000;
+  });
+  document.addEventListener("htmx:timeout", (e) => {
+    const elt = e.detail.elt;
+    if (elt && elt.getAttribute && (elt.getAttribute("hx-trigger") || "").includes("every")) return; // a poll tries again
+    toast("Serwer Domownika nie odpowiada – sprawdź połączenie (VPN) i spróbuj jeszcze raz.");
+  });
   document.addEventListener("htmx:responseError", (e) => {
     const xhr = e.detail.xhr;
     // an inert document: unlike a detached <div>, nothing in it loads or runs (<img onerror> included)
