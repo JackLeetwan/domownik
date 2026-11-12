@@ -548,3 +548,32 @@ def test_catalog_names_are_polish():
     english = re.compile(r"\b(press|curl|row|raise|squat|pull|push|fly|kick|twist|plank|bench|cable|dumbbell|barbell)\b", re.I)
     bad = [r["name"] for r in tr.catalog()["exercises"] if english.search(re.sub(r"\([^)]*\)", "", r["name"]))]
     assert not bad, bad
+
+
+def test_added_on_the_spot_takes_the_last_range(db, user, fbw):
+    """An exercise added without a plan: sets, rep range and rest as last time – the progress is judged there."""
+    first = tr.start(db, user, None, at=T - timedelta(days=7))
+    new = tr.add_exercise(db, first, _ex(db, "leg_extension"))
+    assert (new.sets, new.reps_min, new.reps_max) == (3, 8, 12)  # never done: the usual
+    plan_w = tr.start(db, user, fbw[0], at=T - timedelta(days=3))
+    sq = next(we for we in plan_w.exercises if we.exercise.key == "spanish_squat")
+    sq.rest_seconds = 75
+    for _ in range(5):
+        tr.log_set(db, sq, weight=None, reps=20, at=T - timedelta(days=3))
+    db.commit()
+    w = tr.start(db, user, None, at=T)
+    we = tr.add_exercise(db, w, sq.exercise)
+    assert (we.sets, we.reps_min, we.reps_max, we.rest_seconds) == (5, sq.reps_min, 20, 75)
+    sug = tr.suggest(db, user, we)
+    assert sug.reps == 21 and sug.note == "więcej powtórzeń"  # not "+kg, 8 reps"
+
+    # from the Jefit history: the range is a usual one from the top done
+    old = Workout(user_id=user.id, day=D - timedelta(days=30), started_at=T - timedelta(days=30), source="jefit")
+    db.add(old)
+    db.flush()
+    jw = tr.add_exercise(db, old, _ex(db, "lat_pulldown"))
+    jw.reps_min = jw.reps_max = 15
+    tr.log_set(db, jw, weight=40, reps=15, at=T - timedelta(days=30))
+    db.commit()
+    got = tr.add_exercise(db, w, _ex(db, "lat_pulldown"))
+    assert (got.reps_min, got.reps_max) == tr.range_for(15) and got.rest_seconds == tr.DEFAULT_REST

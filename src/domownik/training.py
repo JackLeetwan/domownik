@@ -433,16 +433,47 @@ def start(
     return w
 
 
+def _last_done(db: Session, w: Workout, ex: Exercise) -> WorkoutExercise | None:
+    """This person's latest earlier time with the exercise that has sets – whatever workout it was in."""
+    stmt = (
+        select(WorkoutExercise)
+        .join(Workout)
+        .where(Workout.user_id == w.user_id, WorkoutExercise.exercise_id == ex.id, Workout.day <= w.day)
+        .order_by(Workout.day.desc(), Workout.started_at.desc(), WorkoutExercise.position.desc())
+        .options(selectinload(WorkoutExercise.done))
+    )
+    if w.id is not None:
+        stmt = stmt.where(Workout.id != w.id)
+    return next((we for we in db.scalars(stmt.limit(20)) if we.done), None)
+
+
 def add_exercise(db: Session, w: Workout, ex: Exercise) -> WorkoutExercise:
+    """Added on the spot: as many sets, the same rep range and rest as the person did it last time (so the
+    suggestion judges progress in their range – 20 reps of a light squat are not "over 12, add weight");
+    the first time 3 × 8–12."""
     top = max((e.position for e in w.exercises), default=-1)
+    timed = ex.kind == "time"
+    sets, lo, hi, secs, rest = 3, None if timed else 8, None if timed else 12, 30 if timed else None, DEFAULT_REST
+    prev = _last_done(db, w, ex)
+    if prev is not None:
+        sets = max(prev.sets, len(prev.done))
+        if timed:
+            secs = prev.seconds or secs
+        elif prev.workout.source == "jefit":  # imported: the range is what was done – a usual one from its top
+            if prev.reps_max:
+                lo, hi = range_for(prev.reps_max)
+        elif prev.reps_max:
+            lo, hi = prev.reps_min or prev.reps_max, prev.reps_max
+        if prev.workout.source != "jefit":
+            rest = prev.rest_seconds
     we = WorkoutExercise(
         exercise_id=ex.id,
         position=top + 1,
-        sets=3,
-        reps_min=None if ex.kind == "time" else 8,
-        reps_max=None if ex.kind == "time" else 12,
-        seconds=30 if ex.kind == "time" else None,
-        rest_seconds=DEFAULT_REST,
+        sets=min(sets, 8),
+        reps_min=lo,
+        reps_max=hi,
+        seconds=secs,
+        rest_seconds=rest,
     )
     w.exercises.append(we)
     db.flush()
