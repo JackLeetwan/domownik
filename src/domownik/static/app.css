@@ -1718,7 +1718,7 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .wo-rest-left { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
 .wo-rest button { width: auto; margin: 0; color: inherit; border-color: currentColor; white-space: nowrap; flex: none; }
 .wo-rest.over { background: #d89a27; }
-.wo-rest { flex-wrap: wrap; }  /* on a narrow phone the −30 / +30 / Pomiń row goes under the countdown */
+.wo-rest { flex-wrap: wrap; }  /* on a narrow phone the −15 / +15 / Pomiń row goes under the countdown */
 .wo-rest-btns { display: flex; gap: 0.4rem; margin-left: auto; }
 .wo-rest-btns button { padding-inline: 0.6rem; }
 .wo-superset { border-left: 3px solid var(--pico-primary); padding-left: 0.6rem; margin: 0 0 0.75rem; }

@@ -151,7 +151,7 @@ def test_rest_and_superset(db, user, fbw):
     assert w.rest_until is None  # straight to the partner of the superset
     tr.log_set(db, pull, weight=None, reps=10, at=T)
     assert w.rest_until == T + timedelta(seconds=90)
-    # −30 / +30 s: the current rest moves and the exercise keeps the new length (the plan does not change)
+    # ±s: the current rest moves and the exercise keeps the new length (the plan does not change)
     w.rest_pushed = True
     tr.adjust_rest(db, w, 30, at=T + timedelta(seconds=10))
     assert w.rest_until == T + timedelta(seconds=120) and pull.rest_seconds == 120 and not w.rest_pushed
@@ -243,14 +243,17 @@ def test_full_flow_on_the_phone(auth_client, db, user):
     )
     assert r.status_code == 200 and r.text.lstrip().startswith('<div id="workout"')
     assert "22,5 kg × 10" in r.text and "data-rest-ends" in r.text
-    assert f'hx-post="/forma/trening/{wid}/przerwa?o=30"' in r.text and "−30 s" in r.text
+    assert f'hx-post="/forma/trening/{wid}/przerwa?o=15"' in r.text and "−15 s" in r.text
+    from domownik.web import ASSET_V
+
+    assert r.headers["X-Asset-V"] == ASSET_V  # a page from before a deploy reloads after a partial swap too
     rest = bench.rest_seconds
     hx = {"HX-Request": "true", "HX-Target": "workout"}
-    r = auth_client.post(f"/forma/trening/{wid}/przerwa?o=30", headers=hx)
-    assert r.status_code == 200 and f"przerwa {rest + 30} s" in r.text
-    auth_client.post(f"/forma/trening/{wid}/przerwa?o=500", headers=hx)  # only ±30
+    r = auth_client.post(f"/forma/trening/{wid}/przerwa?o=15", headers=hx)
+    assert r.status_code == 200 and f"przerwa {rest + 15} s" in r.text
+    auth_client.post(f"/forma/trening/{wid}/przerwa?o=30", headers=hx)  # only ±15
     db.refresh(bench)
-    assert bench.rest_seconds == rest + 30
+    assert bench.rest_seconds == rest + 15
     # the plan's sets done: "＋ jeszcze jedna seria" opens the usual form – its own weight and reps
     for _ in range(bench.sets - len(bench.done)):
         tr.log_set(db, bench, weight=25, reps=8)

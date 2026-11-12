@@ -777,13 +777,16 @@
 
   // ------------------------------------------------------------------ a new version after a deploy
   // hx-boost swaps only <body>: the <head> (app.css, app.js) stays from the first load. When a page comes
-  // with other asset versions (#asset-v), load it fully once so the new styles and scripts apply.
+  // with other asset versions (#asset-v), load it fully once so the new styles and scripts apply. A part of
+  // a page (a set logged, the rest bar) carries no #asset-v – every htmx answer says it in X-Asset-V.
   const assetV = () => { const t = document.getElementById("asset-v"); return t ? t.dataset.v : null; };
   const loadedAssetV = assetV();
+  let reloading = false;
   document.addEventListener("htmx:afterSettle", (e) => {
-    if (!e.detail.boosted) return;
-    const v = assetV();
-    if (v && loadedAssetV && v !== loadedAssetV) location.reload();
+    if (reloading || !loadedAssetV) return;
+    const xhr = e.detail.xhr;
+    const v = (xhr && xhr.getResponseHeader && xhr.getResponseHeader("X-Asset-V")) || (e.detail.boosted ? assetV() : null);
+    if (v && v !== loadedAssetV) { reloading = true; location.reload(); }
   });
 
   // ------------------------------------------------------------------ 🏋️ the rest between sets

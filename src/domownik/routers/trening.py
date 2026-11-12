@@ -345,7 +345,7 @@ def change_rest(
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
-    """−30 s / +30 s on the rest bar."""
+    """−15 s / +15 s on the rest bar."""
     w = _workout(db, user, workout_id)
     if o in (-tr.REST_STEP, tr.REST_STEP):
         tr.adjust_rest(db, w, o)

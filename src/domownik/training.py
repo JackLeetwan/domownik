@@ -475,12 +475,12 @@ def log_set(
     return s
 
 
-REST_STEP = 30
+REST_STEP = 15
 
 
 def adjust_rest(db: Session, w: Workout, delta: int, at: datetime | None = None) -> None:
-    """−30 s / +30 s during a rest: the current one moves, and the exercise that started it keeps the new length
-    for its next rests in this workout (the plan stays as it is). +30 s after the rest ran out starts it again."""
+    """−15 s / +15 s during a rest: the current one moves, and the exercise that started it keeps the new length
+    for its next rests in this workout (the plan stays as it is). +15 s after the rest ran out starts it again."""
     at = (at or _now()).replace(microsecond=0)
     if w.rest_until is None or w.finished_at is not None:
         return

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import date
 from pathlib import Path
 
@@ -21,6 +22,11 @@ from domownik.security import csrf_token
 
 HERE = Path(__file__).parent
 templates = Jinja2Templates(directory=HERE / "templates")
+# the asset versions bumped in base.html ("set css_v, js_v = 101, 61") – also sent with every htmx answer
+# (X-Asset-V, main.py): a page opened before a deploy reloads itself even when only a part of it is swapped
+ASSET_V = "-".join(
+    re.search(r"set css_v, js_v = (\d+), (\d+)", (HERE / "templates" / "base.html").read_text("utf-8")).groups()
+)
 
 MONTHS = ["", "sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"]
 WEEKDAYS_SHORT = ["pon", "wt", "śr", "czw", "pt", "sob", "nd"]

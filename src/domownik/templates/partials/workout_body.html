@@ -23,8 +23,8 @@
   <div class="wo-rest" data-rest-ends="{{ rest_ms }}" role="status">
     <span class="wo-rest-main"><b class="wo-rest-left">Przerwa</b>{% if next_we %} <small class="muted">· dalej: {{ next_we.exercise.name }}</small>{% endif %}</span>
     <span class="wo-rest-btns">
-      <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/przerwa?o=-30" hx-target="#workout" hx-swap="outerHTML" aria-label="Przerwa krócej o 30 sekund">−30 s</button>
-      <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/przerwa?o=30" hx-target="#workout" hx-swap="outerHTML" aria-label="Przerwa dłużej o 30 sekund">+30 s</button>
+      <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/przerwa?o=-15" hx-target="#workout" hx-swap="outerHTML" aria-label="Przerwa krócej o 15 sekund">−15 s</button>
+      <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/przerwa?o=15" hx-target="#workout" hx-swap="outerHTML" aria-label="Przerwa dłużej o 15 sekund">+15 s</button>
       <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/przerwa-koniec" hx-target="#workout" hx-swap="outerHTML">Pomiń</button>
     </span>
   </div>

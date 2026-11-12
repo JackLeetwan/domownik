@@ -49,7 +49,7 @@ from domownik.routers import (
 )
 from domownik.security import LoginRequired
 from domownik.slowlog import SlowRequestLog
-from domownik.web import HERE, is_htmx, render
+from domownik.web import ASSET_V, HERE, is_htmx, render
 
 log = logging.getLogger("domownik")
 
@@ -163,6 +163,8 @@ def create_app() -> FastAPI:
             response.headers.setdefault(name, value)
         if settings.https_only:
             response.headers.setdefault("Strict-Transport-Security", HSTS)
+        if request.headers.get("hx-request"):
+            response.headers["X-Asset-V"] = ASSET_V  # app.js reloads a page with older styles / scripts
         return response
 
     app.add_middleware(
