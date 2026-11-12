@@ -25,7 +25,11 @@ def test_catalog_is_complete():
     assert not [k for k in keys if k not in guides], "brak instrukcji w exercise_guides.yaml (stretch)"
     for row in cat["stretches"]:
         assert row["type"] in cat["types"] and row["area"] in cat["areas"], row["key"]
-        assert row["pic"] in (0, 1) and 5 <= row["seconds"] <= 120
+        assert 5 <= row["seconds"] <= 120
+        if "img" not in row:  # no good picture – the 🤸/🧘 icon everywhere
+            assert "pic" not in row and "hold" not in row, row["key"]
+            continue
+        assert row["pic"] in (0, 1)
         slug = tr._slug(row["img"])
         assert (STATIC / "exercises" / f"{slug}.webp").is_file(), slug
         assert (STATIC / "exercises" / f"{slug}-1.webp").is_file(), slug
@@ -205,6 +209,11 @@ def test_stretch_guide_modal_and_page(auth_client, db):
     page = auth_client.get(f"/forma/rozciaganie/cw/{s.id}").text
     assert "<html" in page and "Statyczne" in page and "Jak wykonać" in page
     assert auth_client.get("/forma/rozciaganie/cw/99999").status_code == 404
+    # without a picture: the 🧘 icon, the instructions without the start/end frames
+    cobra = db.query(Stretch).filter_by(key="cobra").one()
+    assert st.image(cobra) is None and st.image_target(cobra) is None and st.icon(cobra) == "🧘"
+    page = auth_client.get(f"/forma/rozciaganie/cw/{cobra.id}").text
+    assert "Kobra" in page and "Jak wykonać" in page and "<figcaption>Start" not in page
 
 
 def test_session_start_finish_and_history(auth_client, db, user):

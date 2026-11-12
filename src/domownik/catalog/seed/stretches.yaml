@@ -4,6 +4,7 @@
 # seconds: the default time (per side when sided); a routine can change it
 # img: the exercise's name in free-exercise-db (The Unlicense) → static/exercises/<slug>.webp (+ <slug>-1.webp);
 # gear: a key of `gear` above when the stretch needs it
+# img left out: no good picture there – the icon is 🤸/🧘 (pic/hold then left out too)
 # pic: which of the two frames is its icon (0 = start; 1 when the start is just a person standing)
 # hold: the frame the timer shows – the target position (default 1 = the end; 0 where the start shows it)
 # Instructions: exercise_guides.yaml, section `stretch`.
@@ -84,6 +85,7 @@ stretches:
   - {key: it_band_strap, name: Bok uda i pośladek – noga przez ciało z paskiem, type: static, area: glutes, sided: true, seconds: 30, gear: strap, img: IT Band and Glute Stretch, pic: 1}
   - {key: groin_strap, name: Pachwina – noga w bok leżąc z paskiem, type: static, area: groin, sided: true, seconds: 30, gear: strap, img: Intermediate Groin Stretch, pic: 1}
   - {key: hamstring_calf_strap, name: Tył uda i łydka na stojąco z paskiem, type: static, area: hamstrings, sided: true, seconds: 30, gear: strap, img: Standing Hamstring and Calf Stretch, pic: 0}
+  - {key: pigeon, name: Gołąb, type: static, area: glutes, sided: true, seconds: 40}
   # ---------------------------------------------------------------- static – back, upper body
   - {key: childs_pose, name: Pozycja dziecka, type: static, area: back, sided: false, seconds: 45, img: Child's Pose, pic: 0}
   - {key: knees_to_chest, name: Oba kolana do klatki, type: static, area: back, sided: false, seconds: 30, img: Hug Knees To Chest, pic: 0}
@@ -109,6 +111,7 @@ stretches:
   - {key: biceps_behind, name: Biceps – dłonie splecione za plecami, type: static, area: arms, sided: false, seconds: 30, img: Standing Biceps Stretch, pic: 1}
   - {key: chest_stick, name: Klatka i przód barków – kij za głowę, type: static, area: chest, sided: false, seconds: 30, gear: stick, img: Chest And Front Of Shoulder Stretch, pic: 1}
   - {key: chair_shoulders, name: Barki – skłon na krześle, dłonie na oparciu, type: static, area: shoulders, sided: false, seconds: 30, gear: chair, img: Chair Upper Body Stretch, pic: 1}
+  - {key: cobra, name: Kobra, type: static, area: abs, sided: false, seconds: 30}
 
 # the default routines (the household then changes them freely); seconds: the stretch's default.
 # key: which default it is – a routine whose key is not in the database yet is added on start (also later ones),
