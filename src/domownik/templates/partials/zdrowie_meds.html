@@ -1,0 +1,42 @@
+{# Medicines. Needs: item, meds_now, meds_past, issue (or undefined), issue_names (person page) #}
+<section id="leki"{% if meds_now %} data-fold-default="open"{% endif %}>
+  <h2>💊 Leki{% if meds_now %} <small class="muted">({{ meds_now|length }} teraz)</small>{% endif %}</h2>
+  {% macro med(m, current) %}
+  <li class="hl-med{% if not current %} hl-past{% endif %}">
+    <details>
+      <summary>
+        <b>{% if m.private_to_id %}🔒 {% endif %}{{ m.name }}</b>{% if m.dose %} · {{ m.dose }}{% endif %}{% if m.schedule %} · {{ m.schedule }}{% endif %}
+        <small class="muted">{% if m.started_on %}od {{ m.started_on|d }}{% endif %}{% if m.ends_on %} do {{ m.ends_on|d }}{% elif current %} · na stałe{% endif %}{% if m.issue_id and issue is not defined %} · {{ issue_names.get(m.issue_id, '') }}{% endif %}</small>
+      </summary>
+      {% if m.prescription %}<p class="hl-rx">🧾 {{ m.prescription }}</p>{% endif %}
+      {% if m.notes %}<p class="notes">{{ m.notes }}</p>{% endif %}
+      <form method="post" action="/zdrowie/leki/{{ m.id }}/edit">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.url.path }}">
+        {% set mf = m %}{% include "partials/zdrowie_med_fields.html" %}
+        <div class="issue-actions"><button type="submit" class="small">Zapisz</button></div>
+      </form>
+      <div class="hl-actions">
+        {% if current %}
+        <form method="post" action="/zdrowie/leki/{{ m.id }}/koniec" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.url.path }}"><button type="submit" class="outline secondary small">⏹ Już nie biorę</button></form>
+        {% endif %}
+        <form method="post" action="/zdrowie/leki/{{ m.id }}/delete" class="inline" hx-confirm="Usunąć „{{ m.name }}” z listy?"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.url.path }}"><button type="submit" class="link danger"><small>Usuń</small></button></form>
+      </div>
+    </details>
+  </li>
+  {% endmacro %}
+  {% if meds_now %}<ul class="hl-meds">{% for m in meds_now %}{{ med(m, True) }}{% endfor %}</ul>{% else %}<p class="muted">Żadnych leków teraz.</p>{% endif %}
+  <details class="quick-add">
+    <summary>＋ Lek</summary>
+    <form method="post" action="/zdrowie/{{ item.id }}/leki">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.url.path }}">
+      {% set mf = None %}{% include "partials/zdrowie_med_fields.html" %}
+      <button type="submit">Dodaj</button>
+    </form>
+  </details>
+  {% if meds_past %}
+  <details>
+    <summary>Wcześniej ({{ meds_past|length }})</summary>
+    <ul class="hl-meds">{% for m in meds_past %}{{ med(m, False) }}{% endfor %}</ul>
+  </details>
+  {% endif %}
+</section>

@@ -46,6 +46,7 @@ from domownik.routers import (
     tasks,
     timers,
     trening,
+    zdrowie,
 )
 from domownik.security import LoginRequired
 from domownik.slowlog import SlowRequestLog
@@ -208,6 +209,7 @@ def create_app() -> FastAPI:
     app.include_router(trening.router)
     app.include_router(rozciaganie.router)
     app.include_router(sylwetka.router)
+    app.include_router(zdrowie.router)
     app.include_router(share.router)
 
     @app.exception_handler(LoginRequired)

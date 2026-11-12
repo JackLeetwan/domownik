@@ -286,6 +286,8 @@ class Task(Base):
     needs_approval: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     # visible only to this account (None = shared with the household) – see db.private_filter
     private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
+    # part of a health issue ("Kolano": the follow-up visit, "Sprawdzić decyzję PZU") – shown on its page
+    issue_id: Mapped[int | None] = mapped_column(ForeignKey("issue.id", ondelete="SET NULL"), index=True)
     # Money in grosze (1/100 PLN); amount is the planned value of one occurrence
     amount_gr: Mapped[int | None] = mapped_column(Integer)
     direction: Mapped[str] = mapped_column(String(10), default="expense")
@@ -454,6 +456,8 @@ class Issue(Base):
     resolved_on: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    # visible only to this account (None = shared with the household) – see db.private_filter
+    private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     item: Mapped[Item] = relationship(back_populates="issues")
@@ -680,8 +684,15 @@ DOC_KINDS: dict[str, tuple[str, str]] = {
     "manual": ("Instrukcja", "📘"),
     "registration": ("Dowód / rejestracja", "🪪"),
     "photo": ("Zdjęcie", "📷"),
+    # medical records (🩺 Zdrowie)
+    "discharge": ("Wypis / karta informacyjna", "🏥"),
+    "results": ("Wyniki badań", "🧪"),
+    "imaging": ("RTG / MR / USG", "🩻"),
+    "referral": ("Skierowanie", "📨"),
+    "prescription": ("Recepta / zalecenia", "💊"),
     "other": ("Inne", "📎"),
 }
+MEDICAL_DOC_KINDS = ("discharge", "results", "imaging", "referral", "prescription")
 
 
 CAPTURE_KINDS: dict[str, tuple[str, str]] = {
@@ -710,6 +721,10 @@ class Attachment(Base):
     completion_id: Mapped[int | None] = mapped_column(ForeignKey("completion.id", ondelete="SET NULL"), index=True)
     # added in the task's form (a photo of what is to be done, the letter, the leaflet)
     task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id", ondelete="SET NULL"), index=True)
+    # a medical record kept with a health issue of a household member ("Kolano – wypis, MR")
+    issue_id: Mapped[int | None] = mapped_column(ForeignKey("issue.id", ondelete="SET NULL"), index=True)
+    # visible only to this account (None = shared with the household) – see db.private_filter
+    private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
     # relative to the uploads dir, e.g. "files/12/<32 hex>.jpg" – random, never derived from the upload's name
     storage_path: Mapped[str] = mapped_column(String(120), unique=True)
     original_name: Mapped[str] = mapped_column(String(200))
@@ -727,7 +742,7 @@ class Attachment(Base):
     item: Mapped[Item | None] = relationship(back_populates="attachments")
     completion: Mapped[Completion | None] = relationship(back_populates="attachments")
     task: Mapped[Task | None] = relationship(back_populates="attachments")
-    created_by: Mapped[User | None] = relationship()
+    created_by: Mapped[User | None] = relationship(foreign_keys=[created_by_id])
 
     @property
     def is_image(self) -> bool:
@@ -1279,6 +1294,53 @@ class EmergencyPrint(Base):
     user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
 
     user: Mapped[User | None] = relationship()
+
+
+class Medication(Base):
+    """A medicine a household member takes or took ("Ibuprofen 400 mg, 3× dziennie po jedzeniu, 7 dni").
+
+    A list to look things up in (what, how much, since when, what for, the prescription) – no daily ✓ or pushes,
+    that is what supplements in Forma are for. ends_on None = taken for good.
+    """
+
+    __tablename__ = "medication"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
+    issue_id: Mapped[int | None] = mapped_column(ForeignKey("issue.id", ondelete="SET NULL"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    dose: Mapped[str | None] = mapped_column(String(80))  # "1 tabl. 400 mg"
+    schedule: Mapped[str | None] = mapped_column(String(120))  # "3× dziennie po jedzeniu"
+    started_on: Mapped[date | None] = mapped_column(Date)
+    ends_on: Mapped[date | None] = mapped_column(Date)
+    prescription: Mapped[str | None] = mapped_column(String(200))  # e-prescription code, who prescribed it
+    notes: Mapped[str | None] = mapped_column(Text)
+    # visible only to this account (None = shared with the household) – see db.private_filter
+    private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    item: Mapped[Item] = relationship()
+    issue: Mapped[Issue | None] = relationship()
+
+    def current(self, day: date) -> bool:
+        return (self.started_on is None or self.started_on <= day) and (self.ends_on is None or self.ends_on >= day)
+
+
+class HealthLink(Base):
+    """A link to medical records kept elsewhere: a Google Drive folder, the clinic's patient portal, IKP."""
+
+    __tablename__ = "health_link"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
+    issue_id: Mapped[int | None] = mapped_column(ForeignKey("issue.id", ondelete="SET NULL"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    url: Mapped[str] = mapped_column(String(1000))
+    # visible only to this account (None = shared with the household) – see db.private_filter
+    private_to_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), index=True)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class Supplement(Base):

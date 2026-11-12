@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ issue.title }} · Domownik{% endblock %}
+{% block content %}
+<div class="crumbs-bar"><nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/zdrowie">← 🩺 Zdrowie</a></li><li><a href="/zdrowie/{{ item.id }}">{{ item.display_icon }} {{ item.name }}</a></li><li>{{ issue.title }}</li></ul></nav></div>
+<header class="item-head">
+  <h1>{% if issue.private_to_id %}🔒 {% endif %}{{ issue.title }}{% if issue.resolved_on %} <small class="badge">zamknięta</small>{% endif %}</h1>
+</header>
+<p class="muted">od {{ issue.started_on|d }}{% if issue.resolved_on %} do {{ issue.resolved_on|d }}{% else %} · {{ (today() - issue.started_on).days }} dni{% endif %}</p>
+
+<div data-fold-scope="sprawa-{{ issue.id }}">
+<section class="hl-issue" data-fold-default="open">
+  {% if issue.notes %}<p class="notes">{{ issue.notes }}</p>{% endif %}
+  <div class="hl-actions">
+    <form method="post" action="/issues/{{ issue.id }}/toggle?next={{ request.url.path|urlencode }}" class="inline">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="outline secondary small">{% if issue.resolved_on %}Otwórz ponownie{% else %}✓ Zamknij sprawę{% endif %}</button>
+    </form>
+  </div>
+  <details>
+    <summary><small>Edytuj / dopisz</small></summary>
+    <form method="post" action="/issues/{{ issue.id }}/edit?next={{ request.url.path|urlencode }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        <label>Tytuł<input name="title" value="{{ issue.title }}" required></label>
+        <label>Od kiedy<input type="date" name="started_on" value="{{ issue.started_on.isoformat() }}"></label>
+        {% if issue.resolved_on %}<label>Zamknięte<input type="date" name="resolved_on" value="{{ issue.resolved_on.isoformat() }}"></label>{% endif %}
+      </div>
+      <label>Notatki<textarea name="notes" rows="8">{{ issue.notes or "" }}</textarea></label>
+      <button type="submit">Zapisz</button>
+    </form>
+    <form method="post" action="/issues/{{ issue.id }}/delete?next=/zdrowie/{{ item.id }}" class="inline" hx-confirm="Usunąć tę sprawę razem z notatkami? Leki, pliki i zadania zostaną (bez sprawy).">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="link danger"><small>Usuń sprawę</small></button>
+    </form>
+  </details>
+  <form method="post" action="/zdrowie/sprawa/{{ issue.id }}/prywatna" class="hl-private">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="private-switch"><input type="checkbox" name="private" value="1" role="switch" {% if issue.private_to_id %}checked{% endif %} onchange="this.form.requestSubmit()"> 🔒 Tylko dla mnie <small class="muted">razem z lekami, plikami i zadaniami tej sprawy dodanymi później</small></label>
+    <noscript><button type="submit" class="small">Zapisz</button></noscript>
+  </form>
+</section>
+
+<section id="zadania-sprawy" data-fold-default="open">
+  <h2>📅 Wizyty i zadania</h2>
+  {% if tasks %}
+  <ul class="hl-list">{% for t in tasks %}<li><a href="/tasks/{{ t.id }}">{{ t.category_icon }} {{ t.title }}</a> <small class="muted">{{ t.next_due_date|d if t.next_due_date else '' }}{% if t.item_id != item.id %} · {{ label(t.item_id) }}{% endif %}</small></li>{% endfor %}</ul>
+  {% else %}<p class="muted">Nic zaplanowanego.</p>{% endif %}
+  {% if done_tasks %}<details><summary>Zrobione ({{ done_tasks|length }})</summary><ul class="hl-list">{% for t in done_tasks %}<li><a href="/tasks/{{ t.id }}">{{ t.title }}</a></li>{% endfor %}</ul></details>{% endif %}
+  <details class="quick-add">
+    <summary>＋ Wizyta / zadanie do sprawy</summary>
+    <form method="post" action="/zdrowie/sprawa/{{ issue.id }}/zadanie">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        <label>Co<input name="title" required placeholder="np. Kontrola u ortopedy, sprawdzić decyzję ubezpieczyciela"></label>
+        <label>Kiedy<input type="date" name="on" required value="{{ today().isoformat() }}"></label>
+      </div>
+      <label>Notatka<textarea name="notes" rows="2"></textarea></label>
+      <button type="submit">Dodaj</button>
+    </form>
+  </details>
+</section>
+
+{% include "partials/zdrowie_meds.html" %}
+{% include "partials/zdrowie_docs.html" %}
+</div>
+{% endblock %}

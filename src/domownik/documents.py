@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile
 
 from domownik.config import get_settings
-from domownik.models import DOC_KINDS, Attachment, BoardNote, Completion, Item, Task, User, Warranty
+from domownik.models import DOC_KINDS, Attachment, BoardNote, Completion, Issue, Item, Task, User, Warranty
 
 log = logging.getLogger("domownik")
 
@@ -140,6 +140,8 @@ def visible(db: Session, att: Attachment | None) -> bool:
         return False
     if att.task_id is not None and db.get(Task, att.task_id) is None:
         return False
+    if att.issue_id is not None and db.get(Issue, att.issue_id) is None:
+        return False
     if att.completion_id is not None:
         comp = db.get(Completion, att.completion_id)
         if comp is not None and db.get(Task, comp.task_id) is None:
@@ -251,6 +253,8 @@ def store_files(
     completion_id: int | None = None,
     note_id: int | None = None,
     recipe_id: int | None = None,
+    issue_id: int | None = None,
+    private_to_id: int | None = None,
 ) -> list[Attachment]:
     """Save uploaded files (name, file object) with the item – all of them or, on any error, none.
 
@@ -307,6 +311,8 @@ def store_files(
                 item_id=item.id if item is not None else None,
                 note_id=note_id,
                 recipe_id=recipe_id,
+                issue_id=issue_id,
+                private_to_id=private_to_id,
                 completion_id=completion_id,
                 storage_path=rel,
                 original_name=name,

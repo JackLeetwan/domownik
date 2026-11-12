@@ -1,0 +1,86 @@
+{# Medical records: files + links. Needs: item, photos, files, links, issue (or undefined), issue_names #}
+<section class="notes-section docs" id="dokumentacja"{% if photos or files or links %} data-fold-default="open"{% endif %}>
+  <h2>📂 Dokumentacja{% if photos or files or links %} <small class="muted">({{ photos|length + files|length + links|length }})</small>{% endif %}</h2>
+  {% if links %}
+  <ul class="doc-list">
+    {% for h in links %}
+    <li class="doc">
+      <span class="doc-ic" aria-hidden="true">🔗</span>
+      <span class="doc-txt"><a href="{{ h.url }}" target="_blank" rel="noopener noreferrer" hx-boost="false">{% if h.private_to_id %}🔒 {% endif %}{{ h.title }}</a>
+        <small class="muted">link{% if h.issue_id and issue is not defined %} · {{ issue_names.get(h.issue_id, '') }}{% endif %}</small></span>
+      <form method="post" action="/zdrowie/linki/{{ h.id }}/delete" class="inline" hx-confirm="Usunąć link „{{ h.title }}”? Pliki pod tym adresem zostają."><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.url.path }}"><button type="submit" class="link" title="Usuń link" aria-label="Usuń link">✕</button></form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if photos %}
+  <div class="doc-thumbs">
+    {% for a in photos %}
+    <a href="/files/{{ a.id }}/view" hx-get="/files/{{ a.id }}/view" hx-target="#modal-body" hx-push-url="false" class="doc-thumb" title="{{ a.description or a.original_name }}">
+      <img src="/files/{{ a.id }}/thumb" alt="{{ a.description or a.original_name }}" loading="lazy" decoding="async">
+      <span class="doc-thumb-kind">{% if a.private_to_id %}🔒 {% endif %}{{ a.kind_label }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if files %}
+  <ul class="doc-list">
+    {% for a in files %}
+    <li class="doc">
+      <span class="doc-ic" aria-hidden="true">{{ a.icon }}</span>
+      <span class="doc-txt">
+        <a href="/files/{{ a.id }}" {% if a.is_image or a.is_pdf %}target="_blank" rel="noopener"{% else %}download{% endif %} hx-boost="false">{% if a.private_to_id %}🔒 {% endif %}{{ a.original_name }}</a>
+        <small class="muted">{{ a.kind_label }} · {{ a.created_at.date()|d }} · {{ human_size(a.size) }}{% if a.issue_id and issue is not defined %} · {{ issue_names.get(a.issue_id, '') }}{% endif %}</small>
+        {% if a.description %}<small class="doc-desc">{{ a.description }}</small>{% endif %}
+      </span>
+      <a href="/files/{{ a.id }}/view" hx-get="/files/{{ a.id }}/view" hx-target="#modal-body" hx-push-url="false" class="doc-edit" title="Szczegóły / edytuj" aria-label="Edytuj: {{ a.original_name }}">✎</a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if not (photos or files or links) %}<p class="muted">Wypisy, wyniki, opisy badań – zdjęcie, PDF albo link do folderu na Dysku.</p>{% endif %}
+
+  {% macro issue_pick() %}
+  {% if issue is defined %}<input type="hidden" name="issue_id" value="{{ issue.id }}">
+  {% elif open_issues or closed_issues %}
+  <label>Sprawa
+    <select name="issue_id"><option value="">—</option>{% for i in open_issues + closed_issues %}<option value="{{ i.id }}">{{ i.title }}</option>{% endfor %}</select>
+  </label>
+  {% endif %}
+  {% if issue is not defined or not issue.private_to_id %}{% with obj = None %}{% include "partials/private_field.html" %}{% endwith %}{% endif %}
+  {% endmacro %}
+  <div class="doc-adds">
+    <details class="quick-add">
+      <summary>＋ Zdjęcie lub plik</summary>
+      <form method="post" action="/zdrowie/{{ item.id }}/pliki" enctype="multipart/form-data" hx-encoding="multipart/form-data" class="doc-upload">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.url.path }}">
+        <div id="health-files-error"></div>
+        <div class="doc-pick">
+          <label class="pick-btn" role="button">📷 Zrób zdjęcie<input type="file" name="files" accept="image/*" capture="environment" data-file-pick></label>
+          <label class="pick-btn outline" role="button">📁 Wybierz pliki<input type="file" name="files" multiple accept="image/*,.heic,.heif,application/pdf,.pdf,.doc,.docx,.odt,.txt,.zip" data-file-pick></label>
+        </div>
+        <small class="muted" data-file-names>Zdjęcia, PDF – do {{ max_upload_mb }} MB każdy, kilka naraz.</small>
+        <div class="grid">
+          <label>Rodzaj
+            <select name="doc_kind">{% for k, (lbl, ic) in medical_kinds.items() %}<option value="{{ k }}">{{ ic }} {{ lbl }}</option>{% endfor %}<option value="photo">📷 Zdjęcie</option><option value="other">📎 Inne</option></select>
+          </label>
+          <label>Opis<input name="description" maxlength="300" placeholder="np. MR kolana, szpital X, 10.11.2026"></label>
+        </div>
+        {{ issue_pick() }}
+        <button type="submit">Dodaj</button>
+      </form>
+    </details>
+    <details class="quick-add">
+      <summary>＋ Link (Dysk Google, portal pacjenta)</summary>
+      <form method="post" action="/zdrowie/{{ item.id }}/linki">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.url.path }}">
+        <div class="grid">
+          <label>Adres<input name="url" required inputmode="url" placeholder="https://drive.google.com/…"></label>
+          <label>Nazwa<input name="title" maxlength="200" placeholder="np. Folder: pobyt w szpitalu"></label>
+        </div>
+        {{ issue_pick() }}
+        <button type="submit">Dodaj</button>
+      </form>
+    </details>
+  </div>
+</section>

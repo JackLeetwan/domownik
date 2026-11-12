@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name }} – zdrowie · Domownik{% endblock %}
+{% block content %}
+<div class="crumbs-bar"><nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/zdrowie">← 🩺 Zdrowie</a></li><li>{{ item.name }}</li></ul></nav></div>
+<header class="item-head">
+  <h1><span aria-hidden="true">{{ item.display_icon }}</span> {{ item.name }}</h1>
+  <div class="item-actions"><a href="/items/{{ item.id }}" role="button" class="outline secondary">Karta osoby</a></div>
+</header>
+{% if people|length > 1 %}<p class="chips hl-switch">{% for p in people %}<a href="/zdrowie/{{ p.id }}" class="chip{% if p.id == item.id %} active{% endif %}">{{ p.display_icon }} {{ p.name }}</a>{% endfor %}</p>{% endif %}
+
+<div data-fold-scope="zdrowie-{{ item.id }}">
+<section class="member-health" id="wizyty" data-fold-default="open">
+  <h2>Wizyty i badania</h2>
+  {% if rows %}
+  <ul class="task-list">{% set show_zone = True %}{% set hide_zone_of = item.id %}{% for row in rows %}{% include "partials/task_row.html" %}{% endfor %}</ul>
+  {% else %}<p class="muted">Nic zaplanowanego.</p>{% endif %}
+  <details class="quick-add">
+    <summary>＋ Wizyta, badanie, szczepienie</summary>
+    <form method="post" action="/items/{{ item.id }}/visit?next={{ request.url.path|urlencode }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        <label>Co<input name="title" required placeholder="np. Ortopeda – kontrola, USG kolana"></label>
+        <label>Kiedy<input type="date" name="on" required value="{{ today().isoformat() }}"></label>
+      </div>
+      <label>Przypomnij (dni wcześniej)<input type="number" name="lead_days" min="0" value="2"></label>
+      <label>Notatka<textarea name="notes" rows="2" placeholder="godzina, adres, co zabrać (skierowanie, wyniki), na czczo…"></textarea></label>
+      <button type="submit">Dodaj</button>
+    </form>
+    <p class="muted"><small>Tu trafiają wszystkie zadania z kategorią 🩺 Zdrowie tej osoby – też dodane w kalendarzu albo przypisane do niej. Wizyty cykliczne (dentysta co pół roku) dodasz przez „＋ Zadanie” z kategorią Zdrowie.</small></p>
+  </details>
+</section>
+
+<section class="notes-section" id="sprawy"{% if open_issues %} data-fold-default="open"{% endif %}>
+  <h2>🤕 Sprawy{% if open_issues %} <small class="muted">({{ open_issues|length }} otwarte)</small>{% endif %}</h2>
+  {% if open_issues %}
+  <ul class="hl-list">{% for i in open_issues %}<li><a href="/zdrowie/sprawa/{{ i.id }}"><b>{% if i.private_to_id %}🔒 {% endif %}{{ i.title }}</b></a> <small class="muted">od {{ i.started_on|d }} · {{ (today() - i.started_on).days }} dni</small></li>{% endfor %}</ul>
+  {% endif %}
+  <details class="quick-add">
+    <summary>＋ Sprawa (choroba, uraz, leczenie)</summary>
+    <form method="post" action="/zdrowie/{{ item.id }}/sprawy">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="grid">
+        <label>Co się dzieje<input name="title" required placeholder="np. ból kolana, alergia, leczenie zęba"></label>
+        <label>Od kiedy<input type="date" name="started_on" value="{{ today().isoformat() }}"></label>
+      </div>
+      <label>Notatki<textarea name="notes" rows="3" placeholder="objawy, rozpoznanie, zalecenia lekarza…"></textarea></label>
+      {% with obj = None %}{% include "partials/private_field.html" %}{% endwith %}
+      <button type="submit">Zapisz</button>
+    </form>
+  </details>
+  {% if closed_issues %}
+  <details>
+    <summary>Zamknięte ({{ closed_issues|length }})</summary>
+    <ul class="hl-list">{% for i in closed_issues %}<li><a href="/zdrowie/sprawa/{{ i.id }}">{% if i.private_to_id %}🔒 {% endif %}{{ i.title }}</a> <small class="muted">{{ i.started_on|d }} – {{ i.resolved_on|d }}</small></li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+</section>
+
+{% include "partials/zdrowie_meds.html" %}
+{% if supplements %}<p class="muted hl-supl"><small>💪 Suplementy ({{ supplements|length }}): {{ supplements|map(attribute='name')|unique|join(', ') }} – <a href="/forma">w Formie</a></small></p>{% endif %}
+
+{% include "partials/zdrowie_docs.html" %}
+
+<section id="lekarze">
+  <h2>👩‍⚕️ Lekarze i placówki</h2>
+  {% if doctors %}
+  <ul class="hl-list">
+    {% for c in doctors %}
+    <li><a href="/kontakty/{{ c.id }}/edit"><b>{{ c.name }}</b></a>{% if c.company and c.company != c.name %} <small class="muted">{{ c.company }}</small>{% endif %}
+      {% for ph in c.phone_list %} · <a href="{{ tel_href(ph) }}" hx-boost="false">📞 {{ ph }}</a>{% endfor %}</li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="muted">Dodaj kontakt z rolą „Lekarz / przychodnia” i powiąż go z {{ item.name }} – na <a href="/items/{{ item.id }}#kontakty">karcie osoby</a> albo w <a href="/kontakty">Kontaktach</a>.</p>{% endif %}
+</section>
+</div>
+{% endblock %}

@@ -231,7 +231,11 @@ def test_full_flow_on_the_phone(auth_client, db, user):
     bench = next(we for we in w.exercises if we.exercise.key == "db_bench")
 
     screen = auth_client.get(f"/forma/trening/{wid}").text
-    assert "Przysiad hiszpański z gumą (spanish squat)" in screen and "Superseria A" in screen and "⇄ Zajęte? Zamień" in screen
+    assert (
+        "Przysiad hiszpański z gumą (spanish squat)" in screen
+        and "Superseria A" in screen
+        and "⇄ Zajęte? Zamień" in screen
+    )
     # the picture: start and end side by side – the whole movement at a glance
     assert 'class="ex-pic  both"' in screen
     assert "/static/exercises/pullups.webp" in screen and "/static/exercises/pullups-1.webp" in screen
@@ -263,7 +267,7 @@ def test_full_flow_on_the_phone(auth_client, db, user):
     assert '<details class="wo-more"' in more and "＋ jeszcze jedna seria" in more
     assert 'name="weight" inputmode="decimal" value="25"' in more and f"✓ Seria {bench.sets + 1}<" in more
     assert "&lt;form" not in more  # the folded form is markup, not text
-    for s in bench.done[-(bench.sets - 1):]:
+    for s in bench.done[-(bench.sets - 1) :]:
         tr.undo_set(db, s)
     db.commit()
     r = auth_client.post(
@@ -481,7 +485,9 @@ def test_save_made_up_workout_as_plan(auth_client, db, user, fbw):
     db.expire_all()
     p = db.query(WorkoutPlan).filter_by(name="Nogi rano").one()
     assert [(i.exercise.key, i.sets, i.superset) for i in p.items] == [
-        ("leg_press", 4, None), ("leg_extension", 3, 1), ("leg_curl", 3, 1)
+        ("leg_press", 4, None),
+        ("leg_extension", 3, 1),
+        ("leg_curl", 3, 1),
     ]
     assert db.get(Workout, w.id).plan_id == p.id
     assert tr.next_plan(db, user).id != p.id  # not in the FBW cycle
@@ -517,7 +523,13 @@ def test_log_a_whole_superset_round(auth_client, db, user, fbw):
 def test_imported_english_exercises_are_adopted(db, user):
     """Made by the Jefit import under English names: they become the catalog ones with Polish names."""
     tr.ensure_library(db)
-    side = Exercise(name="Dumbbell Side Bend", en="Dumbbell Side Bend", pattern="lateral", muscle="shoulders", equipment="bodyweight")
+    side = Exercise(
+        name="Dumbbell Side Bend",
+        en="Dumbbell Side Bend",
+        pattern="lateral",
+        muscle="shoulders",
+        equipment="bodyweight",
+    )
     dup = Exercise(name="Scissor Kick", en="Scissor Kick", pattern="core_flex", muscle="core", equipment="bodyweight")
     own = Exercise(name="Moje ćwiczenie", pattern="biceps", muscle="biceps", equipment="dumbbell")
     db.add_all([side, dup, own])
@@ -533,7 +545,13 @@ def test_imported_english_exercises_are_adopted(db, user):
     db.commit()
     db.expire_all()
     s = db.get(Exercise, side_id)
-    assert (s.key, s.name, s.pattern, s.muscle, s.equipment) == ("db_side_bend", "Skłony boczne z hantlem", "core_flex", "core", "dumbbell")
+    assert (s.key, s.name, s.pattern, s.muscle, s.equipment) == (
+        "db_side_bend",
+        "Skłony boczne z hantlem",
+        "core_flex",
+        "core",
+        "dumbbell",
+    )
     kick = _ex(db, "scissor_kick")
     assert db.get(Workout, w.id).exercises[0].exercise_id == kick.id and kick.name == "Nożyce"
     assert db.query(Exercise).filter_by(name="Scissor Kick").count() == 0
@@ -545,7 +563,9 @@ def test_catalog_names_are_polish():
     """No bare English names: a gym term may stay only in brackets after the Polish name."""
     import re
 
-    english = re.compile(r"\b(press|curl|row|raise|squat|pull|push|fly|kick|twist|plank|bench|cable|dumbbell|barbell)\b", re.I)
+    english = re.compile(
+        r"\b(press|curl|row|raise|squat|pull|push|fly|kick|twist|plank|bench|cable|dumbbell|barbell)\b", re.I
+    )
     bad = [r["name"] for r in tr.catalog()["exercises"] if english.search(re.sub(r"\([^)]*\)", "", r["name"]))]
     assert not bad, bad
 

@@ -447,7 +447,7 @@ async def add_visit(request: Request, item_id: int, db: Session = Depends(get_db
         )
     )
     db.commit()
-    return _redirect(f"/items/{item.id}")
+    return _back(request, f"/items/{item.id}")
 
 
 @router.post("/{item_id}/szczepienia", dependencies=[Depends(verify_csrf)])

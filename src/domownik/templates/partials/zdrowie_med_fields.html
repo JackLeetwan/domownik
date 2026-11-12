@@ -1,0 +1,22 @@
+{# Fields of a medicine. Needs: mf (Medication or none), issue (fixed) or open_issues (to pick) #}
+<div class="grid">
+  <label>Nazwa<input name="name" required maxlength="120" value="{{ mf.name if mf else '' }}" placeholder="np. Ibuprofen"></label>
+  <label>Dawka<input name="dose" maxlength="80" value="{{ mf.dose or '' if mf else '' }}" placeholder="np. 1 tabl. 400 mg"></label>
+</div>
+<label>Jak brać<input name="schedule" maxlength="120" value="{{ mf.schedule or '' if mf else '' }}" placeholder="np. 3× dziennie po jedzeniu"></label>
+<div class="grid">
+  <label>Od<input type="date" name="started_on" value="{{ mf.started_on.isoformat() if mf and mf.started_on else today().isoformat() }}"></label>
+  <label>Do <small class="muted">(puste = na stałe)</small><input type="date" name="ends_on" value="{{ mf.ends_on.isoformat() if mf and mf.ends_on else '' }}"></label>
+</div>
+<label>Recepta<input name="prescription" maxlength="200" value="{{ mf.prescription or '' if mf else '' }}" placeholder="kod e-recepty, kto przepisał, do kiedy ważna"></label>
+{% if issue is defined %}<input type="hidden" name="issue_id" value="{{ issue.id }}">
+{% elif open_issues or closed_issues %}
+<label>Na co
+  <select name="issue_id">
+    <option value="">—</option>
+    {% for i in open_issues + closed_issues %}<option value="{{ i.id }}"{% if mf and mf.issue_id == i.id %} selected{% endif %}>{{ i.title }}</option>{% endfor %}
+  </select>
+</label>
+{% endif %}
+<label>Notatki<textarea name="notes" rows="2" placeholder="skutki uboczne, zamiennik, cena…">{{ mf.notes or '' if mf else '' }}</textarea></label>
+{% if issue is not defined or not issue.private_to_id %}{% with obj = mf %}{% include "partials/private_field.html" %}{% endwith %}{% endif %}

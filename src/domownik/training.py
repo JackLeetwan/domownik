@@ -310,7 +310,9 @@ def drop_stale_empty(db: Session, user: User, today: date) -> int:
     """Workouts left started on an earlier day with not one set – an abandoned start, nothing to keep."""
     stale = [
         w
-        for w in db.scalars(select(Workout).where(Workout.user_id == user.id, Workout.finished_at.is_(None), Workout.day < today))
+        for w in db.scalars(
+            select(Workout).where(Workout.user_id == user.id, Workout.finished_at.is_(None), Workout.day < today)
+        )
         if not counts(w)
     ]
     for w in stale:

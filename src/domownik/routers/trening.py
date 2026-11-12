@@ -181,7 +181,8 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
                 "current": nxt is not None and nxt.id == we.id,
                 "sets_text": tr.sets_text(list(we.done)),
                 # 🔗 with the next one (not already together); ✂ on the last of a superset
-                "can_link": (f := tr.following(w, we)) is not None and (we.superset is None or f.superset != we.superset),
+                "can_link": (f := tr.following(w, we)) is not None
+                and (we.superset is None or f.superset != we.superset),
                 "ss_last": we.superset is not None and (f is None or f.superset != we.superset),
             }
         )
@@ -363,7 +364,9 @@ async def log_round(
 
 
 @router.post("/trening/{workout_id:int}/plan", dependencies=[Depends(verify_csrf)])
-async def save_as_plan(workout_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+async def save_as_plan(
+    workout_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
     """💾 The workout made up on the spot becomes a plan to start next time."""
     w = _workout(db, user, workout_id)
     if w.plan_id is not None or not w.exercises:
@@ -568,8 +571,10 @@ def add_page(
     sections = _groups(db, eq, partia or None)
     if not partia:  # 🕘 what this person did lately, not in this workout yet – the usual pick is at the top
         have = {we.exercise_id for we in w.exercises}
-        recent = [ex for ex, _, _ in tr.done_exercises(db, user) if ex.id not in have and (eq is None or ex.equipment in eq)]
-        sections = [("🕘 Ostatnio robione", recent[:8])] + sections
+        recent = [
+            ex for ex, _, _ in tr.done_exercises(db, user) if ex.id not in have and (eq is None or ex.equipment in eq)
+        ]
+        sections = [("🕘 Ostatnio robione", recent[:8]), *sections]
     return render(
         request,
         "exercise_pick.html",
