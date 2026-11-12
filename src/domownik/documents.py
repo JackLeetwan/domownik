@@ -250,10 +250,11 @@ def store_files(
     description: str | None = None,
     completion_id: int | None = None,
     note_id: int | None = None,
+    recipe_id: int | None = None,
 ) -> list[Attachment]:
     """Save uploaded files (name, file object) with the item – all of them or, on any error, none.
 
-    item None: a note's photo (note_id), kept in files/0/.
+    item None: a note's photo (note_id) or a recipe's (recipe_id), kept in files/0/.
 
     Raises UploadError with a message for the user. The caller commits.
     """
@@ -305,6 +306,7 @@ def store_files(
             att = Attachment(
                 item_id=item.id if item is not None else None,
                 note_id=note_id,
+                recipe_id=recipe_id,
                 completion_id=completion_id,
                 storage_path=rel,
                 original_name=name,

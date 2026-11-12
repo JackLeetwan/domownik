@@ -27,9 +27,11 @@
 {% if recipes %}
 <ul class="recipe-list">
   {% for r in recipes %}
-  <li><a href="/kuchnia/przepisy/{{ r.id }}">
-    <strong>{{ r.name }}</strong>
-    <small class="muted">{{ r.ingredient_list|length }} skł.{% if r.minutes %} · {{ r.minutes }} min{% endif %}{% if r.servings %} · {{ r.servings }} porcji{% endif %}{% if r.tags %} · {{ r.tags }}{% endif %}</small>
+  {% set cover = r.photos|selectattr('has_thumb')|list|last %}
+  <li><a href="/kuchnia/przepisy/{{ r.id }}"{% if cover %} class="has-cover"{% endif %}>
+    {% if cover %}<img class="recipe-cover" src="/files/{{ cover.id }}/thumb" alt="" loading="lazy" decoding="async">{% endif %}
+    <span class="recipe-li-text"><strong>{{ r.name }}</strong>
+    <small class="muted">{{ r.ingredient_list|length }} skł.{% if r.minutes %} · {{ r.minutes }} min{% endif %}{% if r.servings %} · {{ r.servings }} porcji{% endif %}{% if r.tags %} · {{ r.tags }}{% endif %}{% if r.photos %} · 📷 {{ r.photos|length }}{% endif %}</small></span>
   </a></li>
   {% endfor %}
 </ul>

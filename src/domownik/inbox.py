@@ -24,6 +24,7 @@ from domownik.models import (
     Attachment,
     Completion,
     Item,
+    Recipe,
     Task,
     Transaction,
     User,
@@ -370,6 +371,31 @@ def finish_policy(
     if ends_on and w.task_id:
         return Done(f"Zapisane. Przypomnę przed końcem: {ends_on.strftime('%d.%m.%Y')}")
     return Done("Zapisane w dokumentach")
+
+
+def finish_recipe(db: Session, att: Attachment, user: User, *, recipe_raw, name: str) -> Done:
+    """A cookbook page or the dish: goes to the chosen recipe, or a new one named here (the rest typed later)."""
+    raw = str(recipe_raw or "")
+    if raw.isdigit():
+        recipe = db.get(Recipe, int(raw))
+        if recipe is None:
+            raise InboxError("Nie ma takiego przepisu")
+    else:
+        name = " ".join((name or "").split())[:120]
+        if not name:
+            raise InboxError("Wybierz przepis albo wpisz nazwę nowego")
+        recipe = Recipe(name=name, created_by_id=user.id)
+        db.add(recipe)
+        db.flush()
+    att.recipe_id = recipe.id
+    att.item_id = None  # a recipe's photo, not an item's document
+    _close(att, "photo", None)
+    db.commit()
+    return Done(f"Dodane do przepisu „{recipe.name}”")
+
+
+def recipe_choices(db: Session) -> list[Recipe]:
+    return list(db.scalars(select(Recipe).order_by(func.lower(Recipe.name))))
 
 
 def finish_other(db: Session, att: Attachment, *, item_raw, description: str) -> Done:

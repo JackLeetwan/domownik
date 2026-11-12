@@ -7,6 +7,7 @@
     <h2>📖 {{ r.name }}</h2>
     <p class="muted">{% if r.minutes %}⏱️ {{ r.minutes }} min{% endif %}{% if r.servings %} · 🍽️ {{ r.servings }} porcji{% endif %}{% if r.tags %} · {{ r.tags }}{% endif %}{% if r.link %} · <a href="{{ r.link }}" target="_blank" rel="noopener noreferrer">{% if 'cookidoo' in r.link %}otwórz w Cookidoo ↗{% else %}źródło ↗{% endif %}</a>{% endif %}</p>
   </header>
+  {% include "partials/recipe_photos.html" %}
   {% if needs %}
   <h3>Składniki</h3>
   <ul class="ingredients">

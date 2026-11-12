@@ -1,4 +1,4 @@
-{# The rest of a quick photo, by what it is. Needs: att, choices, NEXT, default_next, taken_on, categories #}
+{# The rest of a quick photo, by what it is. Needs: att, choices, NEXT, default_next, taken_on, categories, recipes #}
 <form class="cap-finish" hx-post="/zdjecia/{{ att.id }}/zapisz">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <input type="hidden" name="item_id" value="{{ att.item_id }}">
@@ -65,6 +65,14 @@
     <label>Ważna do <small class="muted">(przypomnę przed końcem)</small><input type="date" name="ends_on"></label>
     {% if choices.tasks or choices.recent %}<label>Składka [zł] <small class="muted">(przy odnowieniu)</small><input name="amount" inputmode="decimal" autocomplete="off" placeholder="np. 650"></label>{% endif %}
   </div>
+  {% elif att.capture_kind == 'recipe' %}
+  <label>Do którego przepisu
+    <select name="recipe_id">
+      <option value="">＋ nowy przepis…</option>
+      {% for r in recipes %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Nazwa nowego <small class="muted">(gdy wybrany „nowy” – składniki dopiszesz w Kuchni)</small><input name="recipe_name" maxlength="120" placeholder="np. Pierogi babci"></label>
   {% else %}
   <label>Opis <small class="muted">(opcjonalnie)</small><input name="note" maxlength="300" placeholder="np. tabliczka znamionowa pieca"></label>
   {% endif %}

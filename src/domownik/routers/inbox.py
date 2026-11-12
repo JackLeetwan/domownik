@@ -59,6 +59,7 @@ def _ctx(db: Session, att: Attachment, mode: str, user: User) -> dict:
         "taken_on": taken_on,
         "categories": budget.active_categories(db, income=False),
         "suggested_category": budget.suggest_category(db, tree, att.item_id, "service") if att.item_id else None,
+        "recipes": inbox.recipe_choices(db) if att.capture_kind == "recipe" else [],
     }
 
 
@@ -171,6 +172,10 @@ async def finish(request: Request, att_id: int, db: Session = Depends(get_db), u
                 done_on=_date(form.get("done_on"), _taken_on(att)),
                 doc_kind=str(form.get("doc_kind") or "policy"),
                 today=today(),
+            )
+        elif kind == "recipe":
+            done = inbox.finish_recipe(
+                db, att, user, recipe_raw=form.get("recipe_id"), name=str(form.get("recipe_name") or "")
             )
         else:
             done = inbox.finish_other(db, att, item_raw=form.get("item_id"), description=str(form.get("note") or ""))

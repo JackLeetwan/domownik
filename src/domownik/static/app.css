@@ -475,6 +475,11 @@ textarea + .mic, .note-add .mic, .note-card .mic { margin: -0.25rem 0 0.5rem; pa
 .recipe-list li { list-style: none; margin: 0; }
 .recipe-list a { display: flex; flex-direction: column; padding: 0.6rem 0.9rem; border: 1px solid var(--dm-tile-border); border-radius: 10px; background: var(--dm-tile-bg); text-decoration: none; color: var(--pico-color); }
 .recipe-list a:hover { border-color: var(--pico-primary); }
+.recipe-list a.has-cover { flex-direction: row; align-items: center; gap: 0.75rem; }
+.recipe-li-text { display: flex; flex-direction: column; min-width: 0; }
+.recipe-cover { flex: none; width: 3.5rem; height: 3.5rem; object-fit: cover; border-radius: 6px; }
+.recipe-photos { margin: 0.5rem 0 0.75rem; }
+.recipe-photo-add { display: inline-block; font-size: 0.9rem; }
 .recipe h2 { margin-bottom: 0.25rem; }
 .recipe .ingredients { margin-bottom: 0.75rem; }
 .recipe-steps { white-space: pre-line; }

@@ -1,0 +1,17 @@
+{# Photos of a recipe: the cookbook page, the dish as served. Needs: r #}
+<section class="recipe-photos" id="recipe-photos">
+  {% if r.photos %}
+  <div class="note-photos">
+    {% for a in r.photos %}
+    <figure class="note-photo">
+      <a href="/files/{{ a.id }}" target="_blank" rel="noopener" hx-boost="false" title="{{ a.original_name }} – otwórz">
+        {% if a.has_thumb %}<img src="/files/{{ a.id }}/thumb" alt="{{ a.original_name }}" loading="lazy" decoding="async">{% else %}<span class="doc-thumb-kind">📷 {{ a.original_name|truncate(14) }}</span>{% endif %}
+      </a>
+      <button type="button" class="note-photo-del" hx-post="/kuchnia/przepisy/{{ r.id }}/zdjecia/{{ a.id }}/usun" hx-target="#recipe-photos" hx-swap="outerHTML" hx-confirm="Usunąć to zdjęcie?" aria-label="Usuń zdjęcie {{ a.original_name }}" title="Usuń zdjęcie">✕</button>
+    </figure>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <label class="link note-photo-add recipe-photo-add" title="Dodaj zdjęcie – stronę z książki albo gotowe danie">📷 {% if r.photos %}Dodaj zdjęcie{% else %}Dodaj zdjęcie (strona z książki, gotowe danie){% endif %}<input type="file" name="files" multiple accept="image/*,.heic" hidden
+    hx-post="/kuchnia/przepisy/{{ r.id }}/zdjecia" hx-encoding="multipart/form-data" hx-trigger="change" hx-target="#recipe-photos" hx-swap="outerHTML"></label>
+</section>

@@ -41,10 +41,11 @@ def _get_attachment(db: Session, att_id: int) -> Attachment:
 
 
 def _item_file(db: Session, att_id: int) -> Attachment:
-    """Preview / edit / delete windows are for item documents; a note's photo is handled on its card."""
+    """Preview / edit / delete windows are for item documents; a note's or recipe's photo is handled there."""
     att = _get_attachment(db, att_id)
     if att.item_id is None:
-        raise HTTPException(404, "To zdjęcie notatki – zarządzasz nim na karcie notatki")
+        where = "przepisu" if att.recipe_id is not None else "notatki"
+        raise HTTPException(404, f"To zdjęcie {where} – zarządzasz nim na stronie {where}")
     return att
 
 

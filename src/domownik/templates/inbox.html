@@ -2,14 +2,14 @@
 {% block title %}Do rozpoznania · Domownik{% endblock %}
 {% block content %}
 <header class="item-head"><h1>📥 Do rozpoznania{% if cards %} <small class="muted">({{ cards|length }})</small>{% endif %}</h1></header>
-<p class="muted"><small>Zdjęcia zrobione w biegu – wydruk z serwisu, paragon, polisa. Tu dopisujesz kwotę i kiedy następny raz, a Domownik odhacza serwis, dopisuje wydatek albo przypomni o końcu polisy.</small></p>
+<p class="muted"><small>Zdjęcia zrobione w biegu – wydruk z serwisu, paragon, polisa, przepis z książki. Tu dopisujesz kwotę i kiedy następny raz, a Domownik odhacza serwis, dopisuje wydatek albo przypomni o końcu polisy.</small></p>
 <form class="cap-snap" hx-post="/zdjecia" hx-encoding="multipart/form-data" hx-trigger="change">
   <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="from" value="page">
   <label role="button">📷 Zrób zdjęcie<input type="file" name="files" accept="image/*,.heic" capture="environment" hidden></label>
   <label role="button" class="outline secondary">🖼️ Z galerii / PDF<input type="file" name="files" multiple accept="image/*,.heic,application/pdf,.pdf" hidden></label>
 </form>
 {% for c in cards %}
-{% with att=c.att, mode='card', top_items=c.top_items, rest_items=c.rest_items, KINDS=c.KINDS, NEXT=c.NEXT, default_next=c.default_next, choices=c.choices, taken_on=c.taken_on, categories=c.categories, suggested_category=c.suggested_category %}
+{% with att=c.att, mode='card', top_items=c.top_items, rest_items=c.rest_items, KINDS=c.KINDS, NEXT=c.NEXT, default_next=c.default_next, choices=c.choices, taken_on=c.taken_on, categories=c.categories, suggested_category=c.suggested_category, recipes=c.recipes %}
 {% include "partials/capture_card.html" %}
 {% endwith %}
 {% else %}

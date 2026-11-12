@@ -8,13 +8,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from domownik import kitchen, recipe_link
+from domownik import documents, kitchen, recipe_link
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.shopping import guess_section, parse_entry
-from domownik.models import MEALS, PANTRY_PLACES, MealPlan, PantryItem, Recipe, User
+from domownik.models import MEALS, PANTRY_PLACES, Attachment, MealPlan, PantryItem, Recipe, User
 from domownik.routers.calendar import day_title
 from domownik.routers.shopping import add_entries
 from domownik.security import current_user, verify_csrf
@@ -183,7 +183,7 @@ def recipes_page(
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
-    allr = list(db.scalars(select(Recipe).order_by(Recipe.name)))
+    allr = list(db.scalars(select(Recipe).options(selectinload(Recipe.photos)).order_by(Recipe.name)))
     tags = sorted({t for r in allr for t in r.tag_list}, key=str.lower)
     shown = allr
     if q:
@@ -362,9 +362,51 @@ def recipe_delete(rid: int, db: Session = Depends(get_db), user: User = Depends(
     r = _recipe(db, rid)
     for m in db.scalars(select(MealPlan).where(MealPlan.recipe_id == r.id)):
         m.text, m.recipe_id = r.name, None
+    for att in list(r.photos):
+        documents.delete_attachment(db, att)  # the files too, not only the rows
     db.delete(r)
     db.commit()
     return _redirect("/kuchnia/przepisy")
+
+
+MAX_RECIPE_PHOTOS = 12
+
+
+def _photos(request: Request, r: Recipe):
+    return render(request, "partials/recipe_photos.html", {"r": r})
+
+
+@router.post("/przepisy/{rid}/zdjecia", dependencies=[Depends(verify_csrf)])
+async def add_recipe_photos(
+    request: Request, rid: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    """The cookbook page, the dish as served – all saved or none; 422 with the reason."""
+    r = _recipe(db, rid)
+    files = documents.uploads_in(await request.form())
+    if len(r.photos) + len(files) > MAX_RECIPE_PHOTOS:
+        return _error(f"Przepis może mieć najwyżej {MAX_RECIPE_PHOTOS} zdjęć")
+    try:
+        documents.store_files(db, None, [(f.filename or "", f.file) for f in files], user=user, recipe_id=r.id)
+    except documents.UploadError as exc:
+        db.rollback()
+        return _error(str(exc))
+    db.commit()
+    db.refresh(r)
+    return _photos(request, r)
+
+
+@router.post("/przepisy/{rid}/zdjecia/{att_id}/usun", dependencies=[Depends(verify_csrf)])
+def delete_recipe_photo(
+    request: Request, rid: int, att_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    r = _recipe(db, rid)
+    att = db.get(Attachment, att_id)
+    if att is None or att.recipe_id != r.id:
+        raise HTTPException(404, "Nie ma takiego zdjęcia")
+    documents.delete_attachment(db, att)
+    db.commit()
+    db.refresh(r)
+    return _photos(request, r)
 
 
 # ---------------------------------------------------------------- pantry

@@ -690,6 +690,7 @@ CAPTURE_KINDS: dict[str, tuple[str, str]] = {
     "tyres": ("🛞", "Opony"),
     "receipt": ("🧾", "Paragon / faktura"),
     "policy": ("📄", "Polisa / umowa"),
+    "recipe": ("📖", "Przepis"),
     "other": ("📎", "Inne"),
 }
 
@@ -700,9 +701,11 @@ class Attachment(Base):
     __tablename__ = "attachment"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    # the item it belongs to; None for a photo of a note on the board (note_id)
+    # the item it belongs to; None for a photo of a note on the board (note_id) or of a recipe (recipe_id)
     item_id: Mapped[int | None] = mapped_column(ForeignKey("item.id", ondelete="CASCADE"), index=True)
     note_id: Mapped[int | None] = mapped_column(ForeignKey("board_note.id", ondelete="CASCADE"), index=True)
+    # a photo of a recipe: the cookbook page, the dish as served (item None, like a note's photo)
+    recipe_id: Mapped[int | None] = mapped_column(ForeignKey("recipe.id", ondelete="CASCADE"), index=True)
     # set when added while ticking a task off ("faktura za serwis")
     completion_id: Mapped[int | None] = mapped_column(ForeignKey("completion.id", ondelete="SET NULL"), index=True)
     # added in the task's form (a photo of what is to be done, the letter, the leaflet)
@@ -1032,6 +1035,10 @@ class Recipe(Base):
     tags: Mapped[str | None] = mapped_column(String(120))  # "obiad, szybkie, wege"
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    # photos (the files are removed by kitchen.recipe_delete, the rows also by the FK)
+    photos: Mapped[list[Attachment]] = relationship(
+        primaryjoin="Recipe.id == foreign(Attachment.recipe_id)", viewonly=True, order_by="Attachment.id"
+    )
 
     @property
     def ingredient_list(self) -> list[str]:
