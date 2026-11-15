@@ -1,7 +1,7 @@
 # Exercise library of "Forma" – shared by the household, seeded once (new keys are added on start).
 # pattern: what a substitute must do the same way ("zajęta maszyna" → the same pattern first, then the muscle)
 # equipment: barbell | dumbbell | machine | cable | bodyweight | band | bar (pull-up bar) | kettlebell
-# kind: reps (weight × reps) | time (seconds, e.g. plank); step: kg added when the top of the range is hit
+# kind: reps (weight × reps) | time (seconds, e.g. plank; with step > 0 also the weight: farmer's walk); step: kg added when the top of the range is hit
 # en: names in Jefit (import) – case-insensitive, several allowed
 patterns:
   squat: Przysiad

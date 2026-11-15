@@ -39,6 +39,7 @@
     {% for m in ms %}{% set mr = row_of[m.id] %}
     <div class="wo-round-row"><span class="wo-round-name">{{ superset_letter(we.superset) }}{{ loop.index }} {{ m.exercise.name }}</span>
       {% if m.exercise.kind == 'time' %}
+      {% if m.exercise.step %}<label>kg <input name="weight_{{ m.id }}" inputmode="decimal" value="{{ fmt_kg(mr.weight) if mr.weight else '' }}" autocomplete="off"></label>{% endif %}
       <label>s <input name="seconds_{{ m.id }}" inputmode="numeric" value="{{ mr.seconds or '' }}" autocomplete="off"></label>
       {% else %}
       <label>kg <input name="weight_{{ m.id }}" inputmode="decimal" value="{{ fmt_kg(mr.weight) if mr.weight else '' }}" placeholder="{{ '—' if m.exercise.step == 0 else '' }}" autocomplete="off"></label>
@@ -75,6 +76,7 @@
     {% set log_form %}
     <form class="wo-log" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/seria" hx-target="#workout" hx-swap="outerHTML">
       {% if ex.kind == 'time' %}
+      {% if ex.step %}<label>kg{% if ex.equipment == 'dumbbell' %} <small>1 hantla</small>{% endif %} <input name="weight" inputmode="decimal" value="{{ fmt_kg(r.weight) if r.weight else '' }}" autocomplete="off"></label>{% endif %}
       <label>Sekundy <input name="seconds" inputmode="numeric" value="{{ r.seconds or '' }}" autocomplete="off"></label>
       {% else %}
       <label>{% if ex.step == 0 %}kg <small>dodatkowo</small>{% else %}kg{% if ex.equipment == 'dumbbell' %} <small>1 hantla</small>{% endif %}{% endif %} <input name="weight" inputmode="decimal" value="{{ fmt_kg(r.weight) if r.weight else '' }}" placeholder="{{ '—' if ex.step == 0 else '' }}" autocomplete="off"></label>

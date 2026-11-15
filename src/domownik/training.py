@@ -660,14 +660,13 @@ def fmt_kg(value: float | None) -> str:
 
 
 def sets_text(sets: list[WorkoutSet]) -> str:
-    """'22,5 kg × 12, 11, 10' – grouped by weight; seconds as '45 s'."""
+    """'22,5 kg × 12, 11, 10' – grouped by weight; seconds as '45 s' (a loaded hold: '24 kg × 40 s, 35 s')."""
     if not sets:
         return ""
-    if all(s.seconds is not None and s.reps is None for s in sets):
-        return ", ".join(f"{s.seconds} s" for s in sets)
+    timed = all(s.seconds is not None and s.reps is None for s in sets)
     parts: list[str] = []
     for s in sets:
-        reps = str(s.reps if s.reps is not None else "–")
+        reps = f"{s.seconds} s" if timed else str(s.reps if s.reps is not None else "–")
         label = f"{fmt_kg(s.weight)} kg × " if s.weight else ""
         if parts and parts[-1][0] == label:
             parts[-1][1].append(reps)
@@ -693,8 +692,13 @@ def suggest(db: Session, user: User, we: WorkoutExercise) -> Suggestion:
         best = max((s.seconds or 0 for s in prev), default=0)
         target = max(best, we.seconds or 0) or 30
         hit = bool(prev) and all((s.seconds or 0) >= target for s in prev)
+        weight = max((s.weight for s in prev if s.weight), default=None) if ex.step else None
         return Suggestion(
-            seconds=target + 5 if hit else target, last=sets_text(prev), up=hit, note="+5 s" if hit else ""
+            weight=weight,
+            seconds=target + 5 if hit else target,
+            last=sets_text(prev),
+            up=hit,
+            note="+5 s" if hit else "",
         )
     if not prev:
         return Suggestion(reps=we.reps_max, note="pierwszy raz – dobierz ciężar" if ex.step else "pierwszy raz")

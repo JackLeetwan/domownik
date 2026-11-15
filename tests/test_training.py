@@ -120,6 +120,35 @@ def test_bodyweight_and_time(db, user, fbw):
     assert tr.suggest(db, user, plank).seconds == 50
 
 
+def test_loaded_hold_logs_weight(db, user, fbw, auth_client):
+    """Farmer's walk: time with a load – the weight is asked for, kept in the history and suggested again."""
+    w1 = tr.start(db, user, fbw[0], at=T - timedelta(days=3))
+    fw = tr.add_exercise(db, w1, _ex(db, "farmers_walk"))
+    for secs in (40, 35):
+        tr.log_set(db, fw, weight=24, reps=None, seconds=secs, at=T - timedelta(days=3))
+    tr.finish(db, w1, T - timedelta(days=3))
+    assert tr.sets_text(list(fw.done)) == "24 kg × 40 s, 35 s"
+    w2 = tr.start(db, user, fbw[0], at=T)
+    fw = tr.add_exercise(db, w2, _ex(db, "farmers_walk"))
+    s = tr.suggest(db, user, fw)
+    assert (s.weight, s.seconds) == (24, 40)
+    plank = tr.add_exercise(db, w2, _ex(db, "plank"))
+    assert tr.suggest(db, user, plank).weight is None
+    db.commit()
+
+    screen = auth_client.get(f"/forma/trening/{w2.id}").text
+    form = screen.split(f'/cw/{fw.id}/seria"', 1)[1].split("</form>", 1)[0]
+    assert 'name="weight"' in form and 'name="seconds"' in form
+    plank_form = screen.split(f'/cw/{plank.id}/seria"', 1)[1].split("</form>", 1)[0]
+    assert 'name="weight"' not in plank_form
+    r = auth_client.post(
+        f"/forma/trening/{w2.id}/cw/{fw.id}/seria",
+        data={"weight": "26", "seconds": "45"},
+        headers={"HX-Request": "true", "HX-Target": "workout"},
+    )
+    assert r.status_code == 200 and "26 kg × 45 s" in r.text
+
+
 def test_substitutes_and_away(db, user, fbw):
     tr.ensure_library(db)
     same, muscle = tr.substitutes(db, _ex(db, "bench_press"))
