@@ -2247,6 +2247,15 @@ stretch:  # 🤸 the stretches (stretches.yaml) by key
     mistakes:
       - "Obracanie kolan i stóp razem z tułowiem."
       - "Rzucanie tułowiem z rozpędu."
+  quad_standing:
+    steps:
+      - "Stań prosto, stopy na szerokość bioder; w razie potrzeby przytrzymaj się ściany lub krzesła."
+      - "Ugnij jedną nogę do tyłu i chwyć ją ręką z tej samej strony przy kostce."
+      - "Przyciągnij piętę do pośladka, kolana trzymaj obok siebie, kolano zgiętej nogi skierowane w dół."
+      - "Podwiń lekko miednicę i odciągnij stopę do tyłu – czujesz rozciąganie z przodu uda; oddychaj spokojnie."
+    mistakes:
+      - "Wyginanie lędźwi w łuk zamiast podwinięcia miednicy."
+      - "Kolano uciekające w bok albo ciągnięcie za palce zamiast za kostkę."
   quad_step:
     steps:
       - "Stań plecami do stopnia, krzesła lub kanapy, ok. kroku od niego."

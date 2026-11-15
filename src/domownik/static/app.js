@@ -1261,9 +1261,25 @@
       if (!paused) { pause(); push(); }
       save();
     });
+    // ⓘ reading how it's done is not stretching: the timer stops while the guide is open and goes on when it
+    // closes – unless it was paused before (or the partner resumed it meanwhile)
     $(".ss-info").addEventListener("click", () => {
       const s = stretches[phases[Math.min(idx, phases.length - 1)].si];
-      if (typeof htmx !== "undefined") htmx.ajax("GET", `/forma/rozciaganie/cw/${s.id}`, { target: "#modal-body", swap: "innerHTML" });
+      if (typeof htmx === "undefined") return;
+      const modal = modalEl();
+      if (started && !paused && modal) {
+        pause();
+        render();
+        push();
+        modal.addEventListener("close", () => {
+          if (finished || !paused || !document.body.contains(root)) return;
+          run();
+          render();
+          save();
+          push();
+        }, { once: true });
+      }
+      htmx.ajax("GET", `/forma/rozciaganie/cw/${s.id}`, { target: "#modal-body", swap: "innerHTML" });
     });
     $(".ss-end").addEventListener("click", async () => {
       const wasRunning = !paused;
