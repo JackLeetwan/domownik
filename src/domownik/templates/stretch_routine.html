@@ -39,6 +39,7 @@
       <span class="st-item-actions">
         <button type="submit" form="mv{{ it.id }}u" class="small outline secondary" {% if loop.first %}disabled{% endif %} aria-label="W górę">↑</button>
         <button type="submit" form="mv{{ it.id }}d" class="small outline secondary" {% if loop.last %}disabled{% endif %} aria-label="W dół">↓</button>
+        <a href="/forma/rozciaganie/{{ r.id }}/cw/{{ it.id }}/zamien" role="button" class="small outline secondary" aria-label="Zamień: {{ ex.name }}" title="Zamień na inne">⇄</a>
         <button type="submit" form="mv{{ it.id }}x" class="small outline secondary" aria-label="Usuń: {{ ex.name }}">✕</button>
       </span>
     </li>

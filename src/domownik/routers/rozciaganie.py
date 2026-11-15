@@ -130,6 +130,67 @@ def item_action(
     return _go(f"/forma/rozciaganie/{r.id}?edycja=1#i{item_id}")
 
 
+@router.get("/{routine_id:int}/cw/{item_id:int}/zamien")
+def item_swap_page(
+    routine_id: int,
+    item_id: int,
+    request: Request,
+    typ: str | None = None,
+    partia: str | None = None,
+    sprzet: str = "",
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """⇄ Another stretch in place of one in the routine; at first the same kind and area."""
+    r = _routine(db, routine_id)
+    it = db.get(StretchRoutineItem, item_id)
+    if it is None or it.routine_id != r.id:
+        raise HTTPException(404, "Nie ma takiej pozycji")
+    st.ensure_library(db)
+    db.commit()
+    cur = it.stretch
+    type_ = (typ or None) if typ is not None else cur.type
+    type_ = type_ if type_ in st.catalog()["types"] else None
+    free = sprzet == "0"
+    areas = st.areas_with(db, type_, free)
+    area = (partia or None) if partia is not None else cur.area
+    area = area if area in {k for k, _, _ in areas} else None
+    base = f"/forma/rozciaganie/{r.id}/cw/{it.id}/zamien"
+    return render(
+        request,
+        "stretch_pick.html",
+        _ctx(
+            user,
+            title=f"Zamień: {cur.name}",
+            back_url=f"/forma/rozciaganie/{r.id}?edycja=1#i{it.id}",
+            base=base,
+            sections=st.groups(db, type_, area, free),
+            type_filter=type_,
+            area_filter=area,
+            areas=areas,
+            free_filter=free,
+            pick_url=_pick_url(base, {"typ": type_ or "", "partia": area or "", "sprzet": "0" if free else None}),
+            marked={x.stretch_id for x in r.items},
+            mark_label="✓ w zestawie",
+            current_id=cur.id,
+        ),
+    )
+
+
+@router.post("/{routine_id:int}/cw/{item_id:int}/zamien/{stretch_id:int}", dependencies=[Depends(verify_csrf)])
+def item_swap(
+    routine_id: int, item_id: int, stretch_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    r = _routine(db, routine_id)
+    it = db.get(StretchRoutineItem, item_id)
+    if it is None or it.routine_id != r.id:
+        raise HTTPException(404, "Nie ma takiej pozycji")
+    it.stretch = _stretch(db, stretch_id)
+    it.seconds = None  # the new stretch's own time
+    db.commit()
+    return _go(f"/forma/rozciaganie/{r.id}?edycja=1#i{it.id}")
+
+
 @router.get("/{routine_id:int}/dodaj")
 def add_page(
     routine_id: int,

@@ -191,6 +191,19 @@ def test_routines_on_the_phone(auth_client, db):
     _post(auth_client, f"/forma/rozciaganie/{rid}/cw/{second.id}/usun")
     db.refresh(routine)
     assert [it.stretch.key for it in routine.items] == ["childs_pose"]
+    # ⇄ another stretch in place of one: the picker starts at its kind and area, the item keeps its place
+    item = routine.items[0]
+    item.seconds = 60
+    db.commit()
+    page = auth_client.get(f"/forma/rozciaganie/{rid}/cw/{item.id}/zamien").text
+    assert "Zamień: Pozycja dziecka" in page and "⇄" in page
+    assert f'action="/forma/rozciaganie/{rid}/cw/{item.id}/zamien/{twist.id}"' in page  # same kind and area
+    assert f"/forma/rozciaganie/{rid}/cw/{item.id}/zamien/{item.stretch_id}\"" not in page  # not itself
+    _post(auth_client, f"/forma/rozciaganie/{rid}/cw/{item.id}/zamien/{twist.id}")
+    db.refresh(routine)
+    assert [it.stretch.key for it in routine.items] == ["seated_twist"] and routine.items[0].seconds is None
+    _post(auth_client, f"/forma/rozciaganie/{rid}/cw/{item.id}/zamien/{child.id}")
+    db.refresh(routine)
 
     bad = _post(auth_client, f"/forma/rozciaganie/{rid}", {"kind": "after", f"i{first.id}_seconds": "2"})
     assert bad.status_code >= 400
