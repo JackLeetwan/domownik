@@ -213,7 +213,7 @@ def test_routines_on_the_phone(auth_client, db):
     assert f'/forma/rozciaganie/{rid}"' not in auth_client.get("/forma/rozciaganie").text
 
 
-def test_stretch_guide_modal_and_page(auth_client, db):
+def test_stretch_guide_modal_and_page(auth_client, db, monkeypatch):
     st.prepare(db)
     db.commit()
     s = db.query(Stretch).filter_by(key="butterfly").one()
@@ -222,8 +222,9 @@ def test_stretch_guide_modal_and_page(auth_client, db):
     page = auth_client.get(f"/forma/rozciaganie/cw/{s.id}").text
     assert "<html" in page and "Statyczne" in page and "Jak wykonać" in page
     assert auth_client.get("/forma/rozciaganie/cw/99999").status_code == 404
-    # without a picture: the 🧘 icon, the instructions without the start/end frames
+    # without a picture (every catalog stretch has one now – one is taken away): the 🧘 icon, no frames
     cobra = db.query(Stretch).filter_by(key="cobra").one()
+    monkeypatch.delitem(st.catalog()["stretches"][[r["key"] for r in st.catalog()["stretches"]].index("cobra")], "img")
     assert st.image(cobra) is None and st.image_target(cobra) is None and st.icon(cobra) == "🧘"
     page = auth_client.get(f"/forma/rozciaganie/cw/{cobra.id}").text
     assert "Kobra" in page and "Jak wykonać" in page and "<figcaption>Start" not in page

@@ -178,6 +178,22 @@ by_key:
   plate_rotation: Plate Twist
   slrdl_rotation: Kettlebell One-Legged Deadlift
   leg_swing_ex: Front Leg Raises
+  # our own drawings (scripts/draw_exercises.py) and the photos of the newer exercises
+  knee_push_up: Knee Push-Up
+  db_reverse_lunge: Dumbbell Rear Lunge
+  wall_sit: Wall Sit
+  monster_walk: Monster Walk
+  bird_dog: Bird Dog
+  farmers_walk: Farmer's Walk
+  pike_push_up: Pike Push-Up
+  band_pulldown: Band Pulldown
+  band_row: Band Row
+  band_curl: Band Curl
+  band_pushdown: Band Pushdown
+  bb_sumo_squat: Barbell Sumo Squat
+  poliquin_step: Poliquin Step
+  copenhagen: Copenhagen Plank
+  plank_rotation: Plank Rotation
 
 by_name:
   Dumbbell Hammer Curl: Hammer Curls

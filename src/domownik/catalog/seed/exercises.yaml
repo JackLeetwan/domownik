@@ -239,6 +239,12 @@ exercises:
   - {key: plate_rotation, name: Rotacje tułowia z talerzem, en: [Weight Plate Rotation], pattern: core_static, muscle: core, equipment: bodyweight, step: 0}
   - {key: mountain_climber, name: Wspinaczka (mountain climber), en: [Mountain Climber, Mountain Climbers], pattern: core_static, muscle: core, equipment: bodyweight, step: 0}
   - {key: plank_rotation, name: Deska z rotacją, en: [plank rotations, Plank Rotation], pattern: core_static, muscle: core, equipment: bodyweight, step: 0}
+  - {key: knee_push_up, name: Pompki na kolanach, en: [Knee Push-Up, Kneeling Push-Up], pattern: push_h, muscle: chest, equipment: bodyweight, step: 0}
+  - {key: db_reverse_lunge, name: Wykroki w tył z hantlami, en: [Dumbbell Rear Lunge, Dumbbell Reverse Lunge], pattern: lunge, muscle: quads, equipment: dumbbell, step: 2}
+  - {key: wall_sit, name: Krzesełko przy ścianie (wall sit), en: [Wall Sit], pattern: quad_iso, muscle: quads, equipment: bodyweight, kind: time, step: 0}
+  - {key: monster_walk, name: Chodzenie z gumą w półprzysiadzie (monster walk), en: [Monster Walk, Band Lateral Walk], pattern: glute, muscle: posterior, equipment: band, step: 0}
+  - {key: bird_dog, name: Wyprost ręki i nogi w klęku podpartym (bird dog), en: [Bird Dog], pattern: core_static, muscle: core, equipment: bodyweight, step: 0}
+  - {key: farmers_walk, name: Spacer farmera z hantlami, en: [Farmer's Walk, Farmers Walk], pattern: core_static, muscle: core, equipment: dumbbell, kind: time, step: 2}
   # ---------------------------------------------------------------- mobility done inside a workout (the same moves as in stretches.yaml)
   - {key: arm_circles_ex, name: Krążenia ramion, en: [Arm Circles], pattern: mobility, muscle: shoulders, equipment: bodyweight, step: 0}
   - {key: leg_swing_ex, name: Wymachy nogą, en: [Leg Swing, Leg Swings], pattern: mobility, muscle: posterior, equipment: bodyweight, step: 0}

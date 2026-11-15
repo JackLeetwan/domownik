@@ -1649,6 +1649,60 @@ by_key:
       - "Zrób powtórzenia i zmień nogę."
     mistakes:
       - "Wyginanie pleców zamiast ruchu w biodrze."
+  knee_push_up:
+    steps:
+      - "Uklęknij na macie, dłonie postaw pod barkami trochę szerzej niż ramiona."
+      - "Przesuń dłonie do przodu, aż ciało od kolan do głowy będzie w jednej linii."
+      - "Uginając łokcie (skierowane skośnie w tył), opuść klatkę nisko nad podłogę."
+      - "Wypchnij się do wyprostu ramion, brzuch i pośladki napięte."
+    mistakes:
+      - "Wypychanie bioder w górę albo opadanie lędźwi."
+      - "Łokcie rozłożone na boki pod kątem prostym."
+  db_reverse_lunge:
+    steps:
+      - "Stań prosto z hantlami wzdłuż tułowia, stopy na szerokość bioder."
+      - "Zrób duży krok w tył i opuść tylne kolano nad podłogę."
+      - "Przednia goleń zostaje pionowo, tułów prosto, ciężar na pięcie przedniej nogi."
+      - "Wypchnij się przednią nogą do stania i zmień stronę."
+    mistakes:
+      - "Uderzanie tylnym kolanem o podłogę."
+      - "Pochylanie tułowia nad przednie udo."
+  wall_sit:
+    steps:
+      - "Oprzyj plecy o ścianę, stopy na szerokość bioder, ok. dwóch stóp od ściany."
+      - "Zsuń się po ścianie, aż uda będą równolegle do podłogi, a kolana nad kostkami."
+      - "Trzymaj plecy i tył głowy przy ścianie, ręce luźno albo na udach."
+      - "Wytrzymaj zadany czas, oddychając spokojnie."
+    mistakes:
+      - "Kolana wysunięte przed palce albo schodzące do środka."
+      - "Pchanie rękami o uda, żeby sobie ulżyć."
+  monster_walk:
+    steps:
+      - "Załóż minigumę nad kolana lub na kostki, stań w lekkim półprzysiadzie."
+      - "Stopy na szerokość bioder, guma napięta, tułów lekko pochylony."
+      - "Rób małe kroki w przód i na skos, nie pozwalając kolanom schodzić do środka."
+      - "Przejdź zadaną liczbę kroków w jedną stronę i wróć."
+    mistakes:
+      - "Wstawanie z półprzysiadu i luzowanie gumy."
+      - "Kolana uciekające do środka."
+  bird_dog:
+    steps:
+      - "Uklęknij w podporze: dłonie pod barkami, kolana pod biodrami, plecy proste."
+      - "Napnij brzuch i jednocześnie wyprostuj jedną rękę w przód i przeciwną nogę w tył."
+      - "Zatrzymaj się na 1–2 sekundy, ręka i noga w linii tułowia."
+      - "Wróć powoli i zmień stronę."
+    mistakes:
+      - "Unoszenie nogi wyżej niż biodro i wyginanie lędźwi."
+      - "Przechylanie bioder na bok."
+  farmers_walk:
+    steps:
+      - "Podnieś ciężkie hantle z podłogi z prostymi plecami, jak w martwym ciągu."
+      - "Stań prosto, barki w dół i lekko w tył, brzuch napięty."
+      - "Idź krótkimi, pewnymi krokami przez zadany czas lub dystans."
+      - "Odłóż hantle, uginając nogi, nie plecy."
+    mistakes:
+      - "Garbienie się i opadanie barków."
+      - "Przechylanie się na boki przy każdym kroku."
 
 by_name:
   "Dumbbell Hammer Curl":
@@ -2337,3 +2391,57 @@ stretch:  # 🤸 the stretches (stretches.yaml) by key
     mistakes:
       - "Unoszenie bioder od podłogi."
       - "Wciskanie głowy w barki i zadzieranie brody."
+  doorway_chest:
+    steps:
+      - "Stań w drzwiach, przedramię oprzyj o framugę, łokieć na wysokości barku."
+      - "Zrób mały krok do przodu tą samą nogą, aż poczujesz rozciąganie w klatce."
+      - "Trzymaj tułów prosto i brzuch napięty, nie wyginaj lędźwi."
+      - "Oddychaj spokojnie, potem zmień rękę."
+    mistakes:
+      - "Łokieć powyżej barku przy bólu barku – opuść go niżej."
+      - "Wypychanie głowy do przodu."
+  thread_needle:
+    steps:
+      - "Uklęknij w podporze: dłonie pod barkami, kolana pod biodrami."
+      - "Wsuń jedną rękę pod tułów w stronę przeciwnej ręki, dłonią do góry."
+      - "Opuść bark i bok głowy na matę, biodra zostają nad kolanami."
+      - "Czujesz skręt w górnej części pleców; oddychaj i zmień stronę."
+    mistakes:
+      - "Cofanie bioder na pięty zamiast skrętu w plecach."
+      - "Opieranie ciężaru na szyi."
+  down_dog:
+    steps:
+      - "Z klęku podpartego podwiń palce stóp i unieś biodra w górę i w tył."
+      - "Wypchnij się dłońmi, głowa między ramionami, plecy proste."
+      - "Kieruj pięty w stronę podłogi; kolana mogą być lekko ugięte."
+      - "Oddychaj spokojnie, czujesz tył ud, łydki i barki."
+    mistakes:
+      - "Okrągłe plecy przy prostowaniu kolan na siłę."
+      - "Zapadanie się w barkach."
+  hips_90_90:
+    steps:
+      - "Usiądź na macie: przednia noga zgięta przed sobą pod kątem prostym, tylna z boku też pod kątem prostym."
+      - "Wyprostuj plecy, dłonie oprzyj o podłogę obok bioder."
+      - "Pochyl tułów prosto nad przednią goleń, aż poczujesz rozciąganie w pośladku."
+      - "Oddychaj spokojnie, potem zamień nogi."
+    mistakes:
+      - "Zaokrąglanie pleców zamiast pochylenia z bioder."
+      - "Ból kolana – rozsuń kąty albo podłóż poduszkę pod pośladek."
+  neck_levator:
+    steps:
+      - "Usiądź prosto, jedną rękę trzymaj przy siedzisku albo za plecami."
+      - "Obróć głowę o ok. 45° w przeciwną stronę i skieruj nos w stronę pachy."
+      - "Drugą dłoń połóż na tyle głowy i delikatnie dociśnij w dół."
+      - "Czujesz rozciąganie z tyłu szyi przy łopatce; oddychaj i zmień stronę."
+    mistakes:
+      - "Mocne ciągnięcie ręką za głowę."
+      - "Unoszenie barku po stronie rozciąganej."
+  jumping_jacks:
+    steps:
+      - "Stań prosto, stopy razem, ręce wzdłuż ciała."
+      - "Podskocz, rozstawiając nogi szerzej niż biodra i unosząc ręce bokiem nad głowę."
+      - "Podskocz z powrotem do złączonych stóp i opuść ręce."
+      - "Ląduj miękko na przodostopiu, w równym rytmie."
+    mistakes:
+      - "Lądowanie na prostych kolanach i piętach."
+      - "Kolana schodzące do środka przy lądowaniu."
