@@ -198,7 +198,7 @@ def test_routines_on_the_phone(auth_client, db):
     page = auth_client.get(f"/forma/rozciaganie/{rid}/cw/{item.id}/zamien").text
     assert "Zamień: Pozycja dziecka" in page and "⇄" in page
     assert f'action="/forma/rozciaganie/{rid}/cw/{item.id}/zamien/{twist.id}"' in page  # same kind and area
-    assert f"/forma/rozciaganie/{rid}/cw/{item.id}/zamien/{item.stretch_id}\"" not in page  # not itself
+    assert f'/forma/rozciaganie/{rid}/cw/{item.id}/zamien/{item.stretch_id}"' not in page  # not itself
     _post(auth_client, f"/forma/rozciaganie/{rid}/cw/{item.id}/zamien/{twist.id}")
     db.refresh(routine)
     assert [it.stretch.key for it in routine.items] == ["seated_twist"] and routine.items[0].seconds is None
@@ -273,7 +273,7 @@ def test_session_start_finish_and_history(auth_client, db, user):
     db.refresh(s2)
     assert s2.done == 7
     forma = auth_client.get("/forma").text
-    assert f"/forma/rozciaganie/sesja/{sid2}" in forma and "🤸 Przed treningiem" in forma
+    assert f'<a href="/forma/rozciaganie/sesja/{sid2}">Przed treningiem</a>' in forma  # under 🤸, not among workouts
 
     _post(auth_client, f"/forma/rozciaganie/sesja/{sid2}/usun")
     db.expire_all()

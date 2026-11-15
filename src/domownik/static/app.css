@@ -1724,7 +1724,11 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .tr-card form { margin: 0; }
 .tr-links { margin: 0 0 1.5rem; }
 .tr-chart { margin: 0.5rem 0 1rem; color: var(--pico-primary); }
-.tr-chart svg { width: 100%; height: 90px; display: block; }
+.tr-chart svg { width: 100%; height: auto; max-height: 120px; display: block; overflow: visible; }
+.tr-chart text { font-size: 8px; fill: var(--pico-muted-color); }
+.tr-chart text.pr { font-size: 10px; }
+.tr-chart .grid { stroke: var(--dm-tile-border); stroke-width: 0.6; }
+.tr-best { white-space: nowrap; }
 
 .wo-head h1 { margin-bottom: 0.1rem; }
 .wo-rest { position: sticky; top: 0.5rem; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin: 0 0 0.75rem; padding: 0.6rem 0.9rem; border-radius: 12px; background: var(--pico-primary-background); color: var(--pico-primary-inverse); box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
@@ -1896,6 +1900,7 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .wo-ex-head { display: flex; gap: 0.75rem; align-items: flex-start; }
 .wo-ex-title { flex: 1; min-width: 0; }
 .supl-row > .ex-pic { margin-right: 0.75rem; }
+.supl-row > .ex-pic + .supl-row-main { flex: 1; min-width: 0; }
 legend .ex-pic { width: 3rem; height: 2.25rem; margin-right: 0.25rem; }
 
 /* ⓘ how an exercise is done – a button next to it (picker, plan), the picture itself on the workout screen */
@@ -1928,8 +1933,8 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .st-item-actions button, .st-item-actions a[role=button] { margin: 0; width: 2.4rem; padding-inline: 0; }
 .st-start { margin-bottom: 1rem; }
 .st-start button { width: 100%; font-size: 1.15rem; }
-.st-row-start { margin: 0; }
-.st-row-start button { margin: 0 0 0 0.5rem; padding: 0.4rem 0.8rem; }
+.st-list li.pick-item .st-row-start { flex: none; margin: 0; }
+.st-row-start button { width: auto; margin: 0 0 0 0.5rem; padding: 0.4rem 0.8rem; }
 .st-list li.pick-item .supl-row { flex: 1; min-width: 0; border-bottom: 0; }
 
 /* 🤸 the session: big, readable from the mat */
@@ -2089,3 +2094,27 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .hl-chart .l2 { stroke: var(--pico-muted-color); }
 .hl-chart-range { margin: 0 0 0.25rem; }
 .hl-remind { align-items: end; }
+
+/* 🏋️ the workout screen: a finished exercise folds to one line, the rare actions under ⋯, 🏆 records, the summary */
+.wo-ex.folded { padding: 0.5rem 0.9rem; opacity: 1; }
+.wo-fold { margin: 0; }
+.wo-fold > summary { cursor: pointer; line-height: 1.35; }
+.wo-fold > summary small { display: block; }
+.wo-fold[open] > summary { margin-bottom: 0.6rem; }
+.wo-fold-name { font-weight: 600; }
+.wo-menu { display: inline-block; margin: 0; }
+.wo-menu > summary { display: inline; list-style: none; cursor: pointer; color: var(--pico-muted-color); }
+.wo-menu > summary::-webkit-details-marker { display: none; }
+.wo-menu > summary::after { display: none; }
+.wo-menu[open] { display: block; width: 100%; }
+.wo-menu-items { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; padding: 0.5rem 0 0.1rem; }
+.wo-pr { color: var(--dm-accent, #b7791f); font-size: 0.85rem; }
+.wo-summary { margin-bottom: 1rem; }
+.wo-sum-facts { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin: 0 0 0.25rem; font-size: 1.05rem; }
+.wo-sum-cmp { margin: 0 0 0.5rem; }
+.wo-sum-head { margin: 0.5rem 0 0.25rem; }
+.wo-sum-recs { margin: 0; padding-left: 1.1rem; }
+.wo-sum-recs li { margin: 0.1rem 0; }
+.st-recent { margin: 0.75rem 0 0; font-size: 0.85rem; }
+.supl-manage > summary { font-weight: 600; margin: 0.75rem 0 0.25rem; }
+.wo-fold .wo-ex-title h2 { display: none; }

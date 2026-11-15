@@ -28,15 +28,16 @@
   <a href="/forma/trening/nowy" class="tr-other">Inny plan albo trening na wyjeździe ›</a>
 </section>
 
+{% if supplements %}
+{% include "partials/supplements_today.html" %}
+<p class="muted supl-hint"><small>Dotknij suplementu w ramce, gdy go weźmiesz. Ten sam ✓ jest w powiadomieniu.</small></p>
+{% endif %}
+
 {% if recent %}
 <h3 class="supl-sub">Ostatnie treningi</h3>
 <ul class="supl-rows">
-  {% for kind, w in recent %}
-  {% if kind == 's' %}
-  <li><a class="supl-row" href="/forma/rozciaganie/sesja/{{ w.id }}"><span class="supl-row-main"><b>🤸 {{ w.name }}</b><small class="muted">{{ w.started_at.date()|d(weekday=True) }} · {{ w.done }}/{{ w.total }} ćw. · {{ st.fmt_duration(w.seconds) }}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
-  {% else %}{% set n = w.exercises|map(attribute='done')|map('length')|sum %}
-  <li><a class="supl-row" href="/forma/trening/{{ w.id }}"><span class="supl-row-main"><b>{{ w.plan.name if w.plan else 'Trening' }}</b><small class="muted">{{ w.day|d(weekday=True) }} · {{ w.exercises|length }} ćw. · {{ n }} serii{% if w.equipment %} · 🧳{% endif %}{% if w.group_id %} · 👫{% endif %}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
-  {% endif %}
+  {% for w in recent %}{% set n = w.exercises|map(attribute='done')|map('length')|sum %}
+  <li><a class="supl-row" href="/forma/trening/{{ w.id }}"><span class="supl-row-main"><b>{{ w.plan.name if w.plan else ('Trening razem' if w.group_id else 'Trening bez planu') }}</b><small class="muted">{{ w.day|d(weekday=True) }} · {{ w.exercises|length }} ćw. · {{ n }} serii{% if w.equipment %} · 🧳{% endif %}{% if w.group_id %} · 👫{% endif %}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
   {% endfor %}
 </ul>
 {% endif %}
@@ -49,6 +50,7 @@
     <button type="submit" class="{{ '' if loop.first else 'outline' }}">▶ {{ r.name }} <small>· {{ st.fmt_minutes(st.total_seconds(r)) }}</small></button></form>
   {% endfor %}
   <a href="/forma/rozciaganie" class="tr-other">Wszystkie zestawy i edycja ›</a>
+  {% if stretch_recent %}<p class="muted st-recent">Ostatnio: {% for x in stretch_recent %}<a href="/forma/rozciaganie/sesja/{{ x.id }}">{{ x.name }}</a> <small>{{ x.started_at.date()|d }}</small>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
 </section>
 
 <h2 id="sylwetka">⚖️ Sylwetka</h2>
@@ -56,10 +58,9 @@
 
 <h2>💊 Suplementy</h2>
 {% if supplements %}
-{% include "partials/supplements_today.html" %}
-<p class="muted supl-hint"><small>Dotknij suplementu w ramce, gdy go weźmiesz. Ten sam ✓ jest w powiadomieniu.</small></p>
-
-<h3 class="supl-sub">Twoje suplementy</h3>
+{% set lowns = namespace(any=false) %}{% for s in supplements %}{% set left = days_left(s) %}{% if left is not none and left <= s.restock_days %}{% set lowns.any = true %}{% endif %}{% endfor %}
+<details class="supl-manage"{% if lowns.any %} open{% endif %}>
+<summary>Twoje suplementy ({{ supplements|length }}) – godziny i zapasy</summary>
 <ul class="supl-rows">
   {% for s in supplements %}{% set left = days_left(s) %}
   <li><a class="supl-row" href="/forma/suplementy/{{ s.id }}">
@@ -71,6 +72,7 @@
   </a></li>
   {% endfor %}
 </ul>
+</details>
 {% else %}
 <p>Dodaj to, co bierzesz codziennie. O wybranej godzinie dostaniesz powiadomienie z przyciskiem „✓ Wzięte”. Jeśli wpiszesz wielkość opakowania, apka sama dopisze suplement do zakupów, zanim się skończy.</p>
 {% endif %}

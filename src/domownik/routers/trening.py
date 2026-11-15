@@ -5,7 +5,7 @@ Workouts are private (another person's id is a 404); the exercise library and th
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -19,7 +19,6 @@ from domownik.db import get_db
 from domownik.models import (
     Exercise,
     PlanItem,
-    StretchSession,
     User,
     Workout,
     WorkoutExercise,
@@ -87,6 +86,7 @@ def section_context(db: Session, user: User) -> dict:
         "next_plan": tr.next_plan(db, user),
         "plans": tr.plans(db),
         "recent": _recent(db, user),
+        "stretch_recent": st.recent(db, user, 3),
         "st": st,
         "today": t,
         "invites": together.open_invites(db, user, t),
@@ -95,14 +95,9 @@ def section_context(db: Session, user: User) -> dict:
     }
 
 
-def _recent(db: Session, user: User, limit: int = 5) -> list[tuple[str, Workout | StretchSession]]:
-    """Finished workouts and stretching sessions, newest first: ("w", workout) | ("s", session)."""
-    rows: list[tuple[datetime, str, Workout | StretchSession]] = [
-        (w.started_at, "w", w) for w in tr.mine(db, user, limit=limit + 3) if w.finished_at is not None
-    ]
-    rows += [(s.started_at, "s", s) for s in st.recent(db, user, limit)]
-    rows.sort(key=lambda r: r[0], reverse=True)
-    return [(kind, obj) for _, kind, obj in rows[:limit]]
+def _recent(db: Session, user: User, limit: int = 4) -> list[Workout]:
+    """Finished workouts, newest first (the stretching sessions are listed under 🤸)."""
+    return [w for w in tr.mine(db, user, limit=limit + 3) if w.finished_at is not None][:limit]
 
 
 # ---------------------------------------------------------------- start
@@ -166,6 +161,7 @@ def _invitees(db: Session, user: User, form) -> list[User]:
 def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> dict:
     tz = get_settings().tz
     nxt = tr.next_up(w)
+    recs = tr.records(w, tr.prior_best(db, w))
     rows = []
     for we in w.exercises:
         sug = tr.suggest(db, user, we)
@@ -179,6 +175,7 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
                 "seconds": last_done.seconds if last_done and last_done.seconds else sug.seconds,
                 "complete": len(we.done) >= we.sets,
                 "current": nxt is not None and nxt.id == we.id,
+                "record": recs.get(we.id),
                 "sets_text": tr.sets_text(list(we.done)),
                 # 🔗 with the next one (not already together); ✂ on the last of a superset
                 "can_link": (f := tr.following(w, we)) is not None
@@ -201,6 +198,7 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
         "rest_ms": rest_ms,
         "next_we": nxt,
         "progress": (done, total),
+        "summary": tr.summary(db, w, recs) if w.finished_at else None,
         "rounds": rounds,
         "row_of": {r["we"].id: r for r in rows},
         "stretch": st.offer(db, user, w, done),
@@ -627,34 +625,97 @@ def _guide_ctx(user: User, ex: Exercise) -> dict:
 
 @router.get("/postepy")
 def progress(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    return render(request, "training_progress.html", {"user": user, "rows": tr.done_exercises(db, user)})
+    rows = tr.done_exercises(db, user)
+    cut = today() - timedelta(days=30)
+    return render(
+        request,
+        "training_progress.html",
+        {
+            "user": user,
+            "sections": [
+                ("Ostatnie 30 dni", [r for r in rows if r[1] >= cut]),
+                ("Wcześniej", [r for r in rows if r[1] < cut]),
+            ],
+            "any": bool(rows),
+            "best": tr.best_e1rm(db, user),
+            "fmt_kg": tr.fmt_kg,
+            "muscle_label": tr.muscle_label,
+            "equipment_label": tr.equipment_label,
+        },
+    )
+
+
+RANGES = (("3m", "3 mies.", 91), ("1r", "Rok", 365), ("all", "Całość", None))
 
 
 @router.get("/postepy/{exercise_id:int}")
 def exercise_history(
-    exercise_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
+    exercise_id: int,
+    request: Request,
+    okres: str = "",
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
 ):
     ex = _exercise(db, exercise_id)
-    rows = tr.history(db, user, ex.id, limit=40)
+    every = tr.history(db, user, ex.id, limit=None)
+    t = today()
+    if okres not in {k for k, _, _ in RANGES}:  # by default the last year – unless that would hide everything
+        okres = "1r" if any(r.day >= t - timedelta(days=365) for r in every) else "all"
+    days = next(d for k, _, d in RANGES if k == okres)
+    rows = [r for r in every if days is None or r.day >= t - timedelta(days=days)]
+    top = max((r.best for r in every), default=0)
     return render(
         request,
         "training_exercise.html",
-        _guide_ctx(user, ex) | {"rows": rows, "fmt_kg": tr.fmt_kg, "chart": _chart(rows)},
+        _guide_ctx(user, ex)
+        | {
+            "rows": rows,
+            "fmt_kg": tr.fmt_kg,
+            "chart": _chart(rows, top),
+            "ranges": [
+                (k, label) for k, label, d in RANGES if d is None or (every and every[-1].day < t - timedelta(days=d))
+            ],
+            "okres": okres,
+            "top": top,
+            "spans_more": len(rows) < len(every),
+        },
     )
 
 
-def _chart(rows: list[tr.HistoryRow]) -> dict | None:
-    """Points of the best estimated 1RM per session (oldest → newest) for a small inline SVG."""
+def _chart(rows: list[tr.HistoryRow], top: float = 0) -> dict | None:
+    """The best estimated 1RM per session (oldest → newest) on a time axis, for a small inline SVG:
+    min/max labels on the left, the first/last day below, 🏆 where the all-time best was."""
     pts = [r for r in reversed(rows) if r.best > 0]
     if len(pts) < 2:
         return None
     lo, hi = min(r.best for r in pts), max(r.best for r in pts)
     span = (hi - lo) or 1
-    w, h = 300, 80
-    xy = [
-        (round(i * w / (len(pts) - 1), 1), round(h - 8 - (r.best - lo) / span * (h - 16), 1)) for i, r in enumerate(pts)
-    ]
-    return {"w": w, "h": h, "points": " ".join(f"{x},{y}" for x, y in xy), "last": xy[-1], "lo": lo, "hi": hi}
+    left, w, h = 34, 300, 90
+    d0, d1 = pts[0].day, pts[-1].day
+    days = (d1 - d0).days or 1
+
+    def x(r):
+        return round(left + (r.day - d0).days * (w - left) / days, 1)
+
+    def y(v):
+        return round(h - 10 - (v - lo) / span * (h - 22), 1)
+
+    xy = [(x(r), y(r.best)) for r in pts]
+    best = max(pts, key=lambda r: r.best)
+    return {
+        "w": w,
+        "h": h,
+        "left": left,
+        "points": " ".join(f"{a},{b}" for a, b in xy),
+        "last": xy[-1],
+        "lo": lo,
+        "hi": hi,
+        "y_lo": y(lo),
+        "y_hi": y(hi),
+        "from": d0,
+        "to": d1,
+        "pr": (x(best), y(best.best)) if top and best.best >= top - 1e-9 else None,
+    }
 
 
 # ---------------------------------------------------------------- plans and the weekly goal

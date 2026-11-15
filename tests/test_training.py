@@ -626,3 +626,52 @@ def test_added_on_the_spot_takes_the_last_range(db, user, fbw):
     db.commit()
     got = tr.add_exercise(db, w, _ex(db, "lat_pulldown"))
     assert (got.reps_min, got.reps_max) == tr.range_for(15) and got.rest_seconds == tr.DEFAULT_REST
+
+
+def test_records_summary_and_folding(db, user, fbw, auth_client):
+    """🏆 a set better than everything before; the card on top of a finished workout; done exercises fold."""
+    old = T - timedelta(days=7)
+    w1 = tr.start(db, user, fbw[0], at=old)
+    _do(db, w1, {"db_bench": [(30, 10), (30, 9)]}, at=old)
+    tr.finish(db, w1, old + timedelta(minutes=50))
+    w2 = tr.start(db, user, fbw[0], at=T)
+    _do(db, w2, {"db_bench": [(32, 10), (30, 8), (32, 9), (32, 8)]})
+    bench = next(we for we in w2.exercises if we.exercise.key == "db_bench")
+    recs = tr.records(w2, tr.prior_best(db, w2))
+    assert set(recs) == {bench.id} and (recs[bench.id].weight, recs[bench.id].reps) == (32, 10)
+    db.commit()
+
+    live = auth_client.get(f"/forma/trening/{w2.id}").text
+    assert "🏆 rekord" in live and 'class="wo-ex complete folded"' in live and "⋯ Więcej" in live
+    assert "Podsumowanie treningu" not in live
+
+    tr.finish(db, w2, T + timedelta(minutes=55))
+    db.commit()
+    done = auth_client.get(f"/forma/trening/{w2.id}").text
+    assert "Podsumowanie treningu" in done and "<b>55</b> min" in done and "<b>4</b> serie" in done
+    assert "🏆 Rekordy" in done and "Wyciskanie hantli na ławce płaskiej <b>32 kg × 10</b>" in done
+    s = tr.summary(db, w2, recs)
+    assert s.volume == 32 * 10 + 30 * 8 + 32 * 9 + 32 * 8 and s.prev_volume == 30 * 19 and s.change > 0
+    # the first time ever is no record – nothing to beat
+    assert tr.records(w1, tr.prior_best(db, w1)) == {}
+
+
+def test_progress_list_and_history_ranges(db, user, fbw, auth_client):
+    t = date.today()
+    for days, kg in ((400, 20), (100, 24), (10, 26)):
+        at = datetime.combine(t - timedelta(days=days), datetime.min.time()).replace(hour=18)
+        w = tr.start(db, user, fbw[0], at=at)
+        _do(db, w, {"db_bench": [(kg, 10)]}, at=at)
+        tr.finish(db, w, at + timedelta(minutes=40))
+    db.commit()
+    bench = _ex(db, "db_bench")
+    page = auth_client.get("/forma/postepy").text
+    assert "Ostatnie 30 dni" in page and "data-pick-filter" in page and "🏆 ~34,7 kg" in page
+
+    year = auth_client.get(f"/forma/postepy/{bench.id}").text  # the last year by default
+    assert 'aria-current="page">Rok' in year and "pokaż całość" in year
+    assert "~32&nbsp;kg" in year and "~26,7&nbsp;kg" not in year  # 400 days ago: outside the year
+    assert "🏆</b>" in year
+    every = auth_client.get(f"/forma/postepy/{bench.id}?okres=all").text
+    assert "pokaż całość" not in every and every.count('class="muted tr-best"') == 3
+    assert "🏆" in every

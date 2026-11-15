@@ -6,21 +6,30 @@
 <p class="muted"><small>{{ tr.pattern_label(ex.pattern) }} · {{ tr.muscle_label(ex.muscle) }} · {{ tr.equipment_label(ex.equipment) }}{% if ex.step %} · skok {{ fmt_kg(ex.step) }} kg{% endif %}</small></p>
 {% include "partials/ex_guide.html" %}
 <h2 class="pick-head">Historia</h2>
+{% if ranges|length > 1 %}<nav class="body-ranges" aria-label="Okres">{% for k, label in ranges %}<a href="?okres={{ k }}"{% if k == okres %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>{% endif %}
 {% if chart %}
 <figure class="tr-chart">
-  <svg viewBox="-4 0 {{ chart.w + 8 }} {{ chart.h }}" role="img" aria-label="Szacowany maks. ciężar na 1 powtórzenie: od {{ fmt_kg(chart.lo|round(1)) }} do {{ fmt_kg(chart.hi|round(1)) }} kg">
+  <svg viewBox="0 0 {{ chart.w }} {{ chart.h + 14 }}" role="img" aria-label="Szacowany maks. ciężar na 1 powtórzenie od {{ chart.from|d }} do {{ chart.to|d }}: od {{ fmt_kg(chart.lo|round(1)) }} do {{ fmt_kg(chart.hi|round(1)) }} kg">
+    <line x1="{{ chart.left }}" x2="{{ chart.w }}" y1="{{ chart.y_hi }}" y2="{{ chart.y_hi }}" class="grid"/>
+    <line x1="{{ chart.left }}" x2="{{ chart.w }}" y1="{{ chart.y_lo }}" y2="{{ chart.y_lo }}" class="grid"/>
+    <text x="{{ chart.left - 4 }}" y="{{ chart.y_hi + 3 }}" text-anchor="end">{{ fmt_kg(chart.hi|round|int) }}</text>
+    <text x="{{ chart.left - 4 }}" y="{{ chart.y_lo + 3 }}" text-anchor="end">{{ fmt_kg(chart.lo|round|int) }}</text>
     <polyline points="{{ chart.points }}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
     <circle cx="{{ chart.last[0] }}" cy="{{ chart.last[1] }}" r="4" fill="currentColor"/>
+    {% if chart.pr %}<text x="{{ chart.pr[0] }}" y="{{ chart.pr[1] - 5 }}" text-anchor="middle" class="pr">🏆</text>{% endif %}
+    <text x="{{ chart.left }}" y="{{ chart.h + 10 }}">{{ chart.from|d }}</text>
+    <text x="{{ chart.w }}" y="{{ chart.h + 10 }}" text-anchor="end">{{ chart.to|d }}</text>
   </svg>
-  <figcaption class="muted"><small>Siła (szacowane 1 powtórzenie maks.): {{ fmt_kg(chart.lo|round(1)) }} → {{ fmt_kg(chart.hi|round(1)) }} kg</small></figcaption>
+  <figcaption class="muted"><small>Siła = szacowany ciężar na 1 powtórzenie (kg) z najlepszej serii treningu{% if top %} · 🏆 rekord ~{{ fmt_kg(top|round(1)) }} kg{% endif %}</small></figcaption>
 </figure>
 {% endif %}
 {% if rows %}
 <ul class="supl-rows">
   {% for r in rows %}
-  <li class="supl-row"><span class="supl-row-main"><b>{{ r.day|d(weekday=True) }}</b><small>{{ r.text }}</small></span>{% if r.best %}<small class="muted">~{{ fmt_kg(r.best|round(1)) }} kg</small>{% endif %}</li>
+  <li class="supl-row"><span class="supl-row-main"><b>{{ r.day|d(weekday=True) }}{% if top and r.best >= top - 0.000001 %} 🏆{% endif %}</b><small>{{ r.text }}</small></span>{% if r.best %}<small class="muted tr-best">~{{ fmt_kg(r.best|round(1)) }}&nbsp;kg</small>{% endif %}</li>
   {% endfor %}
 </ul>
+{% if spans_more %}<p class="muted"><small>Starsze treningi: <a href="?okres=all">pokaż całość</a>.</small></p>{% endif %}
 {% else %}
 <p class="muted">Jeszcze nie robione.</p>
 {% endif %}

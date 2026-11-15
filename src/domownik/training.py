@@ -720,6 +720,108 @@ def e1rm(s: WorkoutSet) -> float:
     return (s.weight or 0) * (1 + (s.reps or 0) / 30)
 
 
+def score(s: WorkoutSet, ex: Exercise) -> float:
+    """How good a set is, comparable within one exercise: the estimated 1RM with a weight, else the reps;
+    a hold – its seconds (a loaded one: the weight, then the seconds)."""
+    if ex.kind == "time":
+        return (s.weight or 0) * 1000 + (s.seconds or 0) if ex.step else float(s.seconds or 0)
+    return e1rm(s) if s.weight else float(s.reps or 0)
+
+
+def prior_best(db: Session, w: Workout) -> dict[int, float]:
+    """exercise id → the best score of this person's sets before this workout (exercises done before only)."""
+    ids = {we.exercise_id for we in w.exercises}
+    if not ids:
+        return {}
+    rows = db.execute(
+        select(WorkoutExercise.exercise_id, WorkoutSet)
+        .join(WorkoutSet.workout_exercise)
+        .join(WorkoutExercise.workout)
+        .where(
+            Workout.user_id == w.user_id,
+            Workout.id != w.id,
+            WorkoutExercise.exercise_id.in_(ids),
+            (Workout.day < w.day) | ((Workout.day == w.day) & (Workout.started_at < w.started_at)),
+        )
+    ).all()
+    exs = {we.exercise_id: we.exercise for we in w.exercises}
+    best: dict[int, float] = {}
+    for eid, s in rows:
+        v = score(s, exs[eid])
+        if v > best.get(eid, 0):
+            best[eid] = v
+    return best
+
+
+def records(w: Workout, prior: dict[int, float]) -> dict[int, WorkoutSet]:
+    """🏆 workout exercise id → its best set when that beats everything before (done before at least once)."""
+    out: dict[int, WorkoutSet] = {}
+    for we in w.exercises:
+        before = prior.get(we.exercise_id)
+        if not we.done or not before:
+            continue
+        top = max(we.done, key=lambda s: score(s, we.exercise))
+        if score(top, we.exercise) > before + 1e-9:
+            out[we.id] = top
+    return out
+
+
+def set_text(s: WorkoutSet) -> str:
+    kg = f"{fmt_kg(s.weight)} kg × " if s.weight else ""
+    return kg + (str(s.reps) if s.reps is not None else f"{s.seconds} s")
+
+
+def volume(w: Workout) -> float:
+    """kg × reps over the weighted sets, as logged (a dumbbell counts once – the same way every time)."""
+    return sum((s.weight or 0) * (s.reps or 0) for we in w.exercises for s in we.done)
+
+
+@dataclass
+class Summary:
+    minutes: int | None
+    sets: int
+    volume: float
+    prev_volume: float | None  # the previous time of the same plan
+    prev_day: date | None
+    records: list[tuple[str, str]]  # (exercise, its best set)
+
+    @property
+    def change(self) -> float | None:
+        if not self.prev_volume or not self.volume:
+            return None
+        return (self.volume - self.prev_volume) / self.prev_volume * 100
+
+
+def summary(db: Session, w: Workout, recs: dict[int, WorkoutSet]) -> Summary:
+    """The card on top of a finished workout: how long, how much, against last time, the records."""
+    minutes = None
+    if w.finished_at and w.source == "app":
+        m = round((w.finished_at - w.started_at).total_seconds() / 60)
+        minutes = m if 0 < m <= 240 else None  # a workout finished the next morning has no honest length
+    prev = None
+    if w.plan_id:
+        prev = db.scalar(
+            select(Workout)
+            .where(
+                Workout.user_id == w.user_id,
+                Workout.plan_id == w.plan_id,
+                Workout.id != w.id,
+                Workout.finished_at.is_not(None),
+                (Workout.day < w.day) | ((Workout.day == w.day) & (Workout.started_at < w.started_at)),
+            )
+            .order_by(Workout.day.desc(), Workout.started_at.desc())
+            .limit(1)
+        )
+    return Summary(
+        minutes=minutes,
+        sets=sum(len(we.done) for we in w.exercises),
+        volume=volume(w),
+        prev_volume=volume(prev) if prev else None,
+        prev_day=prev.day if prev else None,
+        records=[(we.exercise.name, set_text(recs[we.id])) for we in w.exercises if we.id in recs],
+    )
+
+
 @dataclass
 class HistoryRow:
     day: date
@@ -728,15 +830,19 @@ class HistoryRow:
     text: str
 
 
-def history(db: Session, user: User, exercise_id: int, limit: int = 30) -> list[HistoryRow]:
-    rows = db.scalars(
+def history(
+    db: Session, user: User, exercise_id: int, limit: int | None = 30, since: date | None = None
+) -> list[HistoryRow]:
+    stmt = (
         select(WorkoutExercise)
         .join(Workout)
         .where(Workout.user_id == user.id, WorkoutExercise.exercise_id == exercise_id)
         .order_by(Workout.day.desc(), Workout.started_at.desc())
         .options(selectinload(WorkoutExercise.done), selectinload(WorkoutExercise.workout))
-        .limit(limit)
     )
+    if since is not None:
+        stmt = stmt.where(Workout.day >= since)
+    rows = db.scalars(stmt.limit(limit) if limit else stmt)
     out = []
     for we in rows:
         if we.done:
@@ -757,6 +863,18 @@ def done_exercises(db: Session, user: User) -> list[tuple[Exercise, date, int]]:
     ).all()
     out = [(db.get(Exercise, eid), last, n) for eid, last, n in rows]
     return sorted(out, key=lambda r: (r[1], r[0].name), reverse=True)
+
+
+def best_e1rm(db: Session, user: User) -> dict[int, float]:
+    """exercise id → this person's best estimated 1RM ever (weighted sets only)."""
+    rows = db.execute(
+        select(WorkoutExercise.exercise_id, func.max(WorkoutSet.weight * (1 + WorkoutSet.reps / 30.0)))
+        .join(WorkoutSet.workout_exercise)
+        .join(WorkoutExercise.workout)
+        .where(Workout.user_id == user.id, WorkoutSet.weight > 0, WorkoutSet.reps.is_not(None))
+        .group_by(WorkoutExercise.exercise_id)
+    ).all()
+    return {eid: best for eid, best in rows if best}
 
 
 # ---------------------------------------------------------------- the week

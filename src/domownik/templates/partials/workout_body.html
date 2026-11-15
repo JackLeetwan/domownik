@@ -5,6 +5,17 @@
     <p class="muted"><small>{{ w.day|d(weekday=True) }}{% if w.equipment %} · 🧳 wyjazd / dom{% endif %} · {{ progress[0] }}/{{ progress[1] }} serii{% if w.finished_at %} · ✓ zakończony{% endif %}</small></p>
   </header>
 
+  {% if summary %}{% set sm = summary %}
+  <section class="tr-card wo-summary" aria-label="Podsumowanie treningu">
+    <p class="wo-sum-facts">{% if sm.minutes %}<span><b>{{ sm.minutes }}</b> min</span>{% endif %}<span><b>{{ sm.sets }}</b> {{ 'seria' if sm.sets == 1 else ('serie' if sm.sets % 10 in (2, 3, 4) and sm.sets % 100 not in (12, 13, 14) else 'serii') }}</span>{% if sm.volume %}<span><b>{{ '{:,.0f}'.format(sm.volume).replace(',', ' ') }}</b> kg łącznie</span>{% endif %}</p>
+    {% if sm.change is not none %}<p class="wo-sum-cmp"><small>{{ '↑' if sm.change > 0.5 else ('↓' if sm.change < -0.5 else '→') }} {{ '%+.0f'|format(sm.change) }}% ciężaru razy powtórzenia względem {{ sm.prev_day|d }}</small></p>{% endif %}
+    {% if sm.records %}
+    <p class="wo-sum-head"><b>🏆 Rekordy</b></p>
+    <ul class="wo-sum-recs">{% for name, text in sm.records %}<li>{{ name }} <b>{{ text }}</b></li>{% endfor %}</ul>
+    {% elif w.source == 'app' %}<p class="muted"><small>Bez nowych rekordów – solidna robota się liczy.</small></p>{% endif %}
+  </section>
+  {% endif %}
+
   {% if partner_views or waiting or switch_to or poll %}{% include "partials/workout_partner.html" %}{% endif %}
   {% if can_invite and not partner_views and not waiting %}
   <details class="wo-invite">
@@ -50,7 +61,9 @@
     {% if errors.get(rkey) %}<p class="error" role="alert">{{ errors.get(rkey) }}</p>{% endif %}
   </form>
   {% endif %}{% endif %}{% set ns.ss = we.superset %}{% endif %}
-  <article id="we{{ we.id }}" class="wo-ex{% if r.current %} current{% endif %}{% if r.complete %} complete{% endif %}">
+  {% set folded = r.complete and not r.current and not errors.get(we.id) %}
+  <article id="we{{ we.id }}" class="wo-ex{% if r.current %} current{% endif %}{% if r.complete %} complete{% endif %}{% if folded %} folded{% endif %}">
+    {% if folded %}<details class="wo-fold"><summary><span class="wo-fold-name">✓ {{ ex.name }}</span> <small class="muted">{{ r.sets_text }}{% if r.record %} · 🏆{% endif %}</small></summary>{% endif %}
     <div class="wo-ex-head">
       <a href="/forma/postepy/{{ ex.id }}" class="ex-pic-btn" hx-get="/forma/cwiczenie/{{ ex.id }}" hx-target="#modal-body" hx-swap="innerHTML" hx-push-url="false" aria-label="Jak wykonać: {{ ex.name }}" title="Jak wykonać">{% set pic_both = true %}{% include "partials/ex_pic.html" %}<span class="ex-pic-i" aria-hidden="true">ⓘ</span></a>
       <div class="wo-ex-title"><h2>{% if r.complete %}✓ {% endif %}{{ ex.name }}</h2>
@@ -67,7 +80,7 @@
     {% if we.done %}
     <ol class="wo-sets">
       {% for s in we.done %}
-      <li><span>{% if s.weight %}{{ fmt_kg(s.weight) }} kg × {% endif %}{% if s.reps is not none %}{{ s.reps }}{% else %}{{ s.seconds }} s{% endif %}</span>
+      <li><span>{% if s.weight %}{{ fmt_kg(s.weight) }} kg × {% endif %}{% if s.reps is not none %}{{ s.reps }}{% else %}{{ s.seconds }} s{% endif %}{% if r.record and r.record.id == s.id %} <b class="wo-pr">🏆 rekord</b>{% endif %}</span>
         <button type="button" class="wo-undo" hx-post="/forma/trening/{{ w.id }}/seria/{{ s.id }}/usun" hx-target="#workout" hx-swap="outerHTML" aria-label="Usuń serię {{ s.set_no }}" title="Usuń serię">✕</button></li>
       {% endfor %}
     </ol>
@@ -104,13 +117,19 @@
 
     <div class="wo-ex-actions">
       {% if not we.done %}<a href="/forma/trening/{{ w.id }}/cw/{{ we.id }}/zamien" class="small">⇄ Zajęte? Zamień</a>{% endif %}
-      <a href="/forma/postepy/{{ ex.id }}" class="small muted">📈 Historia</a>
+      <details class="wo-menu">
+      <summary class="small" aria-label="Więcej: {{ ex.name }}">⋯ Więcej</summary>
+      <div class="wo-menu-items">
+      <a href="/forma/postepy/{{ ex.id }}" class="small">📈 Historia</a>
       {% if not w.finished_at %}
       {% if r.can_link %}<button type="button" class="link small" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/superseria" hx-target="#workout" hx-swap="outerHTML" title="Na zmianę z następnym ćwiczeniem, przerwa po drugim">🔗 Superseria z następnym</button>{% endif %}
       {% if r.ss_last %}<button type="button" class="link small" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/rozlacz" hx-target="#workout" hx-swap="outerHTML">✂ Rozłącz superserię</button>{% endif %}
       {% endif %}
       <form method="post" action="/forma/trening/{{ w.id }}/cw/{{ we.id }}/usun" class="inline" hx-confirm="Usunąć „{{ ex.name }}” z tego treningu{% if we.done %} razem z zapisanymi seriami{% endif %}?"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link wo-remove">Usuń z treningu</button></form>
+      </div>
+      </details>
     </div>
+    {% if folded %}</details>{% endif %}
   </article>
   {% if loop.last and ns.ss is not none %}</div>{% endif %}
   {% endfor %}

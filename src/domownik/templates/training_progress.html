@@ -3,12 +3,20 @@
 {% block content %}
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma" class="home-link">← Forma</a></li></ul></nav>
 <header class="item-head"><h1>📈 Postępy</h1></header>
-{% if rows %}
+{% if any %}
+<input type="search" class="pick-search" placeholder="Szukaj: nazwa, partia, sprzęt…" aria-label="Szukaj ćwiczenia" autocomplete="off" enterkeyhint="search" data-pick-filter>
+{% for heading, rows in sections %}{% if rows %}
+<section data-pick-section>
+<h2 class="pick-head">{{ heading }}</h2>
 <ul class="supl-rows">
   {% for ex, last, n in rows %}
-  <li><a class="supl-row" href="/forma/postepy/{{ ex.id }}">{% include "partials/ex_pic.html" %}<span class="supl-row-main"><b>{{ ex.name }}</b><small class="muted">ostatnio {{ last|d }} · {{ n }} {{ 'raz' if n == 1 else 'razy' }}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
+  <li data-pick-text="{{ ex.name }} {{ muscle_label(ex.muscle) }} {{ equipment_label(ex.equipment) }}"><a class="supl-row" href="/forma/postepy/{{ ex.id }}">{% include "partials/ex_pic.html" %}<span class="supl-row-main"><b>{{ ex.name }}</b><small class="muted">ostatnio {{ last|d }} · {{ n }} {{ 'raz' if n == 1 else 'razy' }}{% if best.get(ex.id) %} · 🏆 ~{{ fmt_kg(best[ex.id]|round(1)) }} kg{% endif %}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
   {% endfor %}
 </ul>
+</section>
+{% endif %}{% endfor %}
+<p class="muted" data-pick-none hidden>Nic takiego jeszcze nie robione.</p>
+<p class="muted"><small>🏆 = rekord: szacowany ciężar na 1 powtórzenie z najlepszej serii.</small></p>
 {% else %}
 <p class="muted">Po pierwszym treningu zobaczysz tu każde ćwiczenie z historią ciężarów.</p>
 {% endif %}
