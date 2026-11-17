@@ -10,6 +10,10 @@ morning only after `weigh_gap_days` without a weigh-in, and only for someone who
 Measurement ("pomiar", every `check_every_days`): chest / arm / waist / thigh in cm and three photos – front,
 side, back. Photos are re-encoded on upload (JPEG, at most PHOTO_PX, no EXIF at all – no place, no phone,
 no time) with a small WebP preview next to them in uploads/body/<user id>/.
+
+Composition ("skład ciała"): what a smart scale reads by bioimpedance – fat %, muscle, water, bone, visceral
+fat, BMR, … Each value optional, one entry a day. Single readings swing with water, so what counts is the
+direction over weeks, shown as first → latest per value and small lines for fat and muscle.
 """
 
 from __future__ import annotations
@@ -27,7 +31,7 @@ from sqlalchemy.orm import Session
 
 from domownik import webpush
 from domownik.config import get_settings, now
-from domownik.models import BodyCheck, BodyPhoto, BodyPrefs, BodyWeight, User
+from domownik.models import BodyCheck, BodyComp, BodyPhoto, BodyPrefs, BodyWeight, User
 
 log = logging.getLogger("domownik")
 
@@ -73,6 +77,22 @@ PHOTO_PX = 1600
 THUMB_PX = 480
 KG_RANGE = (25.0, 300.0)
 CM_RANGE = (10.0, 250.0)
+# key, label, unit, (lo, hi), decimals – the order of a scale app's summary
+COMP = [
+    ("fat_pct", "Tkanka tłuszczowa", "%", (3.0, 70.0), 1),
+    ("muscle_kg", "Mięśnie", "kg", (10.0, 150.0), 2),
+    ("water_pct", "Woda", "%", (20.0, 80.0), 1),
+    ("protein_pct", "Białko", "%", (5.0, 40.0), 1),
+    ("bone_kg", "Masa kostna", "kg", (0.5, 10.0), 2),
+    ("visceral", "Tłuszcz trzewny", "", (1.0, 60.0), 0),
+    ("bmr_kcal", "Podstawowa przemiana materii", "kcal", (500.0, 5000.0), 0),
+    ("bmi", "BMI", "", (10.0, 70.0), 1),
+    ("body_age", "Wiek ciała", "lat", (10.0, 100.0), 0),
+    ("score", "Ocena sylwetki", "pkt", (1.0, 100.0), 0),
+]
+COMP_KEYS = [k for k, *_ in COMP]
+COMP_DIGITS = {k: d for k, _, _, _, d in COMP}
+COMP_CHARTS = ["fat_pct", "muscle_kg"]  # the two that say whether the mass is muscle or fat
 
 
 class BodyError(ValueError):
@@ -82,7 +102,7 @@ class BodyError(ValueError):
 # ---------------------------------------------------------------- numbers
 
 
-def parse_number(value: Any, label: str, lo: float, hi: float, unit: str) -> float | None:
+def parse_number(value: Any, label: str, lo: float, hi: float, unit: str, digits: int = 1) -> float | None:
     s = str(value or "").strip().replace(",", ".").replace(" ", "")
     if not s:
         return None
@@ -91,16 +111,19 @@ def parse_number(value: Any, label: str, lo: float, hi: float, unit: str) -> flo
     except ValueError as exc:
         raise BodyError(f"{label}: wpisz liczbę w {unit}") from exc
     if not lo <= x <= hi:
-        raise BodyError(f"{label}: od {fmt(lo)} do {fmt(hi)} {unit}")
-    return round(x, 1)
+        raise BodyError(f"{label}: od {fmt(lo)} do {fmt(hi)}{' ' + unit if unit else ''}")
+    return round(x, digits)
 
 
-def fmt(x: float | None, signed: bool = False) -> str:
-    """73.0 → "73", 73.45 → "73,5"; signed: "+0,8" / "−0,5" / "0"."""
+def fmt(x: float | None, signed: bool = False, digits: int = 1) -> str:
+    """73.0 → "73", 73.45 → "73,5"; signed: "+0,8" / "−0,5" / "0"; digits=2: 58.42 → "58,42"."""
     if x is None:
         return ""
-    x = round(x, 1)
-    s = f"{abs(x) if signed else x:.1f}".rstrip("0").rstrip(".").replace(".", ",")
+    x = round(x, digits)
+    s = f"{abs(x) if signed else x:.{digits}f}"
+    if digits:
+        s = s.rstrip("0").rstrip(".")
+    s = s.replace(".", ",")
     if signed and x:
         s = ("+" if x > 0 else "−") + s
     return s
@@ -428,6 +451,73 @@ def delete_check(db: Session, c: BodyCheck) -> None:
     db.flush()
     for f in paths:
         f.unlink(missing_ok=True)
+
+
+# ---------------------------------------------------------------- composition
+
+
+def comps(db: Session, user: User) -> list[BodyComp]:
+    """Newest first."""
+    return list(db.scalars(select(BodyComp).where(BodyComp.user_id == user.id).order_by(BodyComp.day.desc())))
+
+
+def get_comp(db: Session, user: User, comp_id: int) -> BodyComp | None:
+    c = db.get(BodyComp, comp_id)
+    return c if c is not None and c.user_id == user.id else None
+
+
+def parse_comp(form: Any) -> dict[str, float | None]:
+    return {key: parse_number(form.get(key), label, lo, hi, unit, d) for key, label, unit, (lo, hi), d in COMP}
+
+
+def save_comp(db: Session, user: User, c: BodyComp | None, day: date, values: dict[str, float | None]) -> BodyComp:
+    """New or edited composition entry; a second one the same day completes the first. The caller commits."""
+    if not any(v is not None for v in values.values()):
+        raise BodyError("Wpisz choć jedną wartość")
+    other = db.scalar(select(BodyComp).where(BodyComp.user_id == user.id, BodyComp.day == day))
+    merge = c is None and other is not None  # a new entry onto that day's: only what was typed changes
+    if c is None:
+        c = other
+    elif other is not None and other.id != c.id:
+        raise BodyError(f"Wpis z {day.strftime('%d.%m.%Y')} już jest – popraw tamten albo wybierz inny dzień")
+    if c is None:
+        c = BodyComp(user_id=user.id, day=day)
+        db.add(c)
+    c.day = day
+    for key in COMP_KEYS:
+        if key in values and (values[key] is not None or not merge):
+            setattr(c, key, values[key])
+    prefs(db, user)
+    db.flush()
+    return c
+
+
+def comp_changes(cs: list[BodyComp]) -> list[tuple[str, str, str, float, float, float | None, int]]:
+    """Per value: (key, label, unit, first, latest, change since the previous entry, decimals) – oldest to newest."""
+    out = []
+    for key, label, unit, _, d in COMP:
+        vals = [getattr(c, key) for c in reversed(cs) if getattr(c, key) is not None]
+        if vals:
+            out.append((key, label, unit, vals[0], vals[-1], vals[-1] - vals[-2] if len(vals) > 1 else None, d))
+    return out
+
+
+def comp_chart(cs: list[BodyComp], key: str) -> dict | None:
+    """One value over time as a small line (x = date, gaps stay gaps) – None below two readings."""
+    pts = sorted(((c.day, getattr(c, key)) for c in cs if getattr(c, key) is not None), key=lambda p: p[0])
+    if len(pts) < 2:
+        return None
+    w, h = 140, 40
+    first, last = pts[0][0], pts[-1][0]
+    span = max(1, (last - first).days)
+    lo, hi = min(v for _, v in pts), max(v for _, v in pts)
+    pad = max((hi - lo) * 0.1, 0.05)
+    lo, hi = lo - pad, hi + pad
+
+    def xy(d: date, v: float) -> str:
+        return f"{round(2 + (d - first).days / span * (w - 4), 1)},{round(3 + (hi - v) / (hi - lo) * (h - 6), 1)}"
+
+    return {"w": w, "h": h, "line": " ".join(xy(d, v) for d, v in pts), "end": xy(*pts[-1]).split(",")}
 
 
 # ---------------------------------------------------------------- photo files

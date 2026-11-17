@@ -2118,3 +2118,9 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .st-recent { margin: 0.75rem 0 0; font-size: 0.85rem; }
 .supl-manage > summary { font-weight: 600; margin: 0.75rem 0 0.25rem; }
 .wo-fold .wo-ex-title h2 { display: none; }
+.body-sparks { display: flex; gap: 1rem; flex-wrap: wrap; margin: 0.75rem 0 0.5rem; }
+.body-spark { margin: 0; flex: 1 1 8rem; max-width: 14rem; }
+.body-spark figcaption { color: var(--pico-muted-color); }
+.body-spark svg { width: 100%; height: auto; display: block; overflow: visible; }
+.body-spark .avg { fill: none; stroke: var(--pico-primary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.body-spark .end { fill: var(--pico-primary); }

@@ -12,7 +12,7 @@ from starlette.datastructures import UploadFile
 from domownik import body
 from domownik.config import today
 from domownik.db import get_db
-from domownik.models import BodyCheck, BodyPrefs, User
+from domownik.models import BodyCheck, BodyComp, BodyPrefs, User
 from domownik.security import current_user, verify_csrf
 from domownik.web import render
 
@@ -65,6 +65,7 @@ def _page(
     p = db.get(BodyPrefs, user.id)
     start = t - timedelta(days=okres) if okres else (entries[0].day if entries else t)
     cs = body.checks(db, user)
+    comps = body.comps(db, user)
     return render(
         request,
         "body.html",
@@ -77,6 +78,12 @@ def _page(
             "checks": cs,
             "changes": body.changes(cs),
             "with_photos": sum(1 for c in cs if c.photos),
+            "comps": comps,
+            "comp_changes": body.comp_changes(comps),
+            "comp_charts": [
+                (k, dict((x[0], x[1]) for x in body.COMP)[k], body.comp_chart(comps, k)) for k in body.COMP_CHARTS
+            ],
+            "comp_digits": body.COMP_DIGITS,
             "prefs": p,
             "every_choices": body.CHECK_EVERY_CHOICES,
             "poses": body.POSES,
@@ -229,6 +236,89 @@ def delete_check(check_id: int, db: Session = Depends(get_db), user: User = Depe
     body.delete_check(db, _check(db, user, check_id))
     db.commit()
     return _go("/forma/sylwetka#pomiary")
+
+
+# ---------------------------------------------------------------- composition
+
+
+def _comp(db: Session, user: User, comp_id: int) -> BodyComp:
+    c = body.get_comp(db, user, comp_id)
+    if c is None:
+        raise HTTPException(404, "Nie ma takiego wpisu")
+    return c
+
+
+def _comp_page(request: Request, db: Session, user: User, c: BodyComp | None, v: dict, error: str = ""):
+    t = today()
+    last = next((x for x in body.comps(db, user) if c is None or x.id != c.id), None)
+    return render(
+        request,
+        "body_comp.html",
+        {
+            "user": user,
+            "c": c,
+            "v": v,
+            "last": last,
+            "error": error,
+            "fields": body.COMP,
+            "bfmt": body.fmt,
+            "today": t,
+            "weighed_today": body.summary(db, user, t).today_kg,
+        },
+        status_code=422 if error else 200,
+    )
+
+
+def _comp_values(c: BodyComp | None) -> dict:
+    v = {k: body.fmt(getattr(c, k), digits=d) if c else "" for k, *_, d in body.COMP}
+    v["day"] = (c.day if c else today()).isoformat()
+    v["kg"] = ""
+    return v
+
+
+async def _save_comp(request: Request, db: Session, user: User, c: BodyComp | None):
+    form = await request.form()
+    typed = {k: str(form.get(k) or "") for k in [*body.COMP_KEYS, "day", "kg"]}
+    try:
+        day = _day(form.get("day"))
+        values = body.parse_comp(form)
+        kg = body.parse_number(form.get("kg"), "Waga", *body.KG_RANGE, "kg")
+        saved = body.save_comp(db, user, c, day, values)
+        if kg is not None:
+            body.add_weight(db, user, day, kg)
+    except body.BodyError as exc:
+        db.rollback()
+        return _comp_page(request, db, user, c, typed, str(exc))
+    db.commit()
+    return _go(f"/forma/sylwetka#sklad-{saved.id}")
+
+
+@router.get("/sylwetka/sklad/nowy")
+def new_comp_page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    return _comp_page(request, db, user, None, _comp_values(None))
+
+
+@router.get("/sylwetka/sklad/{comp_id:int}")
+def comp_page(comp_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    c = _comp(db, user, comp_id)
+    return _comp_page(request, db, user, c, _comp_values(c))
+
+
+@router.post("/sylwetka/sklad", dependencies=[Depends(verify_csrf)])
+async def add_comp(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    return await _save_comp(request, db, user, None)
+
+
+@router.post("/sylwetka/sklad/{comp_id:int}", dependencies=[Depends(verify_csrf)])
+async def edit_comp(comp_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    return await _save_comp(request, db, user, _comp(db, user, comp_id))
+
+
+@router.post("/sylwetka/sklad/{comp_id:int}/usun", dependencies=[Depends(verify_csrf)])
+def delete_comp(comp_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    db.delete(_comp(db, user, comp_id))
+    db.commit()
+    return _go("/forma/sylwetka#sklad")
 
 
 # ---------------------------------------------------------------- photos

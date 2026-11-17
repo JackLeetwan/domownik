@@ -1808,3 +1808,25 @@ class BodyPrefs(Base):
     check_every_days: Mapped[int] = mapped_column(Integer, default=14, server_default="14")
     weigh_pushed_on: Mapped[date | None] = mapped_column(Date)
     check_pushed_on: Mapped[date | None] = mapped_column(Date)
+
+
+class BodyComp(Base):
+    """🧬 Body composition read off a smart scale (bioimpedance) – one entry a day, every value optional."""
+
+    __tablename__ = "body_comp"
+    __table_args__ = (UniqueConstraint("user_id", "day"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date] = mapped_column(Date)
+    fat_pct: Mapped[float | None]
+    muscle_kg: Mapped[float | None]
+    water_pct: Mapped[float | None]
+    protein_pct: Mapped[float | None]
+    bone_kg: Mapped[float | None]
+    visceral: Mapped[float | None]
+    bmr_kcal: Mapped[float | None]
+    bmi: Mapped[float | None]
+    body_age: Mapped[float | None]
+    score: Mapped[float | None]
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

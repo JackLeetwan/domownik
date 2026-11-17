@@ -223,3 +223,63 @@ def test_pace_needs_enough(db, user):
     body.prefs(db, user).goal_kg = 72.3
     db.commit()
     assert body.summary(db, user, T).pace is None  # at the goal – nothing to judge
+
+
+def test_composition(auth_client, db, user):
+    assert "🧬 Skład ciała" in auth_client.get("/forma/sylwetka").text
+    assert auth_client.get("/forma/sylwetka/sklad/nowy").status_code == 200
+    r = auth_client.post("/forma/sylwetka/sklad", data={"day": "2026-11-01", "fat_pct": "21,5"})
+    assert r.status_code == 200 or r.status_code == 303
+    r = auth_client.post(
+        "/forma/sylwetka/sklad",
+        data={
+            "day": "2026-11-16",
+            "kg": "78,1",
+            "fat_pct": "21,1",
+            "muscle_kg": "58,42",
+            "bone_kg": "3,13",
+            "visceral": "10",
+            "bmr_kcal": "1622",
+            "body_age": "28",
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    cs = body.comps(db, user)
+    assert [c.day for c in cs] == [date(2026, 11, 16), date(2026, 11, 1)]
+    assert cs[0].muscle_kg == 58.42 and cs[0].bone_kg == 3.13 and cs[0].bmr_kcal == 1622
+    assert body.weights(db, user)[-1].kg == 78.1
+    # a second entry the same day completes it without wiping what was there
+    auth_client.post("/forma/sylwetka/sklad", data={"day": "2026-11-16", "water_pct": "54"})
+    db.expire_all()
+    c = body.comps(db, user)[0]
+    assert c.water_pct == 54 and c.fat_pct == 21.1
+    page = auth_client.get("/forma/sylwetka").text
+    assert "58,42" in page and "−0,4" in page and "<polyline" in page
+    assert "58,42" in auth_client.get(f"/forma/sylwetka/sklad/{c.id}").text
+    r = auth_client.post("/forma/sylwetka/sklad", data={"day": "2026-11-15", "fat_pct": "90"})
+    assert r.status_code == 422 and "od 3 do 70 %" in r.text
+    assert auth_client.post("/forma/sylwetka/sklad", data={"day": "2026-11-15"}).status_code == 422
+    # editing onto another entry's day is refused
+    r = auth_client.post(f"/forma/sylwetka/sklad/{c.id}", data={"day": "2026-11-01", "fat_pct": "21"})
+    assert r.status_code == 422
+    assert auth_client.post(f"/forma/sylwetka/sklad/{c.id}/usun", follow_redirects=False).status_code == 303
+    assert len(body.comps(db, user)) == 1
+
+
+def test_composition_is_private(auth_client, db, user):
+    ala = _other(db)
+    c = body.save_comp(db, ala, None, T, {"fat_pct": 30.0})
+    db.commit()
+    assert auth_client.get(f"/forma/sylwetka/sklad/{c.id}").status_code == 404
+    assert auth_client.post(f"/forma/sylwetka/sklad/{c.id}/usun").status_code == 404
+    assert "30%" not in auth_client.get("/forma/sylwetka").text
+
+
+def test_fmt_digits():
+    assert (
+        body.fmt(58.42, digits=2) == "58,42"
+        and body.fmt(3.10, digits=2) == "3,1"
+        and body.fmt(1622.0, digits=0) == "1622"
+    )
+    assert body.fmt(-0.37, signed=True, digits=2) == "−0,37"
