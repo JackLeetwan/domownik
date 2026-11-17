@@ -756,24 +756,36 @@
   });
 
   // ------------------------------------------------------------------ • bullets in a note's text
-  // a new line after "- x" / "• x" starts with the same mark; a new line after an empty point ends the list
-  // (works on the input event – Android keyboards do not always send a usable keydown for Enter)
+  // a textarea shows no formatting, so the point mark itself is "•": "- " / "* " at a line's start becomes "• "
+  // as typed (and in the text opened for editing); a new line after "• x" starts with "• ", a new line after an
+  // empty point ends the list. On the input event – Android keyboards do not always send a usable keydown.
+  const noteText = (ta) => {
+    if (!(ta instanceof HTMLTextAreaElement) || ta.name !== "body") return false;
+    const form = ta.closest("form"), asList = form && form.querySelector("input[name=as_list]");
+    return !!asList && !asList.checked; // only the notes' text (a checklist has its own lines)
+  };
   document.addEventListener("input", (e) => {
     const ta = e.target;
-    if (!(ta instanceof HTMLTextAreaElement) || ta.name !== "body" || !ta.closest("form")) return;
-    if (!/^insert(LineBreak|Paragraph|Text)$/.test(e.inputType || "")) return;
-    const form = ta.closest("form"), asList = form.querySelector("input[name=as_list]");
-    if (!asList || asList.checked) return; // only the notes' text (a checklist has its own lines)
+    if (!noteText(ta) || !/^insert(LineBreak|Paragraph|Text)$/.test(e.inputType || "")) return;
     const pos = ta.selectionStart;
-    if (pos !== ta.selectionEnd || ta.value[pos - 1] !== "\n") return;
+    if (pos !== ta.selectionEnd) return;
     const lineStart = ta.value.lastIndexOf("\n", pos - 2) + 1;
-    const m = /^(\s*)([-•*])\s+(.*)$/.exec(ta.value.slice(lineStart, pos - 1));
-    if (!m) return;
-    if (!m[3].trim()) { // an empty point: no point, no new line
-      ta.setRangeText("", lineStart, pos, "end");
-    } else {
-      ta.setRangeText(`${m[1]}${m[2]} `, pos, pos, "end");
+    if (ta.value[pos - 1] === " ") { // "- " typed at the start of a line → "• "
+      const m = /^(\s*)[-*] $/.exec(ta.value.slice(ta.value.lastIndexOf("\n", pos - 1) + 1, pos));
+      if (m) ta.setRangeText("• ", pos - 2, pos, "end");
+      return;
     }
+    if (ta.value[pos - 1] !== "\n") return;
+    const m = /^(\s*)[-•*]\s+(.*)$/.exec(ta.value.slice(lineStart, pos - 1));
+    if (!m) return;
+    if (!m[2].trim()) ta.setRangeText("", lineStart, pos, "end"); // an empty point: no point, no new line
+    else ta.setRangeText(`${m[1]}• `, pos, pos, "end");
+  });
+  document.addEventListener("focusin", (e) => {
+    const ta = e.target;
+    if (!noteText(ta)) return;
+    const v = ta.value.replace(/^(\s*)[-*] (?=\S)/gm, "$1• ");
+    if (v !== ta.value) { const p = ta.selectionStart; ta.value = v; ta.setSelectionRange(p, p); }
   });
 
   // ------------------------------------------------------------------ ⏱ timers on the dashboard
