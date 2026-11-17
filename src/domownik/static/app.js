@@ -755,6 +755,17 @@
     }
   });
 
+  // "📅 Przełóż" next to the due date: opens the postpone panel in the footer (below the fold on a phone)
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-postpone-open]");
+    if (!btn) return;
+    const panel = document.getElementById(btn.dataset.postponeOpen);
+    if (!panel) return;
+    e.preventDefault();
+    panel.open = true;
+    panel.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
   // ------------------------------------------------------------------ • bullets in a note's text
   // a textarea shows no formatting, so the point mark itself is "•": "- " / "* " at a line's start becomes "• "
   // as typed (and in the text opened for editing); a new line after "• x" starts with "• ", a new line after an

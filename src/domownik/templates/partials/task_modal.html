@@ -8,6 +8,7 @@
   {% if due.date %}
   <span class="badge {{ due.status }}">{{ due.days_left|days }}</span>
   termin: <strong>{{ due.date|d(weekday=True) }}{% if task.due_time %}, {{ task.time_label }}{% endif %}</strong>{% if due.by_km %} (prognoza z przebiegu, {{ task.next_due_km }} km){% endif %}
+  {% if postpone_to %}<button type="button" class="link postpone-open" data-postpone-open="postpone-panel-{{ task.id }}" title="Przesuń termin na inny dzień">📅 Przełóż</button>{% endif %}
   {% else %}<span class="badge">bez terminu</span>{% endif %}
   {% if task.amount_gr and task.direction != 'none' %} · {{ task.amount_gr|pln }}{% endif %}
 </p>
@@ -80,7 +81,7 @@
   <footer class="modal-actions">
     {% if not collapse_done %}<button type="submit">✓ Zrobione</button>{% endif %}
     {% if postpone_to %}
-    <details class="postpone">
+    <details class="postpone" id="postpone-panel-{{ task.id }}">
       <summary role="button" class="outline secondary">Przełóż…</summary>
       <p class="muted"><small>Przesuwa tylko ten termin – kolejne zostają jak były, nic nie trafia do historii.</small></p>
       <div id="postpone-error"></div>

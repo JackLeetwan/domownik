@@ -264,6 +264,7 @@ def test_postpone_moves_only_this_occurrence(auth_client, db):
     db.commit()
     modal = auth_client.get(f"/tasks/{t.id}").text
     assert "Przełóż" in modal and "O tydzień" in modal
+    assert f'data-postpone-open="postpone-panel-{t.id}"' in modal and f'id="postpone-panel-{t.id}"' in modal
     new = due + timedelta(days=7)
     r = auth_client.post(f"/tasks/{t.id}/postpone", data={"to": new.isoformat()})
     assert r.status_code == 200

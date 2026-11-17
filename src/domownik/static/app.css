@@ -844,6 +844,7 @@ select[name=remind_minutes]:disabled { opacity: 0.5; }
 
 /* "Przełóż" in the task window */
 .postpone { margin: 0.25rem 0 0; }
+.postpone-open { margin-left: 0.4rem; white-space: nowrap; font-size: 0.9rem; }
 .postpone > summary { font-size: 0.9rem; }
 .postpone-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .postpone-row > * { width: auto; margin: 0; }
