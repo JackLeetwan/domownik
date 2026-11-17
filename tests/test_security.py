@@ -69,6 +69,8 @@ PUBLIC = {
     ("POST", "/api/ocr/next"),
     ("GET", "/api/ocr/{job_id}/plik"),
     ("POST", "/api/ocr/{job_id}/wynik"),
+    # outside systems writing into /grafik (the Zdrofit bot): Bearer DOMOWNIK_SYNC_TOKEN, off without a token
+    ("PUT", "/api/grafik/{feed}"),
 }
 NO_CSRF = {
     ("POST", "/n/done/{token}"),
@@ -77,6 +79,7 @@ NO_CSRF = {
     # a Bearer token in a header – a browser never sends it on its own, so there is nothing to forge
     ("POST", "/api/ocr/next"),
     ("POST", "/api/ocr/{job_id}/wynik"),
+    ("PUT", "/api/grafik/{feed}"),
     # Android's share sheet posts here (it cannot know our token): a SameSite=Lax session never comes along from
     # another site, a foreign Origin is refused, a text is only shown and files only land in 📥 Do rozpoznania
     ("POST", "/udostepnij"),
