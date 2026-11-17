@@ -16,7 +16,7 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import services, webpush
+from domownik import dayevents, services, webpush
 from domownik.config import get_settings, now
 from domownik.domain.money import format_pln
 from domownik.domain.status import humanize_days
@@ -226,6 +226,10 @@ def _add_household_lines(db: Session, digests: list[Digest], slot: str, today: d
                 (f"{x.starts_at} " if x.starts_at and x.starts_on == day else "") + x.title for x in ext[:6]
             ) + ("…" if len(ext) > 6 else "")
             d.lines.append(Line(RANK_SCHEDULE, ("📅 Dziś: " if slot == "morning" else "📅 Jutro: ") + what, [], day))
+        whole = dayevents.on(db, day, user_id=d.user.id, notify=True)
+        if whole:
+            what = ", ".join(f"{o.icon} {o.title}" for o in whole[:6]) + ("…" if len(whole) > 6 else "")
+            d.lines.append(Line(RANK_SCHEDULE, ("📌 Dziś: " if slot == "morning" else "📌 Jutro: ") + what, [], day))
         my_late = [s for s in late if s.mine(d.user.id)]
         if not my_late:
             continue
@@ -256,12 +260,17 @@ def week_text(db: Session, user: User, rows: list[services.TaskRow], today: date
     ]
     mine.sort(key=lambda r: (r.due.date, r.task.due_time or "", r.task.full_title))
     events = {e.id: e for evs in extcal.for_push_range(db, first, last, user.id).values() for e in evs}
+    whole = {
+        (o.event.id, o.starts_on): o
+        for occs in dayevents.by_day(db, first, last, user_id=user.id, notify=True).values()
+        for o in occs
+    }
     late = sum(
         1
         for r in rows
         if r.due.date < today and r.task.assignee_id in (None, user.id) and r.task.private_to_id in (None, user.id)
     )
-    if not mine and not events and not late:
+    if not mine and not events and not late and not whole:
         return None
     n = len(mine)
     word = "termin" if n == 1 else ("terminy" if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14) else "terminów")
@@ -272,6 +281,11 @@ def week_text(db: Session, user: User, rows: list[services.TaskRow], today: date
     if mine:
         names = ", ".join(f"{WEEK_DAYS[r.due.date.weekday()]} {r.task.full_title}" for r in mine[:WEEK_TITLES])
         head += " – " + names + ("…" if n > WEEK_TITLES else "")
+    if whole:
+        head += " · 📌 " + ", ".join(
+            f"{WEEK_DAYS[max(o.starts_on, first).weekday()]} {o.title}"
+            for o in sorted(whole.values(), key=lambda o: (o.starts_on, o.title))
+        )
     if events:
         head += f" · 📅 {len(events)} z kalendarzy"
     if late:

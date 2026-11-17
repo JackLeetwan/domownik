@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Całe dni · Kalendarz · Domownik{% endblock %}
+{% block content %}
+<div class="crumbs-bar">
+  <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/kalendarz" class="home-link">← Kalendarz</a></li></ul></nav>
+</div>
+<header class="cal-head">
+  <h1 class="cal-title">📌 Całe dni</h1>
+  <nav class="cal-nav"><a role="button" href="/kalendarz/dni/nowy">＋ Dodaj</a></nav>
+</header>
+<p class="muted"><small>Dni bez godziny: u kogo święta, wyjazdy, ferie. Widać je w kalendarzu, w karcie „Dziś” i w powiadomieniu rano i wieczorem – nic do odhaczania.</small></p>
+{% if not rows %}
+<p class="muted">Nic zaplanowanego. Dodaj pierwszy dzień przyciskiem ＋ albo dwuklikiem na dzień w kalendarzu.</p>
+{% else %}
+<ul class="dayev-list">
+  {% set ns = namespace(year=none) %}
+  {% for o in rows %}
+  {% if o.starts_on.year != ns.year %}{% set ns.year = o.starts_on.year %}<li class="dayev-year"><h2>{{ ns.year }}</h2></li>{% endif %}
+  <li class="dayev-row">
+    <span class="wk-time">{{ o.starts_on.strftime('%d.%m') }}{% if o.multi %}–{{ o.ends_on.strftime('%d.%m') }}{% endif %}</span>
+    <a href="/kalendarz/dni/{{ o.event.id }}">{{ o.icon }} {{ o.title }}</a>
+    {% if o.event.yearly %}<small class="muted" title="Co roku">🔁</small>{% endif %}
+    {% if o.event.user_id and users.get(o.event.user_id) %}{{ avatar(users[o.event.user_id]) }}{% endif %}
+    {% if o.event.notes %}<small class="muted dayev-notes">{{ o.event.notes }}</small>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

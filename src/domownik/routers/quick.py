@@ -29,6 +29,7 @@ router = APIRouter(prefix="/dodaj")
 # kind: (icon, label, hint)
 KINDS: dict[str, tuple[str, str, str]] = {
     "event": ("📅", "Wydarzenie", "wizyta, spotkanie – z godziną"),
+    "day": ("📌", "Cały dzień", "święta, wyjazd, ferie – bez godziny"),
     "task": ("📋", "Zadanie", "termin, przypomnienie"),
     "shopping": ("🛒", "Zakup", "na listę zakupów"),
     "note": ("📝", "Notatka", "karteczka dla wszystkich"),
@@ -39,7 +40,7 @@ KINDS: dict[str, tuple[str, str, str]] = {
 }
 
 # opened for one calendar day (double click on a day): only what has a date of its own
-DAY_KINDS = ("event", "task", "expense")
+DAY_KINDS = ("event", "day", "task", "expense")
 
 ITEM_PAGE = re.compile(r"^/items/(\d+)(?:/|$)")
 METER_PAGE = re.compile(r"^/liczniki/(\d+)(?:/|$)")
@@ -124,6 +125,11 @@ def form(
             # an appointment is usually someone's: start with the person's own page in the tree
             own = db.scalar(select(Item.id).where(Item.user_id == user.id, Item.archived.is_(False)))
             ctx["current_item"] = own if own in tree.items else None
+    elif kind == "day":
+        from domownik.dayevents import ICONS
+
+        ctx["icons"] = ICONS
+        ctx["ev"] = None
     elif kind == "shopping":
         ctx["suggestions"] = shopping.suggestions(db)
     elif kind == "expense":

@@ -1,0 +1,19 @@
+{# Fields of a 📌 all-day entry – the full form and the quick-add window. Needs: ev (or none), start, users, icons, user #}
+<label>Co <input name="title" value="{{ ev.title if ev else '' }}" required maxlength="120" autofocus placeholder="np. Wigilia – Wschowa, Wyjazd w góry, Ferie"></label>
+<fieldset class="dayev-icons">
+  <legend>Ikonka</legend>
+  {% set cur = ev.icon if ev else '📌' %}
+  {% for ic in icons %}<label class="chip-check"><input type="radio" name="icon" value="{{ ic }}" {% if ic == cur %}checked{% endif %}><span>{{ ic }}</span></label>{% endfor %}
+  {% if cur not in icons %}<label class="chip-check"><input type="radio" name="icon" value="{{ cur }}" checked><span>{{ cur }}</span></label>{% endif %}
+</fieldset>
+<div class="form-row">
+  <label>Od <input type="date" name="starts_on" required value="{{ (ev.starts_on if ev else start).isoformat() }}"></label>
+  <label>Do <input type="date" name="ends_on" value="{{ ev.ends_on.isoformat() if ev and ev.ends_on != ev.starts_on else '' }}"></label>
+</div>
+<small class="muted form-hint">„Do” tylko przy kilku dniach (wyjazd, ferie) – puste = jeden dzień.</small>
+<div class="form-row">
+  <label>Kogo dotyczy
+    <select name="user_id"><option value="">— wszystkich —</option>{% for u in users %}<option value="{{ u.id }}" {% if ev and ev.user_id == u.id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}</select>
+  </label>
+  <label class="dayev-yearly"><input type="checkbox" role="switch" name="yearly" value="1" {% if ev and ev.yearly %}checked{% endif %}> Co roku</label>
+</div>

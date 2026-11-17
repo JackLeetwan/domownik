@@ -1470,6 +1470,19 @@ details.bud-edit > summary, details.bud-add > summary { font-size: 0.85rem; colo
 /* external calendars (ICS links) */
 .dot.ext { background: transparent; border: 2px solid var(--pico-muted-color); }
 .cal-chip.ext { cursor: default; border-left-color: var(--pico-muted-color); background: color-mix(in srgb, var(--pico-muted-color) 10%, transparent); }
+.dot.dayev { background: var(--pico-primary); border-radius: 2px; }
+.cal-chip.dayev { text-decoration: none; color: inherit; border-left-color: var(--pico-primary); background: color-mix(in srgb, var(--pico-primary) 14%, transparent); font-weight: 600; }
+.cal-dayev { margin-bottom: 0.5rem; }
+.cal-dayev a { font-weight: 600; text-decoration: none; }
+.dayev-icons { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.dayev-icons legend { width: 100%; }
+.dayev-yearly { align-self: end; }
+.dayev-list { list-style: none; padding: 0; }
+.dayev-list li { list-style: none; }
+.dayev-year h2 { margin: 1rem 0 0.25rem; font-size: 1.1rem; }
+.dayev-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.35rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
+.dayev-row .wk-time { min-width: 6.5rem; }
+.dayev-notes { flex-basis: 100%; padding-left: 7rem; }
 .cal-ext-link { display: inline-block; margin: 0 0 0.75rem 0.75rem; font-size: 0.85rem; color: var(--pico-muted-color); text-decoration: none; }
 .cal-ext-link:hover { text-decoration: underline; }
 .cal-ext .cal-ext-src { margin-left: auto; }

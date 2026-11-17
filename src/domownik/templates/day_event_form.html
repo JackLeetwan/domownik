@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Nowy dzień' if ev is none else ev.title }} · Kalendarz · Domownik{% endblock %}
+{% block content %}
+<div class="crumbs-bar">
+  <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/kalendarz?m={{ start.strftime('%Y-%m') }}&d={{ start.isoformat() }}" class="home-link">← Kalendarz</a></li><li><a href="/kalendarz/dni">📌 Całe dni</a></li></ul></nav>
+</div>
+<h1>{{ '📌 Dodaj cały dzień' if ev is none else 'Zmień: ' ~ ev.title }}</h1>
+<form method="post" action="{{ '/kalendarz/dni' if ev is none else '/kalendarz/dni/' ~ ev.id }}" class="sched-form dayev-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div id="dayev-error"></div>
+  {% include "partials/day_event_fields.html" %}
+  <label><input type="checkbox" role="switch" name="notify" value="1" {% if ev is none or ev.notify %}checked{% endif %}> W powiadomieniu rano (dziś) i wieczorem (jutro)</label>
+  <label>Notatka <textarea name="notes" rows="2" placeholder="opcjonalnie, np. kto przywozi, o której wyjazd">{{ ev.notes or '' if ev else '' }}</textarea></label>
+  <button type="submit">{{ 'Dodaj' if ev is none else 'Zapisz' }}</button>
+</form>
+{% if ev %}
+<form method="post" action="/kalendarz/dni/{{ ev.id }}/usun" class="danger-zone" hx-confirm="Usunąć „{{ ev.title }}” z kalendarza{{ ' (wszystkie lata)' if ev.yearly else '' }}?">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit" class="outline secondary danger">Usuń z kalendarza</button>
+</form>
+{% endif %}
+{% endblock %}

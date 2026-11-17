@@ -80,6 +80,14 @@
   <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
 </form>
 
+{% elif kind == 'day' %}
+<form hx-post="/kalendarz/dni" {{ qa|safe }} class="qa-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="notify" value="1">
+  {% include "partials/day_event_fields.html" %}
+  <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
+</form>
+
 {% elif kind == 'shopping' %}
 <form hx-post="/zakupy" {{ qa|safe }} class="qa-form">
   <input type="hidden" name="csrf" value="{{ csrf }}">

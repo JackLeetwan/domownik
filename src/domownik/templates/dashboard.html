@@ -29,9 +29,16 @@
 {% include "partials/timeline.html" %}
 
 {# today's week schedule and overdue chores – a compact card under the timeline, only when there is something #}
-{% if today_slots or late_chores or today_ext %}
+{% if today_slots or late_chores or today_ext or today_days %}
 <section class="today-card" aria-label="Dziś">
   <h2 class="today-head"><a href="/grafik{{ '?who=me' if who == 'me' else '' }}">Dziś</a></h2>
+  {% if today_days %}
+  <ul class="today-list today-days">
+    {% for o in today_days %}
+    <li><span class="wk-time">{% if o.multi %}do {{ o.ends_on.strftime('%d.%m') }}{% else %}cały dzień{% endif %}</span> <a href="/kalendarz/dni/{{ o.event.id }}">{{ o.icon }} {{ o.title }}</a>{% if o.event.notes %} <small class="muted">{{ o.event.notes }}</small>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
   {% if today_slots %}
   <ul class="today-list">
     {% for o in today_slots %}

@@ -1265,6 +1265,35 @@ class ExternalEvent(Base):
         return f"{self.starts_at}–{self.ends_at}" if self.ends_at and self.ends_at != self.starts_at else self.starts_at
 
 
+class DayEvent(Base):
+    """A day (or a few) in the family calendar without an hour: Christmas at grandma's, a trip, winter break.
+
+    Not a Task – nothing to tick off and never on the timeline; shown in the month grid, the day list, the
+    "Dziś" card, the morning / evening push and the ICS feed. `yearly` repeats it on the same dates every year.
+    """
+
+    __tablename__ = "day_event"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(120))
+    icon: Mapped[str] = mapped_column(String(8), default="📌", server_default="📌")
+    starts_on: Mapped[date] = mapped_column(Date, index=True)
+    ends_on: Mapped[date] = mapped_column(Date)  # last day (inclusive); = starts_on for one day
+    yearly: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    # whose day it is ("Moje" and their push); None = the whole family's
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    notify: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    user: Mapped[User | None] = relationship(foreign_keys=[user_id])
+
+    @property
+    def length(self) -> int:
+        return (self.ends_on - self.starts_on).days + 1
+
+
 # ---------------------------------------------------------------- "Na wypadek": what the family needs to know
 
 EMERGENCY_SECTIONS: dict[str, tuple[str, str, str]] = {

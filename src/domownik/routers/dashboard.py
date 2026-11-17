@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from domownik import budget, chores, emergency, extcal, goals, kitchen, schedule, services
+from domownik import budget, chores, dayevents, emergency, extcal, goals, kitchen, schedule, services
 from domownik.config import now, today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
@@ -59,6 +59,7 @@ def dashboard(
     today_slots = schedule.occurrences(db, t, t, user_id=mine, cancelled=False)
     late_chores = [s for s in chores.states(db, t, user_id=mine) if s.overdue]
     today_ext = extcal.events_by_day(db, t, t, user_id=mine).get(t, [])
+    today_days = dayevents.on(db, t, user_id=mine)
     return render(
         request,
         "dashboard.html",
@@ -85,6 +86,7 @@ def dashboard(
             "today_slots": today_slots,
             "late_chores": late_chores,
             "today_ext": today_ext,
+            "today_days": today_days,
             "backup_warning": services.backup_warning(t),
             "emergency_warning": _emergency_warning(db),
         }

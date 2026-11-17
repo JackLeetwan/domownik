@@ -28,6 +28,7 @@ from domownik.routers import (
     comments,
     contacts,
     dashboard,
+    day_events,
     documents,
     emergency,
     forma,
@@ -192,6 +193,7 @@ def create_app() -> FastAPI:
     app.include_router(account.router)
     app.include_router(assignments.router)
     app.include_router(calendar_ext.router)
+    app.include_router(day_events.router)
     app.include_router(calendar.router)
     app.include_router(bank.router)
     app.include_router(budget.router)

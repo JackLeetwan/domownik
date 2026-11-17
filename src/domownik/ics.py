@@ -16,7 +16,7 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import schedule, services
+from domownik import dayevents, schedule, services
 from domownik.db import set_viewer
 from domownik.domain.tree import Tree
 from domownik.models import Task, User, Warranty
@@ -236,6 +236,20 @@ def build(db: Session, user: User, today: date, now: datetime, *, host: str = "d
             *([f"DESCRIPTION:{escape(where)}"] if where else []),
             "END:VEVENT",
         ]
+
+    for ev in dayevents.load(db, start, end, user_id=mine):
+        for first, last in dayevents.spans(ev, start, end):
+            lines += [
+                "BEGIN:VEVENT",
+                f"UID:day-{ev.id}-{_day(first)}@{host}",
+                f"DTSTAMP:{stamp}",
+                f"DTSTART;VALUE=DATE:{_day(first)}",
+                f"DTEND;VALUE=DATE:{_day(last + timedelta(days=1))}",
+                f"SUMMARY:{escape(f'{ev.icon} {ev.title}')}",
+                *([f"DESCRIPTION:{escape(ev.notes)}"] if ev.notes else []),
+                "TRANSP:TRANSPARENT",
+                "END:VEVENT",
+            ]
 
     lines.append("END:VCALENDAR")
     return "".join(fold(line) + "\r\n" for line in lines)

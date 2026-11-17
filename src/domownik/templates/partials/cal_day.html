@@ -2,14 +2,22 @@
 {% import "partials/cal_macros.html" as cm with context %}
 {% set in_week = in_week is defined and in_week %}
 {% set ext_events = ext_events if ext_events is defined and ext_events else [] %}
+{% set day_events = day_events if day_events is defined and day_events else [] %}
 <section {% if not in_week %}id="cal-day" aria-live="polite"{% endif %} class="cal-day{% if in_week %} cal-week-day{% if sel == today() %} is-today{% endif %}{% endif %}" data-sel="{{ sel.isoformat() }}">
   <header class="cal-day-head">
     <h2>{{ sel_title|capitalize if in_week else sel_title }}{% if in_week and sel == today() %} <small class="badge today">dziś</small>{% endif %}</h2>
     <button type="button" class="outline secondary cal-add" data-cal-add="{{ sel.isoformat() }}" title="Dodaj wydarzenie, zadanie albo wydatek na ten dzień (albo kliknij dzień dwa razy)" aria-label="Dodaj na {{ sel_title }}">＋</button>
   </header>
   {% if holiday(sel) %}<p class="cal-hol-line">🇵🇱 {{ holiday(sel) }} – dzień wolny od pracy</p>{% endif %}
+  {% if day_events %}
+  <ul class="cal-sched cal-dayev">
+    {% for o in day_events %}
+    <li><span class="wk-time">{% if o.multi %}{{ o.starts_on.strftime('%d.%m') }}–{{ o.ends_on.strftime('%d.%m') }}{% else %}cały dzień{% endif %}</span> <a href="/kalendarz/dni/{{ o.event.id }}">{{ o.icon }} {{ o.title }}</a>{% if o.event.notes %} <small class="muted">{{ o.event.notes }}</small>{% endif %}{% if o.event.user %} {{ avatar(o.event.user) }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
   {% if not entries %}
-  {% if not slots and not ext_events %}<p class="muted">Nic na ten dzień.</p>{% endif %}
+  {% if not slots and not ext_events and not day_events %}<p class="muted">Nic na ten dzień.</p>{% endif %}
   {% else %}
   <ul class="cal-list">
     {% for e in entries %}

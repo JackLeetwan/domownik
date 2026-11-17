@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from domownik import extcal, schedule, services
+from domownik import dayevents, extcal, schedule, services
 from domownik import search as search_mod
 from domownik.config import today
 from domownik.db import get_db
@@ -74,6 +74,7 @@ def calendar_page(
     cals = extcal.visible_calendars(db, user_id=_who(who, user))
     grid = cal.days()
     ext = extcal.events_by_day(db, min(grid[0].date, sel), max(grid[-1].date, sel), calendars=cals)
+    dayev = dayevents.by_day(db, min(grid[0].date, sel), max(grid[-1].date, sel), user_id=_who(who, user))
     return render(
         request,
         "calendar.html",
@@ -87,6 +88,8 @@ def calendar_page(
             "slots": _slots(db, sel, who, user),
             "ext": ext,
             "ext_events": ext.get(sel, []),
+            "dayev": dayev,
+            "day_events": dayev.get(sel, []),
             "ext_count": len(cals),
             "who": who if who == "me" else None,
             "any_assigned": services.any_assigned(db),
@@ -109,6 +112,7 @@ def calendar_week(
     tree = Tree.load(db)
     cals = extcal.visible_calendars(db, user_id=_who(who, user))
     ext = extcal.events_by_day(db, monday, monday + timedelta(days=6), calendars=cals)
+    dayev = dayevents.by_day(db, monday, monday + timedelta(days=6), user_id=_who(who, user))
     days = []
     for i in range(7):
         day = monday + timedelta(days=i)
@@ -119,6 +123,7 @@ def calendar_week(
                 "entries": services.calendar_day(db, tree, t, day, user_id=_who(who, user)),
                 "slots": _slots(db, day, who, user),
                 "ext": ext.get(day, []),
+                "day_events": dayev.get(day, []),
             }
         )
     return render(
@@ -157,6 +162,7 @@ def calendar_day(
             "entries": entries,
             "slots": _slots(db, d, who, user),
             "ext_events": extcal.events_by_day(db, d, d, user_id=_who(who, user)).get(d, []),
+            "day_events": dayevents.on(db, d, user_id=_who(who, user)),
         },
     )
 
