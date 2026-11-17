@@ -5,6 +5,7 @@
   <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/grafik" class="home-link">← Grafik</a></li></ul></nav>
 </div>
 <h1>{{ 'Dodaj do grafiku' if ev is none else 'Zmień wpis grafiku' }}</h1>
+{% if ev and ev.source %}<p class="muted"><small>🔄 Wpis z synchronizacji ({{ ev.source.split(':')[0] }}) – zmiany i usunięcie nadpisze kolejna synchronizacja. Żeby zniknął na stałe, wypisz się z zajęć u źródła.</small></p>{% endif %}
 {% set days_on = ev.days if ev else [] %}
 <form method="post" action="{{ '/grafik' if ev is none else '/grafik/' ~ ev.id }}" class="sched-form">
   <input type="hidden" name="csrf" value="{{ csrf }}">

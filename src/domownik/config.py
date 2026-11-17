@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     max_upload_files: int = 20
     # reading documents on the PC (domownik.ocr): the worker's token; empty = /api/ocr is off
     ocr_token: str = ""
+    # outside systems writing into /grafik (domownik.routers.schedule_api, e.g. the Zdrofit bot); empty = off
+    sync_token: str = ""
 
     @property
     def db_path(self) -> Path:

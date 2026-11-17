@@ -856,6 +856,9 @@ class ScheduleEvent(Base):
     ends_on: Mapped[date | None] = mapped_column(Date)
     notify: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
     notes: Mapped[str | None] = mapped_column(Text)
+    # "<feed>:<key>" (e.g. "zdrofit-paula:2250576") – a one-off entry kept in step with an outside system
+    # through /api/grafik (domownik.routers.schedule_api); None = typed in by hand
+    source: Mapped[str | None] = mapped_column(String(80), unique=True, index=True)
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

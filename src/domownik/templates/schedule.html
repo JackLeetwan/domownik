@@ -66,10 +66,12 @@
   {% endfor %}
 </div>
 
+{% set fixed = events|rejectattr('source')|list %}
+{% if fixed %}
 <details class="sched-all">
-  <summary>Wszystkie stałe wpisy <small class="muted">({{ events|length }})</small></summary>
+  <summary>Wszystkie stałe wpisy <small class="muted">({{ fixed|length }})</small></summary>
   <ul class="sched-events">
-    {% for ev in events %}
+    {% for ev in fixed %}
     {% set ended = ev.ends_on and ev.ends_on < t %}
     <li class="{% if ended %}ended{% endif %}">
       <a href="/grafik/{{ ev.id }}"><strong>{{ ev.title }}</strong></a>
@@ -85,5 +87,6 @@
     {% endfor %}
   </ul>
 </details>
+{% endif %}
 {% endif %}
 {% endblock %}
