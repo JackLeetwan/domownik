@@ -63,6 +63,18 @@ def test_parse_expands_and_converts():
     ]
 
 
+def test_one_off_events_ten_years_ahead_recurring_one_year():
+    raw = _ics(
+        _ev("UID:wigilia", "DTSTART;VALUE=DATE:20351224", "DTEND;VALUE=DATE:20351225", "SUMMARY:Wigilia – Wschowa"),
+        _ev("UID:za-daleko", "DTSTART;VALUE=DATE:20370101", "SUMMARY:Za daleko"),
+        _ev("UID:rocznica", "DTSTART;VALUE=DATE:20261105", "RRULE:FREQ=YEARLY", "SUMMARY:Rocznica"),
+    )
+    occs = extcal.parse(raw, T)
+    assert (date(2035, 12, 24), "Wigilia – Wschowa") in [(o.start, o.title) for o in occs]
+    assert "Za daleko" not in [o.title for o in occs]
+    assert [o.start for o in occs if o.title == "Rocznica"] == [date(2026, 11, 5), date(2027, 11, 5)]
+
+
 def test_parse_rejects_garbage():
     with pytest.raises(extcal.CalendarError):
         extcal.parse(b"<html>nope</html>", T)

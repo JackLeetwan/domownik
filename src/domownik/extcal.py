@@ -1,6 +1,7 @@
 """External calendars: fetch an ICS link, expand its events (recurring ones too) and keep them for the calendar.
 
-Only a window around today is kept (a month back, a bit over a year ahead). A failed fetch keeps the events
+Only a window around today is kept: a month back, a bit over a year ahead for recurring events and ten
+years ahead for one-off ones (holidays planned for years, e.g. whose family hosts Christmas). A failed fetch keeps the events
 from the last good one and shows the error on /kalendarz/zewnetrzne.
 """
 
@@ -27,7 +28,8 @@ from domownik.models import ExternalCalendar, ExternalEvent
 log = logging.getLogger("domownik")
 
 BACK_DAYS = 31
-AHEAD_DAYS = 400
+AHEAD_DAYS = 400  # recurring events: a weekly series over ten years would crowd out everything near
+ONE_OFF_AHEAD_DAYS = 3660  # one-off events: ten years
 MAX_BYTES = 10 * 1024 * 1024
 MAX_EVENTS = 5000
 REFRESH_EVERY = timedelta(minutes=60)
@@ -159,6 +161,7 @@ def parse(raw: bytes, today: date) -> list[Occ]:
     if not isinstance(cal, icalendar.Calendar):
         raise CalendarError("To nie wygląda na kalendarz ICS")
     first, last = today - timedelta(days=BACK_DAYS), today + timedelta(days=AHEAD_DAYS)
+    far = today + timedelta(days=ONE_OFF_AHEAD_DAYS)
     lo, hi = datetime.combine(first, time()), datetime.combine(last, time.max)
 
     events = list(cal.walk("VEVENT"))
@@ -172,7 +175,7 @@ def parse(raw: bytes, today: date) -> list[Occ]:
     out: list[Occ] = []
     for ev in events:
         try:
-            out.extend(_occurrences(ev, overridden, first, last, lo, hi))
+            out.extend(_occurrences(ev, overridden, first, last, lo, hi, far))
         except Exception:  # one odd event (date vs datetime, several RRULEs…) never breaks the calendar
             log.warning("external calendar: skipped an event %r", str(ev.get("UID", ""))[:60])
         if len(out) >= MAX_EVENTS:
@@ -182,7 +185,10 @@ def parse(raw: bytes, today: date) -> list[Occ]:
     return out
 
 
-def _occurrences(ev, overridden: dict[str, set], first: date, last: date, lo: datetime, hi: datetime) -> list[Occ]:
+def _occurrences(
+    ev, overridden: dict[str, set], first: date, last: date, lo: datetime, hi: datetime, far: date | None = None
+) -> list[Occ]:
+    """Occurrences of one VEVENT in the window; a one-off event is kept up to `far` (default: `last`)."""
     if str(ev.get("STATUS", "")).upper() == "CANCELLED" or ev.get("DTSTART") is None:
         return []
     start = ev.get("DTSTART").dt
@@ -209,6 +215,7 @@ def _occurrences(ev, overridden: dict[str, set], first: date, last: date, lo: da
         starts = [s for s in _rule_starts(rrule, start, lo, hi) if _key(s) not in skip]
     else:
         starts = [start]
+        last = max(last, far or last)
     out = []
     for s in starts:
         ls, le = _local(s), _local(s + length)
