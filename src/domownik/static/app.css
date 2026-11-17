@@ -2160,3 +2160,7 @@ input.wo-suspect { border-color: var(--dm-overdue) !important; box-shadow: 0 0 0
 /* ---- • bullet lists in a note */
 .note-card .note-body ul.note-bullets { margin: 0.15rem 0; padding-left: 1.2rem; white-space: normal; }
 .note-card .note-body ul.note-bullets li { margin: 0; list-style: disc; }
+
+/* ---- the text of a note being written: tall from the start (with the keyboard up ~half of what is left),
+   growing with the text – no scrolling inside a three-line box */
+textarea.note-input { min-height: max(9rem, 40dvh); field-sizing: content; resize: vertical; line-height: 1.45; }

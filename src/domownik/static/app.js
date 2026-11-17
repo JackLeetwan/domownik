@@ -762,7 +762,8 @@
   const noteText = (ta) => {
     if (!(ta instanceof HTMLTextAreaElement) || ta.name !== "body") return false;
     const form = ta.closest("form"), asList = form && form.querySelector("input[name=as_list]");
-    return !!asList && !asList.checked; // only the notes' text (a checklist has its own lines)
+    if (asList) return !asList.checked; // only the notes' text (a checklist has its own lines)
+    return ta.classList.contains("note-input"); // ＋ Dodaj → notatka
   };
   document.addEventListener("input", (e) => {
     const ta = e.target;
