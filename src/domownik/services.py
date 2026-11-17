@@ -292,6 +292,7 @@ class Nav:
     chores: int = 0  # overdue house chores (whole household)
     points: int = 0  # points / rewards waiting for this user's ✓
     inbox: int = 0  # quick photos not described yet (📥 Do rozpoznania)
+    workout: Any = None  # training.Bubble – a workout going on today (the 🏋️ bubble)
 
 
 def nav_context(db: Session, today: date, user_id: int | None = None) -> Nav:
@@ -319,7 +320,16 @@ def nav_context(db: Session, today: date, user_id: int | None = None) -> Nav:
         )
         if user_id
         else 0,
+        workout=_bubble(db, today, user_id),
     )
+
+
+def _bubble(db: Session, today: date, user_id: int | None):
+    if not user_id:
+        return None
+    from domownik import training  # local: training imports webpush, keep this module light at import
+
+    return training.bubble(db, user_id, today)
 
 
 def subtree_issues(db: Session, tree: Tree, item_id: int) -> list[Issue]:

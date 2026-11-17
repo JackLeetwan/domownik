@@ -165,7 +165,7 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
     rows = []
     for we in w.exercises:
         sug = tr.suggest(db, user, we)
-        last_done = we.done[-1] if we.done else None
+        last_done = we.work[-1] if we.work else None  # a warm-up set does not set the next one's numbers
         rows.append(
             {
                 "we": we,
@@ -173,10 +173,10 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
                 "weight": last_done.weight if last_done and last_done.weight is not None else sug.weight,
                 "reps": sug.reps if not last_done else (last_done.reps or sug.reps),
                 "seconds": last_done.seconds if last_done and last_done.seconds else sug.seconds,
-                "complete": len(we.done) >= we.sets,
+                "complete": len(we.work) >= we.sets,
                 "current": nxt is not None and nxt.id == we.id,
                 "record": recs.get(we.id),
-                "sets_text": tr.sets_text(list(we.done)),
+                "sets_text": tr.sets_text(we.work),
                 # 🔗 with the next one (not already together); ✂ on the last of a superset
                 "can_link": (f := tr.following(w, we)) is not None
                 and (we.superset is None or f.superset != we.superset),
@@ -188,7 +188,7 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
     if w.rest_until is not None and w.finished_at is None and w.rest_until > stale:  # not a rest from hours ago
         rest_ms = int(w.rest_until.replace(tzinfo=tz).timestamp() * 1000)
     total = sum(we.sets for we in w.exercises)
-    done = sum(min(len(we.done), we.sets) for we in w.exercises)
+    done = sum(min(len(we.work), we.sets) for we in w.exercises)
     # ⇉ a superset at the start of a round: one form for all its exercises (you did both, then log)
     rounds = {g: ms for g in {we.superset for we in w.exercises} if (ms := tr.round_members(w, g))}
     return {
@@ -205,6 +205,7 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
         "st": st,
         "errors": errors or {},
         "fmt_kg": tr.fmt_kg,
+        "set_text": tr.set_text,
         "superset_letter": lambda n: "ABCDEFGH"[(n - 1) % 8] if n else "",
     } | _together(db, user, w)
 
@@ -290,6 +291,15 @@ def join_finishing_own(
     return _join(request, db, user, group_id, replace=True)
 
 
+def _marks(form, suffix: str = "") -> dict:
+    """🌡 / 🔥 / ↘ of one set from the form (the round form: one suffix per exercise)."""
+    return {
+        "warmup": bool(form.get(f"warmup{suffix}")),
+        "failure": bool(form.get(f"failure{suffix}")),
+        "drops": tr.drop_rows(form, suffix) if form.get(f"drop{suffix}") else None,
+    }
+
+
 def _num(raw, *, integer: bool = False, label: str) -> float | int | None:
     text = str(raw or "").strip().replace(",", ".")
     if not text:
@@ -312,16 +322,17 @@ async def log_set(
     form = await request.form()
     try:
         weight = _num(form.get("weight"), label="Ciężar")
+        marks = _marks(form)
         if we.exercise.kind == "time":
             seconds = _num(form.get("seconds"), integer=True, label="Czas")
             if not seconds:
                 raise ValueError("Wpisz czas w sekundach")
-            tr.log_set(db, we, weight=weight, reps=None, seconds=seconds)
+            tr.log_set(db, we, weight=weight, reps=None, seconds=seconds, **marks)
         else:
             reps = _num(form.get("reps"), integer=True, label="Powtórzenia")
             if not reps:
                 raise ValueError("Wpisz liczbę powtórzeń")
-            tr.log_set(db, we, weight=weight, reps=reps)
+            tr.log_set(db, we, weight=weight, reps=reps, **marks)
     except ValueError as exc:
         return _show(request, db, user, w, {we.id: str(exc)})
     db.commit()
@@ -346,17 +357,17 @@ async def log_round(
                 seconds = _num(form.get(f"seconds_{we.id}"), integer=True, label=f"{we.exercise.name} – czas")
                 if not seconds:
                     raise ValueError(f"{we.exercise.name}: wpisz czas w sekundach")
-                entries.append((we, weight, None, seconds))
+                entries.append((we, weight, None, seconds, _marks(form, f"_{we.id}")))
             else:
                 reps = _num(form.get(f"reps_{we.id}"), integer=True, label=f"{we.exercise.name} – powtórzenia")
                 if not reps:
                     raise ValueError(f"{we.exercise.name}: wpisz liczbę powtórzeń")
-                entries.append((we, weight, reps, None))
+                entries.append((we, weight, reps, None, _marks(form, f"_{we.id}")))
     except ValueError as exc:
         return _show(request, db, user, w, {f"round{group}": str(exc)})
     at = now().replace(tzinfo=None)
-    for i, (we, weight, reps, seconds) in enumerate(entries):
-        tr.log_set(db, we, weight=weight, reps=reps, seconds=seconds, at=at + timedelta(seconds=i))
+    for i, (we, weight, reps, seconds, marks) in enumerate(entries):
+        tr.log_set(db, we, weight=weight, reps=reps, seconds=seconds, at=at + timedelta(seconds=i), **marks)
     db.commit()
     return _show(request, db, user, w)
 

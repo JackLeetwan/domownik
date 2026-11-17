@@ -1612,6 +1612,11 @@ class WorkoutExercise(Base):
         back_populates="workout_exercise", cascade="all, delete-orphan", order_by="WorkoutSet.set_no"
     )
 
+    @property
+    def work(self) -> list[WorkoutSet]:
+        """The sets that count – without the warm-up ones (the plan's 4 sets are 4 working sets)."""
+        return [s for s in self.done if not s.warmup]
+
 
 class WorkoutSet(Base):
     """A set done: weight (kg; a dumbbell = one hand) × reps, or seconds for a plank."""
@@ -1625,6 +1630,11 @@ class WorkoutSet(Base):
     reps: Mapped[int | None] = mapped_column(Integer)
     seconds: Mapped[int | None] = mapped_column(Integer)
     done_at: Mapped[datetime] = mapped_column(DateTime)
+    # 🌡 a warm-up set: shown, but not one of the plan's sets, not in "last time", progression or records
+    warmup: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    failure: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")  # 🔥 to failure
+    # ↘ a drop set: the lighter rounds right after it, no rest – [{"w": 22.0, "r": 6}, …]; part of this one set
+    drops: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON)
 
     workout_exercise: Mapped[WorkoutExercise] = relationship(back_populates="done")
 

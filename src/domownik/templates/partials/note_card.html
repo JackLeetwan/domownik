@@ -35,7 +35,7 @@
   </form>
   {% endif %}
   {% elif n.body %}
-  <div class="note-body">{% if n.pinned and active and not n.title %}📌 {% endif %}{{ n.body }}</div>
+  <div class="note-body">{% if n.pinned and active and not n.title %}📌 {% endif %}{{ n.body|note_html }}</div>
   {% endif %}
   {% if n.photos %}
   <div class="note-photos">

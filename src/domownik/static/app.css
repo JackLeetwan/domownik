@@ -2124,3 +2124,39 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .body-spark svg { width: 100%; height: auto; display: block; overflow: visible; }
 .body-spark .avg { fill: none; stroke: var(--pico-primary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .body-spark .end { fill: var(--pico-primary); }
+
+/* ---- 🔥 marks of a set (warm-up, to failure, drop set) */
+.wo-marks { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; margin: 0.1rem 0 0; }
+.wo-chip { display: inline-flex; align-items: center; margin: 0; padding: 0.2rem 0.6rem; font-size: 0.8rem; border: 1px solid var(--pico-muted-border-color); border-radius: 999px; color: var(--pico-muted-color); cursor: pointer; user-select: none; }
+.wo-chip input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.wo-chip:has(input:checked) { border-color: var(--pico-primary); background: var(--pico-primary-focus); color: var(--pico-color); font-weight: 600; }
+.wo-chip:has(input:focus-visible) { outline: 2px solid var(--pico-primary); outline-offset: 1px; }
+.wo-drops { display: none; flex-basis: 100%; gap: 0.3rem; }
+.wo-marks:has([data-drop-toggle]:checked) .wo-drops { display: grid; }
+.wo-drop-row { display: grid; grid-template-columns: 1.2rem 1fr 1fr; gap: 0.4rem; align-items: center; }
+.wo-drop-row input { margin: 0; text-align: center; padding: 0.45rem 0.3rem; }
+.wo-drops [data-drop-add] { justify-self: start; width: auto; margin: 0; padding: 0; }
+.wo-round-row .wo-marks { margin-bottom: 0.2rem; }
+.wo-sets li.wo-warmup { color: var(--pico-muted-color); }
+input.wo-suspect { border-color: var(--dm-overdue) !important; box-shadow: 0 0 0 2px color-mix(in srgb, var(--dm-overdue) 35%, transparent); }
+.wo-check { grid-column: 1 / -1; margin: 0; color: var(--dm-overdue); font-size: 0.85rem; font-weight: 600; }
+
+/* ---- ⇄ swap next to the exercise name */
+.wo-swap { order: 3; flex: none; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-width: 3.2rem; padding: 0.3rem 0.45rem; border: 1px solid var(--pico-primary); border-radius: 10px; color: var(--pico-primary); text-decoration: none; line-height: 1.1; }
+.wo-swap span { font-size: 1.25rem; }
+.wo-swap small { font-size: 0.7rem; }
+.wo-fold .wo-swap { display: none; }
+
+/* ---- 🏋️ the workout bubble on every other page while a workout goes on */
+.wo-bubble { position: fixed; right: 12px; bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 4.2rem; height: 4.2rem; border-radius: 50%; background: var(--pico-primary-background); color: var(--pico-primary-inverse); text-decoration: none; box-shadow: 0 6px 18px rgba(0,0,0,0.35); touch-action: none; user-select: none; -webkit-user-select: none; line-height: 1.1; }
+.wo-bubble-icon { font-size: 1.5rem; }
+.wo-bubble-left { font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.wo-bubble.over { background: #d89a27; animation: wo-bubble-pulse 1s ease-in-out infinite; }
+.wo-bubble.dragging { box-shadow: 0 10px 26px rgba(0,0,0,0.45); transform: scale(1.06); }
+@keyframes wo-bubble-pulse { 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .wo-bubble.over { animation: none; } }
+@media (min-width: 992px) { .wo-bubble { bottom: 1.5rem; right: 1.5rem; } }
+
+/* ---- • bullet lists in a note */
+.note-card .note-body ul.note-bullets { margin: 0.15rem 0; padding-left: 1.2rem; white-space: normal; }
+.note-card .note-body ul.note-bullets li { margin: 0; list-style: disc; }

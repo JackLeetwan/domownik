@@ -1,4 +1,5 @@
 {# the workout screen – swapped as a whole after every set (hx-target="#workout") #}
+{% from "partials/set_marks.html" import set_marks %}
 <div id="workout" class="wo" data-sig="{{ sig }}">
   <header class="wo-head">
     <h1>🏋️ {{ w.plan.name if w.plan else 'Trening' }}</h1>
@@ -46,7 +47,7 @@
   {% if we.superset != ns.ss %}{% if ns.ss is not none %}</div>{% endif %}{% if we.superset is not none %}<div class="wo-superset"><p class="wo-ss-label">Superseria {{ superset_letter(we.superset) }} <small class="muted">– na zmianę, przerwa po drugim</small></p>
   {% set ms = rounds.get(we.superset) %}{% if ms %}{% set rkey = 'round' ~ we.superset %}
   <form class="wo-round" hx-post="/forma/trening/{{ w.id }}/runda/{{ we.superset }}" hx-target="#workout" hx-swap="outerHTML">
-    <p class="wo-round-head"><b>⇉ Cała runda naraz</b> <small class="muted">– seria {{ ms[0].done|length + 1 }}/{{ ms[0].sets }} każdego</small></p>
+    <p class="wo-round-head"><b>⇉ Cała runda naraz</b> <small class="muted">– seria {{ ms[0].work|length + 1 }}/{{ ms[0].sets }} każdego</small></p>
     {% for m in ms %}{% set mr = row_of[m.id] %}
     <div class="wo-round-row"><span class="wo-round-name">{{ superset_letter(we.superset) }}{{ loop.index }} {{ m.exercise.name }}</span>
       {% if m.exercise.kind == 'time' %}
@@ -54,10 +55,11 @@
       <label>s <input name="seconds_{{ m.id }}" inputmode="numeric" value="{{ mr.seconds or '' }}" autocomplete="off"></label>
       {% else %}
       <label>kg <input name="weight_{{ m.id }}" inputmode="decimal" value="{{ fmt_kg(mr.weight) if mr.weight else '' }}" placeholder="{{ '—' if m.exercise.step == 0 else '' }}" autocomplete="off"></label>
-      <label>powt. <input name="reps_{{ m.id }}" inputmode="numeric" value="{{ mr.reps or '' }}" autocomplete="off"></label>
+      <label>powt. <input name="reps_{{ m.id }}" inputmode="numeric" value="{{ mr.reps or '' }}" autocomplete="off"{% if m.reps_max %} data-reps-max="{{ m.reps_max }}" data-reps-plan="{{ m.reps_min ~ '–' if m.reps_min and m.reps_min != m.reps_max else '' }}{{ m.reps_max }}"{% endif %}></label>
+      {{ set_marks('_' ~ m.id, warmup=false) }}
       {% endif %}</div>
     {% endfor %}
-    <button type="submit">✓ Zapisz rundę {{ ms[0].done|length + 1 }}/{{ ms[0].sets }}</button>
+    <button type="submit">✓ Zapisz rundę {{ ms[0].work|length + 1 }}/{{ ms[0].sets }}</button>
     {% if errors.get(rkey) %}<p class="error" role="alert">{{ errors.get(rkey) }}</p>{% endif %}
   </form>
   {% endif %}{% endif %}{% set ns.ss = we.superset %}{% endif %}
@@ -66,6 +68,7 @@
     {% if folded %}<details class="wo-fold"><summary><span class="wo-fold-name">✓ {{ ex.name }}</span> <small class="muted">{{ r.sets_text }}{% if r.record %} · 🏆{% endif %}</small></summary>{% endif %}
     <div class="wo-ex-head">
       <a href="/forma/postepy/{{ ex.id }}" class="ex-pic-btn" hx-get="/forma/cwiczenie/{{ ex.id }}" hx-target="#modal-body" hx-swap="innerHTML" hx-push-url="false" aria-label="Jak wykonać: {{ ex.name }}" title="Jak wykonać">{% set pic_both = true %}{% include "partials/ex_pic.html" %}<span class="ex-pic-i" aria-hidden="true">ⓘ</span></a>
+      {% if not we.done and not w.finished_at %}<a href="/forma/trening/{{ w.id }}/cw/{{ we.id }}/zamien" class="wo-swap" aria-label="Zamień ćwiczenie: {{ ex.name }}" title="Zajęte? Zamień na inne"><span aria-hidden="true">⇄</span><small>Zamień</small></a>{% endif %}
       <div class="wo-ex-title"><h2>{% if r.complete %}✓ {% endif %}{{ ex.name }}</h2>
       {% for pid, name, slots in partner_slots %}{% set sv = slots.get(we.slot) %}{% if sv %}<span class="wo-partner-badge{% if sv.done >= sv.sets %} done{% endif %}" data-badge="{{ pid }}-{{ we.slot }}">{{ name }}{% if sv.other_exercise %}: {{ sv.name }}{% endif %} {{ sv.text }}</span>{% endif %}{% endfor %}
       <small class="muted">{{ we.sets }} × {% if ex.kind == 'time' %}{{ we.seconds or 30 }} s{% elif we.reps_min and we.reps_max and we.reps_min != we.reps_max %}{{ we.reps_min }}–{{ we.reps_max }}{% else %}{{ we.reps_max or we.reps_min or '?' }}{% endif %}{% if we.rest_seconds %} · przerwa {{ we.rest_seconds }} s{% endif %}{% if we.swapped_from %} · zamiast: {{ we.swapped_from.name }}{% endif %}</small></div>
@@ -80,7 +83,7 @@
     {% if we.done %}
     <ol class="wo-sets">
       {% for s in we.done %}
-      <li><span>{% if s.weight %}{{ fmt_kg(s.weight) }} kg × {% endif %}{% if s.reps is not none %}{{ s.reps }}{% else %}{{ s.seconds }} s{% endif %}{% if r.record and r.record.id == s.id %} <b class="wo-pr">🏆 rekord</b>{% endif %}</span>
+      <li{% if s.warmup %} class="wo-warmup"{% endif %}><span>{% if s.warmup %}🌡 {% endif %}{{ set_text(s) }}{% if s.warmup %} <small class="muted">rozgrzewka</small>{% endif %}{% if r.record and r.record.id == s.id %} <b class="wo-pr">🏆 rekord</b>{% endif %}</span>
         <button type="button" class="wo-undo" hx-post="/forma/trening/{{ w.id }}/seria/{{ s.id }}/usun" hx-target="#workout" hx-swap="outerHTML" aria-label="Usuń serię {{ s.set_no }}" title="Usuń serię">✕</button></li>
       {% endfor %}
     </ol>
@@ -93,9 +96,10 @@
       <label>Sekundy <input name="seconds" inputmode="numeric" value="{{ r.seconds or '' }}" autocomplete="off"></label>
       {% else %}
       <label>{% if ex.step == 0 %}kg <small>dodatkowo</small>{% else %}kg{% if ex.equipment == 'dumbbell' %} <small>1 hantla</small>{% endif %}{% endif %} <input name="weight" inputmode="decimal" value="{{ fmt_kg(r.weight) if r.weight else '' }}" placeholder="{{ '—' if ex.step == 0 else '' }}" autocomplete="off"></label>
-      <label>Powt. <input name="reps" inputmode="numeric" value="{{ r.reps or '' }}" autocomplete="off"></label>
+      <label>Powt. <input name="reps" inputmode="numeric" value="{{ r.reps or '' }}" autocomplete="off"{% if we.reps_max %} data-reps-max="{{ we.reps_max }}" data-reps-plan="{{ we.reps_min ~ '–' if we.reps_min and we.reps_min != we.reps_max else '' }}{{ we.reps_max }}"{% endif %}></label>
       {% endif %}
-      <button type="submit">✓ Seria {{ we.done|length + 1 }}{% if we.done|length < we.sets %}/{{ we.sets }}{% endif %}</button>
+      <button type="submit">✓ Seria {{ we.work|length + 1 }}{% if we.work|length < we.sets %}/{{ we.sets }}{% endif %}</button>
+      {{ set_marks('', timed=ex.kind == 'time') }}
     </form>
     {% if errors.get(we.id) %}<p class="error" role="alert">{{ errors.get(we.id) }}</p>{% endif %}
     {% endset %}
@@ -116,7 +120,6 @@
     {% endif %}
 
     <div class="wo-ex-actions">
-      {% if not we.done %}<a href="/forma/trening/{{ w.id }}/cw/{{ we.id }}/zamien" class="small">⇄ Zajęte? Zamień</a>{% endif %}
       <details class="wo-menu">
       <summary class="small" aria-label="Więcej: {{ ex.name }}">⋯ Więcej</summary>
       <div class="wo-menu-items">

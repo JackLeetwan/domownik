@@ -133,3 +133,11 @@ def test_general_todo_and_plan_needs_item(auth_client, db):
     auth_client.post(f"/todos/{td.id}/edit", data={"title": "Lampy", "item_id": ""})
     db.refresh(td)
     assert td.item_id is None
+
+
+def test_note_bullets():
+    from domownik.web import note_html
+
+    html = str(note_html("Do poprawy:\n- timer <3 s\n• zamiana\nkoniec"))
+    assert html == 'Do poprawy:<ul class="note-bullets"><li>timer &lt;3 s</li><li>zamiana</li></ul>koniec'
+    assert str(note_html("zwykły\ntekst")) == "zwykły\ntekst"

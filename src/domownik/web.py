@@ -95,6 +95,33 @@ def items_text(items: list[dict] | None) -> str:
     return "\n".join(("✓ " if i.get("d") else "☐ ") + i.get("t", "") for i in items or [])
 
 
+_BULLET = re.compile(r"^\s*[-•*]\s+(.*)$")
+
+
+def note_html(text: str | None) -> Markup:
+    """A note's text with its "- x" / "• x" lines as a bullet list; the rest stays as typed (pre-line)."""
+    parts: list[str] = []
+    lines: list[str] = []
+    points: list[str] = []
+    for line in (text or "").split("\n"):
+        m = _BULLET.match(line)
+        if m:
+            if lines:
+                parts.append(str(escape("\n".join(lines))))
+                lines = []
+            points.append(m.group(1))
+        else:
+            if points:
+                parts.append('<ul class="note-bullets">' + "".join(f"<li>{escape(p)}</li>" for p in points) + "</ul>")
+                points = []
+            lines.append(line)
+    if points:
+        parts.append('<ul class="note-bullets">' + "".join(f"<li>{escape(p)}</li>" for p in points) + "</ul>")
+    if lines:
+        parts.append(str(escape("\n".join(lines))))
+    return Markup("".join(parts))
+
+
 env = templates.env
 
 
@@ -127,6 +154,7 @@ env.filters["d"] = fmt_date
 env.filters["days"] = humanize_days
 env.filters["rule"] = recurrence.describe
 env.filters["week"] = week_title
+env.filters["note_html"] = note_html
 env.globals.update(
     exercise_image=_exercise_image,
     exercise_image_end=_exercise_image_end,

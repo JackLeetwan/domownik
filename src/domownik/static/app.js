@@ -755,6 +755,27 @@
     }
   });
 
+  // ------------------------------------------------------------------ • bullets in a note's text
+  // a new line after "- x" / "• x" starts with the same mark; a new line after an empty point ends the list
+  // (works on the input event – Android keyboards do not always send a usable keydown for Enter)
+  document.addEventListener("input", (e) => {
+    const ta = e.target;
+    if (!(ta instanceof HTMLTextAreaElement) || ta.name !== "body" || !ta.closest("form")) return;
+    if (!/^insert(LineBreak|Paragraph|Text)$/.test(e.inputType || "")) return;
+    const form = ta.closest("form"), asList = form.querySelector("input[name=as_list]");
+    if (!asList || asList.checked) return; // only the notes' text (a checklist has its own lines)
+    const pos = ta.selectionStart;
+    if (pos !== ta.selectionEnd || ta.value[pos - 1] !== "\n") return;
+    const lineStart = ta.value.lastIndexOf("\n", pos - 2) + 1;
+    const m = /^(\s*)([-•*])\s+(.*)$/.exec(ta.value.slice(lineStart, pos - 1));
+    if (!m) return;
+    if (!m[3].trim()) { // an empty point: no point, no new line
+      ta.setRangeText("", lineStart, pos, "end");
+    } else {
+      ta.setRangeText(`${m[1]}${m[2]} `, pos, pos, "end");
+    }
+  });
+
   // ------------------------------------------------------------------ ⏱ timers on the dashboard
   // the end comes from the server (data-timer-ends, ms); the countdown is counted here, the push by the server
   const timerText = (ms) => {
@@ -790,24 +811,155 @@
   });
 
   // ------------------------------------------------------------------ 🏋️ the rest between sets
-  // data-rest-ends (ms) from the server; counted down here every second, a buzz at the end (the push comes
-  // from the server too, for a phone in a pocket)
-  let restBuzzed = null;
+  // data-rest-ends (ms) from the server – on the workout's rest bar and on the 🏋️ bubble of every other page;
+  // counted down here: 3-2-1 short beeps with a buzz, a long beep at the end (the push comes from the server
+  // too, for a phone in a pocket). The sound needs an AudioContext started by a tap – any tap unlocks it.
+  let dmAudio = null;
+  const unlockAudio = () => {
+    try {
+      if (!dmAudio) { const C = window.AudioContext || window.webkitAudioContext; if (C) dmAudio = new C(); }
+      if (dmAudio && dmAudio.state === "suspended") dmAudio.resume();
+    } catch (_) { /* no audio */ }
+  };
+  document.addEventListener("pointerdown", unlockAudio, { capture: true, passive: true });
+  const restBeep = (freq, dur, vol = 0.3) => {
+    if (!dmAudio || dmAudio.state !== "running") return;
+    try {
+      const o = dmAudio.createOscillator(), g = dmAudio.createGain(), t = dmAudio.currentTime;
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g).connect(dmAudio.destination);
+      o.start(t);
+      o.stop(t + dur + 0.02);
+    } catch (_) { /* no audio */ }
+  };
+  const restBuzz = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch (_) { /* not allowed */ } };
+  let restBuzzed = null, restTick = null;
   const tickRest = () => {
-    const bar = document.querySelector("[data-rest-ends]");
-    if (!bar) return;
-    const ends = Number(bar.dataset.restEnds), left = Math.round((ends - Date.now()) / 1000);
-    const out = bar.querySelector(".wo-rest-left");
-    const mmss = (s) => `${Math.floor(Math.abs(s) / 60)}:${String(Math.abs(s) % 60).padStart(2, "0")}`;
-    if (out) out.textContent = left > 0 ? `Przerwa ${mmss(left)}` : `Do roboty! (+${mmss(left)})`;
-    bar.classList.toggle("over", left <= 0);
-    if (left <= 0 && restBuzzed !== ends) {
+    const els = document.querySelectorAll("[data-rest-ends]");
+    if (!els.length) return;
+    const ends = Number(els[0].dataset.restEnds), ms = ends - Date.now();
+    const left = ms > 0 ? Math.ceil(ms / 1000) : Math.floor(-ms / 1000);
+    const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    for (const el of els) {
+      const out = el.querySelector(".wo-rest-left");
+      if (out) out.textContent = ms > 0 ? `Przerwa ${mmss(left)}` : `Do roboty! (+${mmss(left)})`;
+      const b = el.querySelector(".wo-bubble-left");
+      if (b) b.textContent = ms > 0 ? mmss(left) : `+${mmss(left)}`;
+      el.classList.toggle("over", ms <= 0);
+    }
+    if (ms > 0 && left <= 3 && restTick !== `${ends}:${left}`) {
+      restTick = `${ends}:${left}`;
+      restBeep(520, 0.09, 0.25);
+      restBuzz(80);
+    }
+    if (ms <= 0 && restBuzzed !== ends) {
       restBuzzed = ends;
-      if (navigator.vibrate) { try { navigator.vibrate([250, 120, 250]); } catch (_) { /* not allowed */ } }
+      if (ms > -3000) { // not for a rest that ended before the page opened
+        restBeep(880, 0.6, 0.4);
+        restBuzz([250, 120, 250]);
+      }
     }
   };
-  setInterval(tickRest, 1000);
+  setInterval(tickRest, 250);
   document.addEventListener("htmx:afterSettle", tickRest);
+
+  // 🏋️ the bubble: dragged anywhere (the place is kept on this device), a tap goes back to the workout
+  const BUBBLE_KEY = "dm-wo-bubble";
+  const placeBubble = () => {
+    const b = document.querySelector(".wo-bubble");
+    if (!b) return;
+    let pos = null;
+    try { pos = JSON.parse(localStorage.getItem(BUBBLE_KEY) || "null"); } catch (_) { /* no storage */ }
+    if (!pos) return;
+    const r = Math.min(Math.max(pos.r, 4), window.innerWidth - b.offsetWidth - 4);
+    const bt = Math.min(Math.max(pos.b, 4), window.innerHeight - b.offsetHeight - 4);
+    b.style.right = `${r}px`;
+    b.style.bottom = `${bt}px`;
+  };
+  placeBubble();
+  document.addEventListener("htmx:afterSettle", placeBubble);
+  let drag = null;
+  document.addEventListener("pointerdown", (e) => {
+    const b = e.target.closest && e.target.closest(".wo-bubble");
+    if (!b) return;
+    const rect = b.getBoundingClientRect();
+    drag = { b, x: e.clientX, y: e.clientY, dx: e.clientX - rect.left, dy: e.clientY - rect.top, moved: false };
+  });
+  document.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8) return;
+    drag.moved = true;
+    drag.b.classList.add("dragging");
+    const w = drag.b.offsetWidth, h = drag.b.offsetHeight;
+    const left = Math.min(Math.max(e.clientX - drag.dx, 4), window.innerWidth - w - 4);
+    const top = Math.min(Math.max(e.clientY - drag.dy, 4), window.innerHeight - h - 4);
+    drag.b.style.right = `${window.innerWidth - left - w}px`;
+    drag.b.style.bottom = `${window.innerHeight - top - h}px`;
+  });
+  const endDrag = () => {
+    if (!drag) return;
+    const d = drag;
+    drag = null;
+    d.b.classList.remove("dragging");
+    if (!d.moved) return;
+    d.b.dataset.dragged = "1"; // the click that follows the drag does not open the workout
+    try { localStorage.setItem(BUBBLE_KEY, JSON.stringify({ r: parseFloat(d.b.style.right), b: parseFloat(d.b.style.bottom) })); } catch (_) { /* no storage */ }
+  };
+  document.addEventListener("pointerup", endDrag);
+  document.addEventListener("pointercancel", endDrag);
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest(".wo-bubble");
+    if (b && b.dataset.dragged) { delete b.dataset.dragged; e.preventDefault(); e.stopPropagation(); }
+  }, true);
+
+  // ↘ "＋ kolejny drop": one more drop row (at most 5)
+  document.addEventListener("click", (e) => {
+    const add = e.target.closest && e.target.closest("[data-drop-add]");
+    if (!add) return;
+    const rows = add.parentElement.querySelectorAll(".wo-drop-row");
+    const row = rows[0].cloneNode(true);
+    row.querySelectorAll("input").forEach((i) => { i.value = ""; });
+    add.before(row);
+    if (rows.length + 1 >= 5) add.hidden = true;
+    const first = row.querySelector("input");
+    if (first) first.focus();
+  });
+
+  // ⚠ reps far over the plan (20 at 6–10 – a slip of a finger or the wrong row): the field goes red and the
+  // set is saved only on the second tap
+  document.addEventListener("htmx:beforeRequest", (e) => {
+    const form = e.detail.elt;
+    if (!form || !form.matches || !form.matches("form.wo-log, form.wo-round")) return;
+    const odd = [...form.querySelectorAll("input[data-reps-max]")].filter((i) => {
+      const v = Number(i.value), max = Number(i.dataset.repsMax);
+      return max > 0 && v > 2 * max && i.dataset.ok !== i.value;
+    });
+    if (!odd.length) return;
+    e.preventDefault();
+    let msg = form.querySelector(".wo-check");
+    if (!msg) {
+      msg = document.createElement("p");
+      msg.className = "wo-check";
+      msg.setAttribute("role", "alert");
+      const btn = form.querySelector("button[type=submit]");
+      if (form.matches(".wo-round") && btn) btn.before(msg); else form.append(msg);
+    }
+    const i = odd[0];
+    msg.textContent = `${i.value} powt.? Plan: ${i.dataset.repsPlan || i.dataset.repsMax}. Popraw albo dotknij „zapisz” jeszcze raz.`;
+    odd.forEach((x) => { x.classList.add("wo-suspect"); x.dataset.ok = x.value; });
+    i.focus();
+  }, true); // capture: before the "saving…" spinner, which skips a request cancelled here
+  document.addEventListener("input", (e) => {
+    const i = e.target;
+    if (!i.classList || !i.classList.contains("wo-suspect")) return;
+    i.classList.remove("wo-suspect");
+    const form = i.closest("form");
+    const msg = form && form.querySelector(".wo-check");
+    if (msg && !form.querySelector(".wo-suspect")) msg.remove();
+  });
+
   // 👫 training together: #wo-partner is polled; its counts go into the badges by each exercise, and when the
   // partner changed the shared list (data-sig differs) the workout reloads – not while typing a set
   let quietReload = false;

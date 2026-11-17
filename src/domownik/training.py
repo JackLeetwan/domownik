@@ -17,6 +17,7 @@ exercise). The page counts it down; the job every few seconds pushes when it end
 from __future__ import annotations
 
 import functools
+import itertools
 import logging
 import re
 from dataclasses import dataclass, field
@@ -331,6 +332,31 @@ def active(db: Session, user: User) -> Workout | None:
     )
 
 
+@dataclass
+class Bubble:
+    """🏋️ a workout going on today, for the bubble on every other page: where to go back, the rest's end."""
+
+    workout_id: int
+    rest_ms: int | None  # epoch ms of the rest's end (None: no rest running)
+
+
+def bubble(db: Session, user_id: int, today: date) -> Bubble | None:
+    w = db.scalar(
+        select(Workout)
+        .where(Workout.user_id == user_id, Workout.finished_at.is_(None), Workout.day == today)
+        .order_by(Workout.started_at.desc())
+        .limit(1)
+    )
+    if w is None:
+        return None
+    rest_ms = None
+    stale = _now() - timedelta(minutes=10)
+    if w.rest_until is not None and w.rest_until > stale:
+        tz = now().tzinfo
+        rest_ms = int(w.rest_until.replace(tzinfo=tz).timestamp() * 1000)
+    return Bubble(w.id, rest_ms)
+
+
 SAVED_SEED = "z-treningu"  # a plan saved from a workout made up on the spot: started on purpose, not in the cycle
 
 
@@ -446,7 +472,7 @@ def _last_done(db: Session, w: Workout, ex: Exercise) -> WorkoutExercise | None:
     )
     if w.id is not None:
         stmt = stmt.where(Workout.id != w.id)
-    return next((we for we in db.scalars(stmt.limit(20)) if we.done), None)
+    return next((we for we in db.scalars(stmt.limit(20)) if we.work), None)
 
 
 def add_exercise(db: Session, w: Workout, ex: Exercise) -> WorkoutExercise:
@@ -458,7 +484,7 @@ def add_exercise(db: Session, w: Workout, ex: Exercise) -> WorkoutExercise:
     sets, lo, hi, secs, rest = 3, None if timed else 8, None if timed else 12, 30 if timed else None, DEFAULT_REST
     prev = _last_done(db, w, ex)
     if prev is not None:
-        sets = max(prev.sets, len(prev.done))
+        sets = max(prev.sets, len(prev.work))
         if timed:
             secs = prev.seconds or secs
         elif prev.workout.source == "jefit":  # imported: the range is what was done – a usual one from its top
@@ -506,7 +532,7 @@ def save_as_plan(db: Session, w: Workout, name: str) -> WorkoutPlan:
             PlanItem(
                 exercise_id=we.exercise_id,
                 position=i,
-                sets=max(len(we.done), we.sets),
+                sets=max(len(we.work), we.sets),
                 reps_min=we.reps_min,
                 reps_max=we.reps_max,
                 seconds=we.seconds,
@@ -527,7 +553,7 @@ def round_members(w: Workout, group: int | None) -> list[WorkoutExercise]:
     if group is None or w.finished_at is not None:
         return []
     ms = [e for e in w.exercises if e.superset == group]
-    if len(ms) < 2 or len({len(e.done) for e in ms}) != 1 or any(len(e.done) >= e.sets for e in ms):
+    if len(ms) < 2 or len({len(e.work) for e in ms}) != 1 or any(len(e.work) >= e.sets for e in ms):
         return []
     return ms
 
@@ -576,9 +602,21 @@ def log_set(
     reps: int | None,
     seconds: int | None = None,
     at: datetime | None = None,
+    warmup: bool = False,
+    failure: bool = False,
+    drops: list[dict[str, Any]] | None = None,
 ) -> WorkoutSet:
     at = (at or _now()).replace(microsecond=0)
-    s = WorkoutSet(set_no=len(we.done) + 1, weight=weight, reps=reps, seconds=seconds, done_at=at)
+    s = WorkoutSet(
+        set_no=len(we.done) + 1,
+        weight=weight,
+        reps=reps,
+        seconds=seconds,
+        done_at=at,
+        warmup=warmup,
+        failure=failure and not warmup,
+        drops=(drops or None) if not warmup else None,
+    )
     we.done.append(s)
     w = we.workout
     rest = _rest_after(we)
@@ -648,8 +686,8 @@ def last_sets(db: Session, user: User, exercise_id: int, *, before: Workout | No
     if before is not None:
         stmt = stmt.where(Workout.id != before.id, Workout.day <= before.day)
     for we in db.scalars(stmt.limit(20)):
-        if we.done:
-            return list(we.done)
+        if we.work:
+            return we.work
     return []
 
 
@@ -667,6 +705,7 @@ def sets_text(sets: list[WorkoutSet]) -> str:
     parts: list[str] = []
     for s in sets:
         reps = f"{s.seconds} s" if timed else str(s.reps if s.reps is not None else "–")
+        reps += ("🔥" if s.failure else "") + ("↘" if s.drops else "")
         label = f"{fmt_kg(s.weight)} kg × " if s.weight else ""
         if parts and parts[-1][0] == label:
             parts[-1][1].append(reps)
@@ -706,7 +745,13 @@ def suggest(db: Session, user: User, we: WorkoutExercise) -> Suggestion:
     top = max(weights) if weights else None
     work = [s for s in prev if s.weight == top] if top else prev
     lo, hi = we.reps_min, we.reps_max
-    hit = hi is not None and len(work) >= we.sets and all((s.reps or 0) >= hi for s in work)
+    # a set to failure: the top of the range was all there was – no more weight (or reps) yet
+    hit = (
+        hi is not None
+        and len(work) >= we.sets
+        and all((s.reps or 0) >= hi for s in work)
+        and not any(s.failure for s in work)
+    )
     if hit and top and ex.step:
         return Suggestion(weight=top + ex.step, reps=lo, last=sets_text(prev), up=True, note=f"+{fmt_kg(ex.step)} kg")
     if hit:
@@ -741,6 +786,7 @@ def prior_best(db: Session, w: Workout) -> dict[int, float]:
             Workout.user_id == w.user_id,
             Workout.id != w.id,
             WorkoutExercise.exercise_id.in_(ids),
+            WorkoutSet.warmup.is_(False),
             (Workout.day < w.day) | ((Workout.day == w.day) & (Workout.started_at < w.started_at)),
         )
     ).all()
@@ -758,22 +804,50 @@ def records(w: Workout, prior: dict[int, float]) -> dict[int, WorkoutSet]:
     out: dict[int, WorkoutSet] = {}
     for we in w.exercises:
         before = prior.get(we.exercise_id)
-        if not we.done or not before:
+        if not we.work or not before:
             continue
-        top = max(we.done, key=lambda s: score(s, we.exercise))
+        top = max(we.work, key=lambda s: score(s, we.exercise))
         if score(top, we.exercise) > before + 1e-9:
             out[we.id] = top
     return out
 
 
 def set_text(s: WorkoutSet) -> str:
+    """'30 kg × 10 🔥 ↘ 22 kg × 6' – one set with its marks and drops."""
     kg = f"{fmt_kg(s.weight)} kg × " if s.weight else ""
-    return kg + (str(s.reps) if s.reps is not None else f"{s.seconds} s")
+    text = kg + (str(s.reps) if s.reps is not None else f"{s.seconds} s")
+    if s.failure:
+        text += " 🔥"
+    for d in s.drops or []:
+        text += f" ↘ {fmt_kg(d.get('w')) + ' kg × ' if d.get('w') else ''}{d.get('r')}"
+    return text
+
+
+def drop_rows(form, suffix: str = "") -> list[dict[str, Any]]:
+    """↘ the drops of a set from a form: drop_w{suffix} / drop_r{suffix} pairs, the empty ones skipped."""
+    weights, reps = form.getlist(f"drop_w{suffix}"), form.getlist(f"drop_r{suffix}")
+    out = []
+    for w_raw, r_raw in itertools.zip_longest(weights, reps):
+        w_txt, r_txt = str(w_raw or "").strip().replace(",", "."), str(r_raw or "").strip()
+        if not r_txt:
+            continue
+        try:
+            r, w = int(float(r_txt)), float(w_txt) if w_txt else None
+        except ValueError:
+            raise ValueError("Drop set: wpisz liczby") from None
+        if not 0 < r <= 1000 or (w is not None and not 0 <= w <= 1000):
+            raise ValueError("Drop set: powtórzenia od 1, ciężar do 1000")
+        out.append({"w": w, "r": r})
+    return out[:5]
 
 
 def volume(w: Workout) -> float:
-    """kg × reps over the weighted sets, as logged (a dumbbell counts once – the same way every time)."""
-    return sum((s.weight or 0) * (s.reps or 0) for we in w.exercises for s in we.done)
+    """kg × reps over the weighted working sets and their drops, as logged (a dumbbell counts once)."""
+    return sum(
+        (s.weight or 0) * (s.reps or 0) + sum((d.get("w") or 0) * (d.get("r") or 0) for d in s.drops or [])
+        for we in w.exercises
+        for s in we.work
+    )
 
 
 @dataclass
@@ -814,7 +888,7 @@ def summary(db: Session, w: Workout, recs: dict[int, WorkoutSet]) -> Summary:
         )
     return Summary(
         minutes=minutes,
-        sets=sum(len(we.done) for we in w.exercises),
+        sets=sum(len(we.work) for we in w.exercises),
         volume=volume(w),
         prev_volume=volume(prev) if prev else None,
         prev_day=prev.day if prev else None,
@@ -845,10 +919,8 @@ def history(
     rows = db.scalars(stmt.limit(limit) if limit else stmt)
     out = []
     for we in rows:
-        if we.done:
-            out.append(
-                HistoryRow(we.workout.day, list(we.done), max(e1rm(s) for s in we.done), sets_text(list(we.done)))
-            )
+        if we.work:
+            out.append(HistoryRow(we.workout.day, we.work, max(e1rm(s) for s in we.work), sets_text(we.work)))
     return out
 
 
@@ -871,7 +943,12 @@ def best_e1rm(db: Session, user: User) -> dict[int, float]:
         select(WorkoutExercise.exercise_id, func.max(WorkoutSet.weight * (1 + WorkoutSet.reps / 30.0)))
         .join(WorkoutSet.workout_exercise)
         .join(WorkoutExercise.workout)
-        .where(Workout.user_id == user.id, WorkoutSet.weight > 0, WorkoutSet.reps.is_not(None))
+        .where(
+            Workout.user_id == user.id,
+            WorkoutSet.weight > 0,
+            WorkoutSet.reps.is_not(None),
+            WorkoutSet.warmup.is_(False),
+        )
         .group_by(WorkoutExercise.exercise_id)
     ).all()
     return {eid: best for eid, best in rows if best}
@@ -953,21 +1030,21 @@ def next_up(w: Workout) -> WorkoutExercise | None:
     exs = list(w.exercises)
     logged = [we for we in exs if we.done]
     if not logged:
-        return next((we for we in exs if len(we.done) < we.sets), None)
+        return next((we for we in exs if len(we.work) < we.sets), None)
     last = max(logged, key=lambda we: max(s.done_at for s in we.done))
     if last.superset is not None:
         group = [we for we in exs if we.superset == last.superset]
         i = group.index(last)
         ring = group[i + 1 :] + group[: i + 1]
-        open_ = [we for we in ring if len(we.done) < we.sets]
+        open_ = [we for we in ring if len(we.work) < we.sets]
         if open_:
-            fewest = min(len(we.done) for we in open_)
-            return next(we for we in open_ if len(we.done) == fewest)
+            fewest = min(len(we.work) for we in open_)
+            return next(we for we in open_ if len(we.work) == fewest)
         start = exs.index(group[-1]) + 1
     else:
-        start = exs.index(last) if len(last.done) < last.sets else exs.index(last) + 1
+        start = exs.index(last) if len(last.work) < last.sets else exs.index(last) + 1
     for we in exs[start:] + exs[:start]:
-        if len(we.done) < we.sets:
+        if len(we.work) < we.sets:
             return we
     return None
 
@@ -976,7 +1053,7 @@ def _next_up(w: Workout) -> str:
     we = next_up(w)
     if we is None:
         return "Wszystko zrobione – zakończ trening"
-    return f"{we.exercise.name} – seria {len(we.done) + 1}/{we.sets}"
+    return f"{we.exercise.name} – seria {len(we.work) + 1}/{we.sets}"
 
 
 def run_rest(db: Session, at: datetime | None = None) -> int:

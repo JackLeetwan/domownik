@@ -1,0 +1,15 @@
+{# 🌡 / 🔥 / ↘ marks of the set being logged (the round form: one set per exercise, suffix "_<id>").
+   The drop rows show when ↘ is ticked (CSS :has); "＋ kolejny drop" adds a row (app.js, at most 5). #}
+{% macro set_marks(sfx, warmup=true, timed=false) %}
+<div class="wo-marks">
+  {% if warmup %}<label class="wo-chip"><input type="checkbox" name="warmup{{ sfx }}" value="1"> 🌡 rozgrzewka</label>{% endif %}
+  {% if not timed %}
+  <label class="wo-chip"><input type="checkbox" name="failure{{ sfx }}" value="1"> 🔥 do upadku</label>
+  <label class="wo-chip"><input type="checkbox" name="drop{{ sfx }}" value="1" data-drop-toggle> ↘ drop set</label>
+  <div class="wo-drops">
+    <div class="wo-drop-row"><span aria-hidden="true">↘</span><input name="drop_w{{ sfx }}" inputmode="decimal" placeholder="kg" aria-label="Drop: kg" autocomplete="off"><input name="drop_r{{ sfx }}" inputmode="numeric" placeholder="powt." aria-label="Drop: powtórzenia" autocomplete="off"></div>
+    <button type="button" class="link small" data-drop-add>＋ kolejny drop</button>
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}

@@ -273,14 +273,14 @@ def views(w: Workout) -> list[PartnerView]:
             PartnerView(
                 workout_id=o.id,
                 name=o.user.name,
-                done=sum(min(len(x.done), x.sets) for x in o.exercises),
+                done=sum(min(len(x.work), x.sets) for x in o.exercises),
                 total=sum(x.sets for x in o.exercises),
                 finished=o.finished_at is not None,
                 current=nxt.exercise.name if nxt else None,
                 current_slot=nxt.slot if nxt else None,
                 slots={
                     x.slot: SlotView(
-                        x.exercise.name, len(x.done), x.sets, mine.get(x.slot) not in (None, x.exercise_id)
+                        x.exercise.name, len(x.work), x.sets, mine.get(x.slot) not in (None, x.exercise_id)
                     )
                     for x in o.exercises
                     if x.slot is not None

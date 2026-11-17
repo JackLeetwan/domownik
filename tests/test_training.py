@@ -263,7 +263,7 @@ def test_full_flow_on_the_phone(auth_client, db, user):
     assert (
         "Przysiad hiszpański z gumą (spanish squat)" in screen
         and "Superseria A" in screen
-        and "⇄ Zajęte? Zamień" in screen
+        and 'class="wo-swap"' in screen
     )
     # the picture: start and end side by side – the whole movement at a glance
     assert 'class="ex-pic  both"' in screen
@@ -675,3 +675,69 @@ def test_progress_list_and_history_ranges(db, user, fbw, auth_client):
     every = auth_client.get(f"/forma/postepy/{bench.id}?okres=all").text
     assert "pokaż całość" not in every and every.count('class="muted tr-best"') == 3
     assert "🏆" in every
+
+
+def test_set_marks_warmup_failure_drop(auth_client, db, user, fbw):
+    """🌡 a warm-up set is shown but not counted; 🔥 to failure stops "add weight"; ↘ drops stay in one set."""
+    w1 = tr.start(db, user, fbw[0], at=T - timedelta(days=7))
+    bench = next(we for we in w1.exercises if we.exercise.key == "db_bench")
+    tr.log_set(db, bench, weight=10, reps=15, warmup=True, at=T - timedelta(days=7))
+    for i in range(4):
+        tr.log_set(db, bench, weight=20, reps=12, failure=i == 3, at=T - timedelta(days=7))
+    assert len(bench.done) == 5 and len(bench.work) == 4
+    tr.finish(db, w1, T - timedelta(days=7))
+
+    w2 = tr.start(db, user, fbw[0], at=T)
+    bench = next(we for we in w2.exercises if we.exercise.key == "db_bench")
+    s = tr.suggest(db, user, bench)
+    assert s.last == "20 kg × 12, 12, 12, 12🔥"  # no warm-up in "last time"
+    assert (s.weight, s.up) == (20, False)  # the 12 came only to failure – not +2 kg yet
+    db.commit()
+
+    hx = {"HX-Request": "true", "HX-Target": "workout"}
+    url = f"/forma/trening/{w2.id}/cw/{bench.id}/seria"
+    page = auth_client.get(f"/forma/trening/{w2.id}").text
+    assert 'name="failure"' in page and 'name="drop_w"' in page and 'data-reps-max="12"' in page
+    assert f'/cw/{bench.id}/zamien" class="wo-swap"' in page  # ⇄ by the name before the first set
+    auth_client.post(url, data={"weight": "12", "reps": "15", "warmup": "1"}, headers=hx)
+    r = auth_client.post(
+        url,
+        data={"weight": "20", "reps": "10", "drop": "1", "drop_w": ["16", "", "12"], "drop_r": ["6", "", "4"]},
+        headers=hx,
+    )
+    db.expire_all()
+    we = next(x for x in db.get(Workout, w2.id).exercises if x.id == bench.id)
+    warm, work = we.done
+    assert warm.warmup and not work.warmup and we.work == [work]
+    assert work.drops == [{"w": 16.0, "r": 6}, {"w": 12.0, "r": 4}]
+    assert tr.set_text(work) == "20 kg × 10 ↘ 16 kg × 6 ↘ 12 kg × 4"
+    assert "Seria 2/4" in r.text and "rozgrzewka" in r.text
+    assert f'/cw/{bench.id}/zamien" class="wo-swap"' not in r.text
+    # drops without the ↘ toggle are ignored; a drop with letters is an error
+    auth_client.post(url, data={"weight": "20", "reps": "10", "drop_w": "16", "drop_r": "6"}, headers=hx)
+    db.expire_all()
+    assert next(x for x in db.get(Workout, w2.id).exercises if x.id == bench.id).done[-1].drops is None
+    r = auth_client.post(url, data={"reps": "10", "drop": "1", "drop_r": "x"}, headers=hx)
+    assert "Drop set" in r.text
+
+
+def test_warmup_not_a_record(db, user, fbw):
+    w1 = tr.start(db, user, fbw[0], at=T - timedelta(days=7))
+    _do(db, w1, {"db_bench": [(20, 10)]}, at=T - timedelta(days=7))
+    tr.finish(db, w1, T - timedelta(days=7))
+    w2 = tr.start(db, user, fbw[0], at=T)
+    bench = next(we for we in w2.exercises if we.exercise.key == "db_bench")
+    tr.log_set(db, bench, weight=30, reps=10, warmup=True, at=T)
+    tr.log_set(db, bench, weight=20, reps=8, at=T)
+    assert tr.records(w2, tr.prior_best(db, w2)) == {}
+    assert tr.summary(db, w2, {}).sets == 1
+
+
+def test_workout_bubble_on_other_pages(auth_client, db, user):
+    w = tr.start(db, user, None)
+    db.commit()
+    assert 'class="wo-bubble"' in auth_client.get("/notatki").text
+    assert 'class="wo-bubble"' not in auth_client.get(f"/forma/trening/{w.id}").text
+    tr.finish(db, w)
+    db.commit()
+    assert 'class="wo-bubble"' not in auth_client.get("/notatki").text
