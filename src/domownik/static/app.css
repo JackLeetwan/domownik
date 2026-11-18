@@ -2178,3 +2178,11 @@ input.wo-suspect { border-color: var(--dm-overdue) !important; box-shadow: 0 0 0
 /* ---- the text of a note being written: tall from the start (with the keyboard up ~half of what is left),
    growing with the text – no scrolling inside a three-line box */
 textarea.note-input { min-height: max(9rem, 40dvh); field-sizing: content; resize: vertical; line-height: 1.45; }
+
+/* ⏱ the rest after an exercise, changed in place during the workout */
+.wo-rest-edit { margin: 0.15rem 0 0; }
+.wo-rest-edit > summary { display: inline; font-size: 0.85rem; color: var(--pico-muted-color); cursor: pointer; list-style: none; }
+.wo-rest-edit > summary::-webkit-details-marker { display: none; }
+.wo-rest-edit > summary::after { content: " ✎"; opacity: 0.7; float: none; display: inline; width: auto; height: auto; margin: 0; background-image: none; transform: none; }
+.wo-rest-edit-btns { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
+.wo-rest-edit-btns button { width: auto; margin: 0; padding: 0.25rem 0.6rem; }

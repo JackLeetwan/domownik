@@ -741,3 +741,45 @@ def test_workout_bubble_on_other_pages(auth_client, db, user):
     tr.finish(db, w)
     db.commit()
     assert 'class="wo-bubble"' not in auth_client.get("/notatki").text
+
+
+def test_exercise_rest_in_place(db, user, fbw):
+    w = tr.start(db, user, fbw[0], at=T)
+    squat, pull, bench = w.exercises[0], w.exercises[1], w.exercises[2]
+    assert not tr.rest_holder(squat) and tr.rest_holder(pull) and tr.rest_holder(bench)
+    tr.set_exercise_rest(db, bench, 15)
+    tr.set_exercise_rest(db, bench, 15)
+    assert bench.rest_seconds == 120 and tr.plan_item_for(bench).rest_seconds == 90  # this workout only
+    tr.log_set(db, bench, weight=20, reps=10, at=T)
+    assert w.rest_until == T + timedelta(seconds=120)
+    tr.set_exercise_rest(db, bench, 0, to_plan=True)  # 📌 into the plan
+    assert tr.plan_item_for(bench).rest_seconds == 120
+    tr.set_exercise_rest(db, bench, -15 * 100)
+    assert bench.rest_seconds == 0
+
+
+def test_exercise_rest_on_the_screen(auth_client, db, user):
+    auth_client.get("/forma")  # seeds the plans
+    plan = tr.plans(db)[0]
+    r = _post(auth_client, "/forma/trening", {"plan_id": str(plan.id)})
+    wid = int(r.headers["location"].rsplit("/", 1)[1])
+    w = db.get(Workout, wid)
+    bench = next(we for we in w.exercises if we.exercise.key == "db_bench")
+    squat = w.exercises[0]  # first of a superset – its rest is not the one after it
+    screen = auth_client.get(f"/forma/trening/{wid}").text
+    art = screen.split(f'id="we{bench.id}"', 1)[1].split("</article>", 1)[0]
+    assert '<details class="wo-rest-edit">' in art and "⏱ przerwa 90 s" in art and "📌" not in art
+    first = screen.split(f'id="we{squat.id}"', 1)[1].split("</article>", 1)[0]
+    assert "wo-rest-edit" not in first
+    hx = {"HX-Request": "true", "HX-Target": "workout"}
+    url = f"/forma/trening/{wid}/cw/{bench.id}/przerwa"
+    r = auth_client.post(url + "?o=15", headers=hx)
+    art = r.text.split(f'id="we{bench.id}"', 1)[1].split("</article>", 1)[0]
+    assert '<details class="wo-rest-edit" open>' in art and "⏱ przerwa 105 s" in art and "(w planie 90 s)" in art
+    assert "📌 105 s na stałe w planie" in art
+    auth_client.post(url + "?o=40", headers=hx)  # only ±15
+    auth_client.post(url + "?plan=1", headers=hx)
+    db.refresh(bench)
+    item = tr.plan_item_for(bench)
+    db.refresh(item)
+    assert bench.rest_seconds == 105 and item.rest_seconds == 105

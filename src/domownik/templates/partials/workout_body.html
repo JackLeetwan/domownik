@@ -71,7 +71,17 @@
       {% if not we.done and not w.finished_at %}<a href="/forma/trening/{{ w.id }}/cw/{{ we.id }}/zamien" class="wo-swap" aria-label="Zamień ćwiczenie: {{ ex.name }}" title="Zajęte? Zamień na inne"><span aria-hidden="true">⇄</span><small>Zamień</small></a>{% endif %}
       <div class="wo-ex-title"><h2>{% if r.complete %}✓ {% endif %}{{ ex.name }}</h2>
       {% for pid, name, slots in partner_slots %}{% set sv = slots.get(we.slot) %}{% if sv %}<span class="wo-partner-badge{% if sv.done >= sv.sets %} done{% endif %}" data-badge="{{ pid }}-{{ we.slot }}">{{ name }}{% if sv.other_exercise %}: {{ sv.name }}{% endif %} {{ sv.text }}</span>{% endif %}{% endfor %}
-      <small class="muted">{{ we.sets }} × {% if ex.kind == 'time' %}{{ we.seconds or 30 }} s{% elif we.reps_min and we.reps_max and we.reps_min != we.reps_max %}{{ we.reps_min }}–{{ we.reps_max }}{% else %}{{ we.reps_max or we.reps_min or '?' }}{% endif %}{% if we.rest_seconds %} · przerwa {{ we.rest_seconds }} s{% endif %}{% if we.swapped_from %} · zamiast: {{ we.swapped_from.name }}{% endif %}</small></div>
+      <small class="muted">{{ we.sets }} × {% if ex.kind == 'time' %}{{ we.seconds or 30 }} s{% elif we.reps_min and we.reps_max and we.reps_min != we.reps_max %}{{ we.reps_min }}–{{ we.reps_max }}{% else %}{{ we.reps_max or we.reps_min or '?' }}{% endif %}{% if we.rest_seconds and (w.finished_at or not r.rest_here) %} · przerwa {{ we.rest_seconds }} s{% endif %}{% if we.swapped_from %} · zamiast: {{ we.swapped_from.name }}{% endif %}</small>
+      {% if r.rest_here and not w.finished_at %}
+      <details class="wo-rest-edit"{% if rest_open == we.id %} open{% endif %}>
+        <summary class="small" aria-label="Zmień przerwę po {{ ex.name }}">⏱ przerwa {{ we.rest_seconds }} s{% if r.plan_rest is not none and r.plan_rest != we.rest_seconds %} <small class="muted">(w planie {{ r.plan_rest }} s)</small>{% endif %}</summary>
+        <span class="wo-rest-edit-btns">
+          <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/przerwa?o=-15" hx-target="#workout" hx-swap="outerHTML" aria-label="Przerwa po {{ ex.name }} krócej o 15 sekund">−15 s</button>
+          <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/przerwa?o=15" hx-target="#workout" hx-swap="outerHTML" aria-label="Przerwa po {{ ex.name }} dłużej o 15 sekund">+15 s</button>
+          {% if r.plan_rest is not none and r.plan_rest != we.rest_seconds %}<button type="button" class="small outline" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/przerwa?plan=1" hx-target="#workout" hx-swap="outerHTML" title="Następny trening z tego planu zacznie z {{ we.rest_seconds }} s">📌 {{ we.rest_seconds }} s na stałe w planie</button>{% endif %}
+        </span>
+      </details>
+      {% endif %}</div>
     </div>
     {% if r.sug.last or r.sug.note %}
     <p class="wo-hint">

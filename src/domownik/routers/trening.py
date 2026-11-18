@@ -181,6 +181,9 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
                 "can_link": (f := tr.following(w, we)) is not None
                 and (we.superset is None or f.superset != we.superset),
                 "ss_last": we.superset is not None and (f is None or f.superset != we.superset),
+                # ⏱ the rest after it is this one's (inside a superset: the last one's) – editable in place
+                "rest_here": tr.rest_holder(we),
+                "plan_rest": (it.rest_seconds if (it := tr.plan_item_for(we)) is not None else None),
             }
         )
     rest_ms = None
@@ -230,8 +233,8 @@ def _together(db: Session, user: User, w: Workout) -> dict:
     }
 
 
-def _show(request: Request, db: Session, user: User, w: Workout, errors: dict | None = None):
-    ctx = _screen(db, user, w, errors)
+def _show(request: Request, db: Session, user: User, w: Workout, errors: dict | None = None, **extra):
+    ctx = _screen(db, user, w, errors) | extra
     if is_htmx(request) and request.headers.get("hx-target") == "workout":
         return render(request, "partials/workout_body.html", ctx)
     return render(request, "workout.html", ctx)
@@ -421,6 +424,25 @@ def change_rest(
         tr.adjust_rest(db, w, o)
         db.commit()
     return _show(request, db, user, w)
+
+
+@router.post("/trening/{workout_id:int}/cw/{we_id:int}/przerwa", dependencies=[Depends(verify_csrf)])
+def change_exercise_rest(
+    workout_id: int,
+    we_id: int,
+    request: Request,
+    o: int = 0,
+    plan: int = 0,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """⏱ −15 s / +15 s on one exercise during the workout; plan=1 (📌) also into the plan."""
+    w = _workout(db, user, workout_id)
+    we = _we(w, we_id)
+    if w.finished_at is None and (o in (-tr.REST_STEP, tr.REST_STEP) or (o == 0 and plan)):
+        tr.set_exercise_rest(db, we, o, to_plan=bool(plan))
+        db.commit()
+    return _show(request, db, user, w, rest_open=we.id)  # stays open for the next tap
 
 
 @router.post("/trening/{workout_id:int}/cw/{we_id:int}/superseria", dependencies=[Depends(verify_csrf)])

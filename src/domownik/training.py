@@ -588,10 +588,7 @@ def unlink_superset(db: Session, w: Workout, group: int | None) -> None:
 
 def _rest_after(we: WorkoutExercise) -> int:
     """Inside a superset the rest comes after its last exercise; until then straight to the partner."""
-    if we.superset is None:
-        return we.rest_seconds
-    partners = [e for e in we.workout.exercises if e.superset == we.superset]
-    return we.rest_seconds if partners and partners[-1].id == we.id else 0
+    return we.rest_seconds if rest_holder(we) else 0
 
 
 def log_set(
@@ -629,6 +626,33 @@ def log_set(
 
 
 REST_STEP = 15
+
+
+def rest_holder(we: WorkoutExercise) -> bool:
+    """Whether this exercise's rest_seconds is the rest that comes after it (inside a superset only the last one's)."""
+    if we.superset is None:
+        return True
+    partners = [e for e in we.workout.exercises if e.superset == we.superset]
+    return bool(partners) and partners[-1].id == we.id
+
+
+def plan_item_for(we: WorkoutExercise) -> PlanItem | None:
+    """The plan's item this exercise came from – by the exercise, or by the one it was swapped from."""
+    plan = we.workout.plan
+    if plan is None:
+        return None
+    ids = {we.exercise_id, we.swapped_from_id} - {None}
+    return next((it for it in plan.items if it.exercise_id in ids), None)
+
+
+def set_exercise_rest(db: Session, we: WorkoutExercise, delta: int, *, to_plan: bool = False) -> None:
+    """⏱ −15 s / +15 s on an exercise during the workout, before its rest starts: its next rests in this workout
+    get the new length; 📌 also writes it into the plan, so the next workout from it starts with it."""
+    if delta:
+        we.rest_seconds = min(900, max(0, (we.rest_seconds or 0) + delta))
+    if to_plan and (it := plan_item_for(we)) is not None:
+        it.rest_seconds = we.rest_seconds
+    db.flush()
 
 
 def adjust_rest(db: Session, w: Workout, delta: int, at: datetime | None = None) -> None:
