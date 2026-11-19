@@ -867,7 +867,7 @@ def plan_add(plan_id: int, exercise_id: int, db: Session = Depends(get_db), user
         reps_min=None if timed else 8,
         reps_max=None if timed else 12,
         seconds=30 if timed else None,
-        rest_seconds=tr.DEFAULT_REST,
+        rest_seconds=tr.suggested_rest(ex),
     )
     p.items.append(it)
     db.commit()

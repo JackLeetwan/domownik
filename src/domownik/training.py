@@ -50,6 +50,37 @@ REST_PUSH_LATE = timedelta(minutes=2)  # a server back later does not push about
 NUDGE_HOUR = 17  # "4 dni bez treningu" goes out at this hour
 DEFAULT_REST = 90
 
+# ⏱ Suggested rest between sets, for muscle mass in 8–20 reps. Longer than 60 s helps a little, beyond ~90 s
+# the gain levels off (Singer, Wolf, Schoenfeld et al. 2024, Bayesian meta-analysis); heavy multi-joint
+# lifts need more to keep the reps of the next set (Schoenfeld 2016: 3 min > 1 min) – so by the movement:
+COMPOUND = {"squat", "hinge", "lunge", "push_h", "push_v", "pull_h", "pull_v"}
+SMALL = {"lateral", "rear_delt", "calves", "core_flex", "core_static"}  # small muscles, short sets: 60 s
+
+
+def suggested_rest(ex: Exercise) -> int:
+    """Seconds of rest after a set of this exercise: heavy barbell squat / deadlift 3 min, other barbell
+    compounds 2½, compounds with dumbbells, machines, cables or a bar 2, bodyweight / band 1½;
+    isolation 1½ (small muscles and the core 1); a hip thrust counts as a compound, mobility ½."""
+    if ex.pattern == "mobility":
+        return 30
+    if ex.pattern in COMPOUND or (ex.pattern == "glute" and "thrust" in (ex.key or "")):
+        if ex.equipment == "barbell":
+            return 180 if ex.pattern in ("squat", "hinge") else 150
+        return 90 if ex.equipment in ("bodyweight", "band") else 120
+    return 60 if ex.pattern in SMALL or ex.pattern == "glute" else 90
+
+
+def superset_rests(items) -> None:
+    """Inside a superset the rest comes after the round – as long as its most demanding exercise needs."""
+    groups: dict[int, list] = {}
+    for it in items:
+        if it.superset is not None:
+            groups.setdefault(it.superset, []).append(it)
+    for members in groups.values():
+        top = max(m.rest_seconds for m in members)
+        for m in members:
+            m.rest_seconds = top
+
 
 def _now() -> datetime:
     return now().replace(tzinfo=None)
@@ -262,10 +293,11 @@ def seed_plans(db: Session) -> list[WorkoutPlan]:
                     reps_min=lo,
                     reps_max=hi,
                     seconds=it.get("seconds"),
-                    rest_seconds=it.get("rest", DEFAULT_REST),
+                    rest_seconds=it.get("rest") or suggested_rest(by_key[it["ex"]]),
                     superset=it.get("superset"),
                 )
             )
+        superset_rests([i for i in plan.items if "rest" not in p["items"][i.position]])
         db.add(plan)
         out.append(plan)
     db.flush()
@@ -481,7 +513,8 @@ def add_exercise(db: Session, w: Workout, ex: Exercise) -> WorkoutExercise:
     the first time 3 × 8–12."""
     top = max((e.position for e in w.exercises), default=-1)
     timed = ex.kind == "time"
-    sets, lo, hi, secs, rest = 3, None if timed else 8, None if timed else 12, 30 if timed else None, DEFAULT_REST
+    sets, lo, hi, secs = 3, None if timed else 8, None if timed else 12, 30 if timed else None
+    rest = suggested_rest(ex)
     prev = _last_done(db, w, ex)
     if prev is not None:
         sets = max(prev.sets, len(prev.work))

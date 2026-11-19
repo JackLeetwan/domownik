@@ -179,19 +179,19 @@ def test_rest_and_superset(db, user, fbw):
     tr.log_set(db, squat, weight=None, reps=20, at=T)
     assert w.rest_until is None  # straight to the partner of the superset
     tr.log_set(db, pull, weight=None, reps=10, at=T)
-    assert w.rest_until == T + timedelta(seconds=90)
+    assert w.rest_until == T + timedelta(seconds=120)
     # ±s: the current rest moves and the exercise keeps the new length (the plan does not change)
     w.rest_pushed = True
     tr.adjust_rest(db, w, 30, at=T + timedelta(seconds=10))
-    assert w.rest_until == T + timedelta(seconds=120) and pull.rest_seconds == 120 and not w.rest_pushed
+    assert w.rest_until == T + timedelta(seconds=150) and pull.rest_seconds == 150 and not w.rest_pushed
     tr.adjust_rest(db, w, -30, at=T + timedelta(seconds=10))
     tr.adjust_rest(db, w, -30, at=T + timedelta(seconds=10))
-    assert w.rest_until == T + timedelta(seconds=60) and pull.rest_seconds == 60
-    tr.adjust_rest(db, w, -30, at=T + timedelta(seconds=50))  # never into the past: the rest is over now
+    assert w.rest_until == T + timedelta(seconds=90) and pull.rest_seconds == 90
+    tr.adjust_rest(db, w, -60, at=T + timedelta(seconds=50))  # never into the past: the rest is over now
     assert w.rest_until == T + timedelta(seconds=50)
     tr.adjust_rest(db, w, 30, at=T + timedelta(seconds=70))  # ran out → +30 s from now
     assert w.rest_until == T + timedelta(seconds=100) and pull.rest_seconds == 60
-    assert all(it.rest_seconds == 90 for it in fbw[0].items if it.superset)
+    assert all(it.rest_seconds == 120 for it in fbw[0].items if it.superset == 1)
     backfill = tr.start(db, user, fbw[1], day=D - timedelta(days=1), at=T)
     tr.log_set(db, backfill.exercises[0], weight=20, reps=12, at=T)
     assert backfill.rest_until is None  # an old day typed in later has no rest
@@ -202,8 +202,8 @@ def test_rest_push(db, user, fbw, sent):
     w = tr.start(db, user, fbw[0], at=T)
     tr.log_set(db, w.exercises[2], weight=20, reps=12, at=T)
     db.commit()
-    assert tr.run_rest(db, T + timedelta(seconds=89)) == 0
-    assert tr.run_rest(db, T + timedelta(seconds=90)) == 1
+    assert tr.run_rest(db, T + timedelta(seconds=119)) == 0  # dumbbell bench: 2 min
+    assert tr.run_rest(db, T + timedelta(seconds=120)) == 1
     assert sent[0]["title"] == "⏱ Koniec przerwy"
     assert sent[0]["body"] == "Wyciskanie hantli na ławce płaskiej – seria 2/4"
     assert tr.run_rest(db, T + timedelta(seconds=120)) == 0
@@ -625,7 +625,9 @@ def test_added_on_the_spot_takes_the_last_range(db, user, fbw):
     tr.log_set(db, jw, weight=40, reps=15, at=T - timedelta(days=30))
     db.commit()
     got = tr.add_exercise(db, w, _ex(db, "lat_pulldown"))
-    assert (got.reps_min, got.reps_max) == tr.range_for(15) and got.rest_seconds == tr.DEFAULT_REST
+    assert (got.reps_min, got.reps_max) == tr.range_for(15) and got.rest_seconds == tr.suggested_rest(
+        _ex(db, "lat_pulldown")
+    )
 
 
 def test_records_summary_and_folding(db, user, fbw, auth_client):
@@ -749,11 +751,11 @@ def test_exercise_rest_in_place(db, user, fbw):
     assert not tr.rest_holder(squat) and tr.rest_holder(pull) and tr.rest_holder(bench)
     tr.set_exercise_rest(db, bench, 15)
     tr.set_exercise_rest(db, bench, 15)
-    assert bench.rest_seconds == 120 and tr.plan_item_for(bench).rest_seconds == 90  # this workout only
+    assert bench.rest_seconds == 150 and tr.plan_item_for(bench).rest_seconds == 120  # this workout only
     tr.log_set(db, bench, weight=20, reps=10, at=T)
-    assert w.rest_until == T + timedelta(seconds=120)
+    assert w.rest_until == T + timedelta(seconds=150)
     tr.set_exercise_rest(db, bench, 0, to_plan=True)  # 📌 into the plan
-    assert tr.plan_item_for(bench).rest_seconds == 120
+    assert tr.plan_item_for(bench).rest_seconds == 150
     tr.set_exercise_rest(db, bench, -15 * 100)
     assert bench.rest_seconds == 0
 
@@ -768,18 +770,31 @@ def test_exercise_rest_on_the_screen(auth_client, db, user):
     squat = w.exercises[0]  # first of a superset – its rest is not the one after it
     screen = auth_client.get(f"/forma/trening/{wid}").text
     art = screen.split(f'id="we{bench.id}"', 1)[1].split("</article>", 1)[0]
-    assert '<details class="wo-rest-edit">' in art and "⏱ przerwa 90 s" in art and "📌" not in art
+    assert '<details class="wo-rest-edit">' in art and "⏱ przerwa 120 s" in art and "📌" not in art
     first = screen.split(f'id="we{squat.id}"', 1)[1].split("</article>", 1)[0]
     assert "wo-rest-edit" not in first
     hx = {"HX-Request": "true", "HX-Target": "workout"}
     url = f"/forma/trening/{wid}/cw/{bench.id}/przerwa"
     r = auth_client.post(url + "?o=15", headers=hx)
     art = r.text.split(f'id="we{bench.id}"', 1)[1].split("</article>", 1)[0]
-    assert '<details class="wo-rest-edit" open>' in art and "⏱ przerwa 105 s" in art and "(w planie 90 s)" in art
-    assert "📌 105 s na stałe w planie" in art
+    assert '<details class="wo-rest-edit" open>' in art and "⏱ przerwa 135 s" in art and "(w planie 120 s)" in art
+    assert "📌 135 s na stałe w planie" in art
     auth_client.post(url + "?o=40", headers=hx)  # only ±15
     auth_client.post(url + "?plan=1", headers=hx)
     db.refresh(bench)
     item = tr.plan_item_for(bench)
     db.refresh(item)
-    assert bench.rest_seconds == 105 and item.rest_seconds == 105
+    assert bench.rest_seconds == 135 and item.rest_seconds == 135
+
+
+def test_suggested_rest(db, fbw):
+    rest = {it.exercise.key: it.rest_seconds for it in fbw[0].items + fbw[1].items + fbw[2].items}
+    assert rest["db_bench"] == 120 and rest["bb_row"] == 150 and rest["db_sldl"] == 120
+    assert rest["lateral_raise"] == 60 and rest["skull_crusher"] == 90
+    assert rest["spanish_squat"] == rest["pull_up"] == 120  # superset: the longest of the round
+    assert rest["plank"] == rest["db_calf"] == 60
+    assert rest["hip_thrust"] == rest["db_close_press"] == 150  # barbell hip thrust
+    duo = {it.exercise.key: it.rest_seconds for it in fbw[3].items}
+    assert duo["db_curl"] == duo["rope_pushdown"] == 60  # set in the catalog by hand
+    assert tr.suggested_rest(_ex(db, "back_squat")) == 180 and tr.suggested_rest(_ex(db, "push_up")) == 90
+    assert tr.suggested_rest(_ex(db, "hip_abduction")) == 60
