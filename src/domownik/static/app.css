@@ -1036,6 +1036,8 @@ select[name=remind_minutes]:disabled { opacity: 0.5; }
 .bud-entry.st-overdue { border-left-color: var(--dm-overdue); }
 .bud-entry.st-expected { border-left-color: var(--dm-soon); }
 .bud-entry.st-tx { border-left-color: var(--dm-later); }
+.bud-parts { grid-column: 1 / -1; margin-top: 0.2rem; }
+.bud-parts .bud-entry { font-size: 0.85rem; border-left-color: var(--dm-done); }
 .bud-entry-date { grid-area: date; font-size: 0.8rem; color: var(--pico-muted-color); white-space: nowrap; }
 .bud-entry-txt { grid-area: txt; display: flex; flex-direction: column; min-width: 0; }
 .bud-entry-txt strong { font-weight: 600; overflow-wrap: anywhere; }

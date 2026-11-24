@@ -481,3 +481,24 @@ def test_migration_0009_up_and_down(tmp_path):
             assert conn.execute(sa.text('SELECT budget_category_id, income_id FROM "transaction"')).one() == (1, None)
             command.downgrade(cfg, "d8618a23c9a7")
             assert conn.execute(sa.text('SELECT count(*) FROM "transaction"')).scalar() == 1
+
+
+def test_income_received_in_two_transfers_is_one_received_entry(auth_client, db):
+    cat = _cat(db, "Pensje", "income")
+    inc = RecurringIncome(
+        name="Faktura", amount_gr=1705000, day=9, budget_category_id=cat.id, starts_on=date(2026, 1, 1)
+    )
+    db.add(inc)
+    db.flush()
+    first, _ = budget.month_bounds(today().year, today().month)
+    for amount, note in ((1227905, "Przelew na wspólne konto"), (231670, "Reszta na drugim koncie")):
+        db.add(Transaction(booked_on=first, amount_gr=amount, budget_category_id=cat.id, income_id=inc.id, note=note))
+    db.commit()
+    ln = _month(db, today().year, today().month, today()).line(cat.id)
+    (entry,) = ln.entries
+    assert entry.status == "received" and entry.actual_gr == 1459575
+    assert ln.loose_txs == [] and ln.actual_gr == 1459575
+    assert ln.forecast_gr == 1459575  # what came in, not the plan
+    page = auth_client.get("/budzet").text
+    assert "Przelew na wspólne konto" in page and "Reszta na drugim koncie" in page and "2 wpłaty" in page
+    assert "Zaksięgowane poza planem" not in page and "✓ Wpłynęło" not in page

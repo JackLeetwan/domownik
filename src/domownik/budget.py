@@ -74,12 +74,18 @@ class Entry:
     completion: Completion | None = None
     tx: Transaction | None = None  # the transaction that settled it (task payment / income confirmation)
     source: RecurringIncome | None = None
+    # an income that came in several transfers (the salary: part to the joint account, part left on another)
+    more_txs: list[Transaction] = field(default_factory=list)
+
+    @property
+    def txs(self) -> list[Transaction]:
+        return [self.tx, *self.more_txs] if self.tx is not None else []
 
     @property
     def actual_gr(self) -> int | None:
         if self.tx is None:
             return None
-        return abs(self.tx.amount_gr)
+        return sum(abs(t.amount_gr) for t in self.txs)
 
     @property
     def settled(self) -> bool:
@@ -130,7 +136,8 @@ class CategoryLine:
         covered = self.limit_gr
         for e in self.entries:
             if e.settled and e.tx is not None:
-                entries += e.actual_gr if id(e.tx) in booked else 0  # booked in another category – counted there
+                # one booked in another category is counted there
+                entries += sum(abs(t.amount_gr) for t in e.txs if id(t) in booked)
             elif e.settled:
                 covered += e.planned_gr
             else:
@@ -149,7 +156,7 @@ class CategoryLine:
     @property
     def loose_txs(self) -> list[Transaction]:
         """Transactions not shown at a planned entry (manual expenses, shopping, unplanned costs)."""
-        linked = {id(e.tx) for e in self.entries if e.tx is not None}
+        linked = {id(t) for e in self.entries for t in e.txs}
         return [t for t in self.txs if id(t) not in linked]
 
     @property
@@ -339,10 +346,10 @@ def compute_month(db: Session, year: int, month: int, today: date, tree: Tree | 
 
     txs = month_transactions(db, first, last)
     tx_by_comp = {t.completion_id: t for t in txs if t.completion_id}
-    tx_by_income: dict[int, Transaction] = {}
+    tx_by_income: dict[int, list[Transaction]] = {}
     for t in txs:
         if t.income_id:
-            tx_by_income.setdefault(t.income_id, t)
+            tx_by_income.setdefault(t.income_id, []).append(t)
         line_for(t.budget_category_id, t.amount_gr > 0 if t.budget_category_id is None else False).txs.append(t)
 
     visible = Tree.load(db).visible()  # tasks of archived items are not planned (like on the dashboard)
@@ -426,16 +433,17 @@ def compute_month(db: Session, year: int, month: int, today: date, tree: Tree | 
     for inc in db.scalars(select(RecurringIncome).order_by(RecurringIncome.sort_order, RecurringIncome.id)):
         if not inc.expected_in(first, last):
             continue
-        tx = tx_by_income.get(inc.id)
+        got = tx_by_income.get(inc.id, [])
         line_for(inc.budget_category_id, True).entries.append(
             Entry(
                 date=day_in_month(year, month, inc.day),
                 title=inc.name,
                 planned_gr=inc.amount_gr,
                 income=True,
-                status="received" if tx is not None else "expected",
-                tx=tx,
+                status="received" if got else "expected",
+                tx=got[0] if got else None,
                 source=inc,
+                more_txs=got[1:],
             )
         )
 

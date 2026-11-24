@@ -23,7 +23,7 @@
     {% else %}<strong>{{ e.title }}</strong>{% endif %}
     <small class="muted">
       {% if e.status == 'paid' %}zapłacone {{ e.completion.done_on|d }}{% if e.completion.performed_by_id is none %} automatycznie{% endif %}
-      {% elif e.status == 'received' %}{% if e.task %}wpłynęło {{ e.completion.done_on|d }}{% else %}wpłynęło {{ e.tx.booked_on|d }}{% endif %}
+      {% elif e.status == 'received' %}{% if e.task %}wpłynęło {{ e.completion.done_on|d }}{% else %}wpłynęło {{ e.tx.booked_on|d }}{% if e.more_txs %} · {{ e.txs|length }} wpłaty{% endif %}{% endif %}
       {% elif e.status == 'done' %}zrobione {{ e.completion.done_on|d }}, bez kwoty
       {% elif e.status == 'overdue' %}<span class="badge overdue">po terminie</span>
       {% elif e.status == 'auto' %}zapłaci się automatycznie
@@ -48,6 +48,8 @@
     <button type="submit" class="small">✓ Wpłynęło</button>
     <div id="inc-error-{{ e.source.id }}"></div>
   </form>
+  {% elif e.more_txs %}
+  <ul class="bud-entries bud-parts">{% for t in e.txs %}{{ tx_row(t) }}{% endfor %}</ul>
   {% elif e.tx %}
   <span class="bud-entry-act">
     {{ amount_form(e.tx) }}
@@ -115,12 +117,12 @@
     </details></div>
     {% endif %}
     {% if ln.entries %}
-    <h4 class="bud-sub">{{ 'Oczekiwane' if ln.income else 'Zaplanowane' }}</h4>
+    <h4 class="bud-sub">{{ 'Z planu: dochody stałe' if ln.income else 'Z planu: terminy zadań' }}</h4>
     <ul class="bud-entries">{% for e in ln.entries %}{{ entry_row(e, ln) }}{% endfor %}</ul>
     {% endif %}
     {% set loose = ln.loose_txs %}
     {% if loose %}
-    <h4 class="bud-sub">Wpisy</h4>
+    <h4 class="bud-sub">Zaksięgowane poza planem</h4>
     <ul class="bud-entries">{% for tx in loose %}{{ tx_row(tx) }}{% endfor %}</ul>
     {% endif %}
     {% if not ln.entries and not loose %}<p class="muted"><small>Nic w tym miesiącu.</small></p>{% endif %}
