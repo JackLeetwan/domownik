@@ -198,6 +198,32 @@ def test_limit_adds_to_planned_dates_and_totals(db):
     assert b.remaining_gr == 100000 - 45000
 
 
+def test_forecast_takes_what_a_paid_entry_really_cost(db, user):
+    item = _item(db)
+    cat = _cat(db, "Przedszkole", "fixed", limit=10000)
+    inc_cat = _cat(db, "Pensje", "income")
+    paid = _task(db, item, "Czesne", {"mode": "monthly", "day": 2}, date(2026, 11, 2), 140000, cat)
+    _task(db, item, "Obiady", {"mode": "monthly", "day": 20}, date(2026, 11, 20), 30000, cat)
+    services.complete_task(
+        db, paid, user=user, done_on=date(2026, 11, 2), amount_gr=114614, km=None, vendor=None, notes=None
+    )
+    db.add(
+        RecurringIncome(
+            name="Pensja", amount_gr=100000, day=1, budget_category_id=inc_cat.id, starts_on=date(2026, 1, 1)
+        )
+    )
+    db.add(Transaction(booked_on=date(2026, 11, 3), amount_gr=-4000, budget_category_id=cat.id))
+    db.commit()
+    ln = _month(db, *NOV).line(cat.id)
+    assert ln.plan_gr == 180000  # the plan stays as planned
+    assert ln.forecast_gr == 114614 + 30000 + 10000  # paid cheaper + still open + the limit (4 000 spent within it)
+    db.add(Transaction(booked_on=date(2026, 11, 4), amount_gr=-20000, budget_category_id=cat.id))
+    db.commit()
+    b = _month(db, *NOV)
+    assert b.line(cat.id).forecast_gr == 114614 + 30000 + 24000  # beyond the limit – what was spent
+    assert b.remaining_gr == 100000 - (114614 + 30000 + 24000)
+
+
 def test_task_without_category_is_not_lost_and_can_be_assigned(db, user):
     item = _item(db, "Auto 1", "car")
     samochody = _cat(db, "Samochody", "planned")
