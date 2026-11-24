@@ -224,6 +224,22 @@ def test_forecast_takes_what_a_paid_entry_really_cost(db, user):
     assert b.remaining_gr == 100000 - (114614 + 30000 + 24000)
 
 
+def test_forecast_does_not_count_twice_an_entry_ticked_off_without_amount(db, user):
+    item = _item(db)
+    cat = _cat(db, "Zajęcia", "fixed")
+    task = _task(db, item, "Piłka", {"mode": "monthly", "day": 6}, date(2026, 11, 6), 26000, cat)
+    services.complete_task(
+        db, task, user=user, done_on=date(2026, 11, 6), amount_gr=None, km=None, vendor=None, notes=None
+    )
+    for _ in range(4):  # paid with four BLIK payments of its own
+        db.add(Transaction(booked_on=date(2026, 11, 6), amount_gr=-6500, budget_category_id=cat.id))
+    db.commit()
+    assert _month(db, *NOV).line(cat.id).forecast_gr == 26000
+    db.add(Transaction(booked_on=date(2026, 11, 7), amount_gr=-1000, budget_category_id=cat.id))
+    db.commit()
+    assert _month(db, *NOV).line(cat.id).forecast_gr == 27000  # more than planned – what was spent
+
+
 def test_task_without_category_is_not_lost_and_can_be_assigned(db, user):
     item = _item(db, "Auto 1", "car")
     samochody = _cat(db, "Samochody", "planned")

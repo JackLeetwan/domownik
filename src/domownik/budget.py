@@ -121,18 +121,22 @@ class CategoryLine:
 
     @property
     def forecast_gr(self) -> int:
-        """End of the month: a settled entry counts with what it really cost (a cheaper month of the
-        preschool is not the planned 1 400), an open one with its plan, the rest of the money – the
-        limit, or what was spent beyond it."""
+        """End of the month: a paid entry counts with what it really cost (a cheaper month of the
+        preschool is not the planned 1 400), an open one with its plan. An entry ticked off without
+        an amount was paid by entries of its own (four BLIK payments for the football) – its plan and
+        the limit are covered by what was spent outside the entries, whichever is larger."""
         booked = {id(t) for t in self.txs}
         entries = 0
+        covered = self.limit_gr
         for e in self.entries:
             if e.settled and e.tx is not None:
                 entries += e.actual_gr if id(e.tx) in booked else 0  # booked in another category – counted there
+            elif e.settled:
+                covered += e.planned_gr
             else:
                 entries += e.planned_gr
         loose = sum(t.amount_gr for t in self.loose_txs)
-        return entries + max(self.limit_gr, loose if self.income else -loose)
+        return entries + max(covered, loose if self.income else -loose)
 
     @property
     def level(self) -> str:
