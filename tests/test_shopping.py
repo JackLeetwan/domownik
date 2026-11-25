@@ -23,6 +23,20 @@ def test_add_parses_dedups_and_sections(auth_client, db):
     assert len(items) == 3 and items["Mleko"].qty == "×3"
 
 
+def test_add_with_qty_field(auth_client, db):
+    page = auth_client.get("/zakupy").text
+    assert 'name="qty" class="shop-add-qty"' in page
+    auth_client.post("/zakupy", data={"text": "mąka", "qty": "1 kg"}, headers=HX)
+    # the field fills only entries without their own quantity
+    auth_client.post("/zakupy", data={"text": "3 jajka, cukier", "qty": "2"}, headers=HX)
+    items = _items(db)
+    assert items["Mąka"].qty == "1 kg" and items["Cukier"].qty == "2"
+    assert next(s for n, s in items.items() if n.lower().startswith("jaj")).qty == "3"
+    # an item already on the list takes the new quantity
+    auth_client.post("/zakupy", data={"text": "mąka", "qty": "2 kg"}, headers=HX)
+    assert _items(db)["Mąka"].qty == "2 kg"
+
+
 def test_dashboard_card_and_redirect(auth_client, db):
     auth_client.post("/setup/zones")
     r = auth_client.post("/zakupy?next=/", data={"text": "masło"}, follow_redirects=False)

@@ -16,11 +16,12 @@
   <div role="group">
     <input name="text" list="shop-suggestions" autocomplete="off" required autofocus
            placeholder="np. 2 mleko, chleb, masło ×2" aria-label="Co dopisać">
+    <input name="qty" class="shop-add-qty" autocomplete="off" maxlength="30" placeholder="ilość" aria-label="Ilość" title="Ilość, np. 2, 1 kg, 500 g">
     <button type="button" class="mic secondary outline" data-dictate="input[name=text]" data-dictate-list="1" hidden title="Dyktuj – produkty oddzielaj słowem „i” albo mów „przecinek”" aria-label="Dyktuj głosem">🎤</button>
     <button type="submit">Dopisz</button>
   </div>
   <datalist id="shop-suggestions">{% for s in suggestions %}<option value="{{ s }}">{% endfor %}</datalist>
-  <small class="muted">Kilka naraz po przecinku. Dział dobiera się sam – możesz go zmienić, klikając w pozycję.</small>
+  <small class="muted">Kilka naraz po przecinku. Ilość wpisz w polu obok albo przed nazwą („2 mleko”). Dział dobiera się sam – możesz go zmienić, klikając w pozycję.</small>
 </form>
 
 {% include "partials/shopping_list.html" %}

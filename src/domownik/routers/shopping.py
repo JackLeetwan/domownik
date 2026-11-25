@@ -69,18 +69,22 @@ def add_entries(
     note: str | None = None,
     item_id: int | None = None,
     add_up: bool = False,
+    qty: str | None = None,
 ) -> int:
     """Put entries ('2 mleko', 'masło') on the list; one already there is refreshed, not doubled.
 
     add_up (ingredients of recipes): the quantity of one already there grows – 250 g + 250 g → 500 g.
+    qty (the form's own quantity field): for every entry that does not name its own ('2 mleko' keeps 2).
 
     Returns how many were new. The caller commits. Used by /zakupy and the kitchen (recipes, pantry).
     """
+    qty_field = (qty or "").strip()[:30] or None
     added = 0
     for part in entries:
-        name, qty = parse_entry(part)
+        name, own_qty = parse_entry(part)
         if not name:
             continue
+        qty = own_qty or qty_field
         k = name_key(name)
         existing = next((i for i in open_items(db) if name_key(i.name) == k), None)
         if existing:  # already on the list (any form of the name: 'Mleka' = 'mleko') – just refresh it
@@ -155,6 +159,7 @@ async def add(request: Request, db: Session = Depends(get_db), user: User = Depe
         user=user,
         note=str(form.get("note") or "").strip() or None,
         item_id=int(form["item_id"]) if form.get("item_id") else None,
+        qty=str(form.get("qty") or ""),
     )
     db.commit()
     return _respond(request, db, user)

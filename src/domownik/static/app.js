@@ -275,7 +275,7 @@
     loadQ().forEach((op) => {
       if (op.op === "check") paintCheck(op.id, op.to);
       else if (op.op === "del") { const li = rowOf(op.id); if (li) li.remove(); }
-      else if (op.op === "add") adds.push(op.text);
+      else if (op.op === "add") adds.push(op.qty ? `${op.text} (${op.qty})` : op.text);
     });
     if (adds.length) {
       const ul = document.createElement("ul");
@@ -300,7 +300,8 @@
     if (m) return { op: "del", id: +m[1] };
     if (path === "/zakupy" && cfg.elt && cfg.elt.matches && cfg.elt.matches("form.shop-add")) {
       const text = ((cfg.elt.querySelector("input[name=text]") || {}).value || "").trim();
-      return text ? { op: "add", text } : null;
+      const qty = ((cfg.elt.querySelector("input[name=qty]") || {}).value || "").trim();
+      return text ? { op: "add", text, qty } : null;
     }
     return null;
   }
@@ -336,7 +337,7 @@
         const url = op.op === "check" ? `/zakupy/${op.id}/check?to=${op.to}`
           : op.op === "del" ? `/zakupy/${op.id}/delete` : "/zakupy";
         const body = new URLSearchParams({ csrf: csrf() });
-        if (op.op === "add") body.set("text", op.text);
+        if (op.op === "add") { body.set("text", op.text); if (op.qty) body.set("qty", op.qty); }
         let r;
         try {
           r = await fetch(url, { method: "POST", credentials: "same-origin", body, headers: { "X-CSRF-Token": csrf() } });
