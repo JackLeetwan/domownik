@@ -275,6 +275,7 @@
     loadQ().forEach((op) => {
       if (op.op === "check") paintCheck(op.id, op.to);
       else if (op.op === "del") { const li = rowOf(op.id); if (li) li.remove(); }
+      else if (op.op === "qty") { const inp = rowOf(op.id)?.querySelector(".shop-row-qty"); if (inp) inp.value = op.qty; }
       else if (op.op === "add") adds.push(op.qty ? `${op.text} (${op.qty})` : op.text);
     });
     if (adds.length) {
@@ -298,6 +299,8 @@
     if (m) return { op: "check", id: +m[1], to: +m[2] };
     m = path.match(/^\/zakupy\/(\d+)\/delete$/);
     if (m) return { op: "del", id: +m[1] };
+    m = path.match(/^\/zakupy\/(\d+)\/qty$/);
+    if (m && cfg.elt && "value" in cfg.elt) return { op: "qty", id: +m[1], qty: cfg.elt.value.trim() };
     if (path === "/zakupy" && cfg.elt && cfg.elt.matches && cfg.elt.matches("form.shop-add")) {
       const text = ((cfg.elt.querySelector("input[name=text]") || {}).value || "").trim();
       const qty = ((cfg.elt.querySelector("input[name=qty]") || {}).value || "").trim();
@@ -308,6 +311,7 @@
   function queueOp(op, elt) {
     let q = loadQ();
     if (op.op === "check" || op.op === "del") q = q.filter((o) => !(o.id === op.id && o.op === "check"));
+    if (op.op === "qty" || op.op === "del") q = q.filter((o) => !(o.id === op.id && o.op === "qty"));
     q.push(op);
     saveQ(q);
     if (op.op === "add" && elt && elt.reset) elt.reset();
@@ -335,9 +339,11 @@
       for (let q = loadQ(); q.length; q = loadQ()) {
         const op = q[0];
         const url = op.op === "check" ? `/zakupy/${op.id}/check?to=${op.to}`
-          : op.op === "del" ? `/zakupy/${op.id}/delete` : "/zakupy";
+          : op.op === "del" ? `/zakupy/${op.id}/delete`
+          : op.op === "qty" ? `/zakupy/${op.id}/qty` : "/zakupy";
         const body = new URLSearchParams({ csrf: csrf() });
-        if (op.op === "add") { body.set("text", op.text); if (op.qty) body.set("qty", op.qty); }
+        if (op.op === "add") body.set("text", op.text);
+        if ((op.op === "add" || op.op === "qty") && op.qty) body.set("qty", op.qty);
         let r;
         try {
           r = await fetch(url, { method: "POST", credentials: "same-origin", body, headers: { "X-CSRF-Token": csrf() } });

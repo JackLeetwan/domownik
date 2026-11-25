@@ -3,7 +3,7 @@
           aria-label="{% if s.checked_at %}Wyjmij z koszyka{% else %}Do koszyka{% endif %}: {{ s.name }}">{% if s.checked_at %}☑{% else %}☐{% endif %}</button>
   <details class="shop-body">
     <summary>
-      <span class="shop-name">{{ s.name }}</span>{% if s.qty %} <span class="shop-qty">{{ s.qty }}</span>{% endif %}
+      <span class="shop-name">{{ s.name }}</span>
       {% if s.note or s.item %}<br><small class="muted">{% if s.item %}{{ s.item.display_icon }} {{ s.item.name }}{% endif %}{% if s.note and s.item %} · {% endif %}{{ s.note or "" }}</small>{% endif %}
     </summary>
     <form hx-post="/zakupy/{{ s.id }}/edit" hx-target="#shopping-list" hx-swap="outerHTML">
@@ -23,6 +23,10 @@
       </div>
     </form>
   </details>
+  <input class="shop-row-qty" name="qty" value="{{ s.qty or '' }}" maxlength="30" placeholder="ilość" autocomplete="off"
+         aria-label="Ilość: {{ s.name }}" title="Ilość, np. 2, 1 kg"
+         hx-post="/zakupy/{{ s.id }}/qty" hx-trigger="change" hx-target="#shopping-list" hx-swap="outerHTML"
+         hx-on:keydown="if (event.key === 'Enter') this.blur()">
   <button type="button" class="shop-del" hx-post="/zakupy/{{ s.id }}/delete" hx-target="#shopping-list" hx-swap="outerHTML"
           title="Usuń z listy" aria-label="Usuń z listy: {{ s.name }}">✕</button>
 </li>

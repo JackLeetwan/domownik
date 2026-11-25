@@ -192,6 +192,16 @@ async def edit(request: Request, sid: int, db: Session = Depends(get_db), user: 
     return _respond(request, db, user)
 
 
+@router.post("/{sid}/qty", dependencies=[Depends(verify_csrf)])
+async def set_qty(request: Request, sid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """The quantity field in the row itself – only the quantity changes."""
+    s = _get(db, sid)
+    form = await request.form()
+    s.qty = str(form.get("qty") or "").strip()[:30] or None
+    db.commit()
+    return _respond(request, db, user)
+
+
 @router.post("/{sid}/delete", dependencies=[Depends(verify_csrf)])
 def delete(request: Request, sid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     """Off the list (found it at home, added by mistake) – the list shows "Cofnij" for a moment."""

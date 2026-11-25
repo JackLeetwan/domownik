@@ -353,6 +353,10 @@ button.danger { color: var(--pico-del-color, #c62828); }
 .shop-add { margin-bottom: 1rem; }
 .shop-add [role=group] { margin-bottom: 0.25rem; }
 .shop-add [role=group] input.shop-add-qty { flex: 0 0 5.5rem; width: 5.5rem; min-width: 0; text-align: center; }
+@media (max-width: 600px) {
+  .shop-add [role=group] input.shop-add-qty { flex-basis: 3.8rem; width: 3.8rem; padding-left: 0.25rem; padding-right: 0.25rem; }
+  .shop-add [role=group] > button { padding-left: 0.7rem; padding-right: 0.7rem; }
+}
 .shop-section { font-size: 0.95rem; margin: 1rem 0 0.25rem; color: var(--pico-muted-color); }
 .shop-list { list-style: none; padding: 0; margin: 0; }
 .shop-row { list-style: none; display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.5rem 0.25rem; border-bottom: 1px solid var(--dm-tile-border); }
@@ -362,10 +366,14 @@ button.danger { color: var(--pico-del-color, #c62828); }
 .shop-body > summary::-webkit-details-marker { display: none; }
 .shop-body > summary::after { display: none; }
 .shop-name { font-size: 1.05rem; }
-.shop-qty { display: inline-block; padding: 0 0.45rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: color-mix(in srgb, var(--pico-primary) 18%, transparent); }
 .in-cart .shop-name { text-decoration: line-through; opacity: 0.6; }
 .shop-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .shop-actions button { margin: 0; }
+.shop-row input.shop-row-qty { flex: none; align-self: center; width: 4.5rem; height: 2.2rem; margin: 0 0 0 auto; padding: 0 0.4rem; --pico-form-element-spacing-vertical: 0; font-size: 0.9rem; font-weight: 600; text-align: center; border-radius: 999px; }
+.shop-row input.shop-row-qty:placeholder-shown { font-weight: 400; opacity: 0.55; }
+.in-cart input.shop-row-qty { opacity: 0.6; }
+.shop-row-qty + .shop-del { margin-left: 0; }
+@media (max-width: 600px) { .shop-row input.shop-row-qty { width: 3.8rem; } }
 .shop-del { flex: none; align-self: center; width: 2.5rem; height: 2.5rem; margin: 0 0 0 auto; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--pico-muted-color); font-size: 1.05rem; line-height: 1; cursor: pointer; }
 .shop-del:hover, .shop-del:focus-visible { color: var(--pico-del-color, #c62828); background: color-mix(in srgb, var(--pico-del-color, #c62828) 12%, transparent); }
 .shop-undo { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin: 0.5rem 0; padding: 0.5rem 0.75rem; border-radius: 10px; background: var(--dm-tile-bg); border: 1px solid var(--dm-tile-border); }

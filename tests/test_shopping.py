@@ -37,6 +37,17 @@ def test_add_with_qty_field(auth_client, db):
     assert _items(db)["Mąka"].qty == "2 kg"
 
 
+def test_qty_in_the_row(auth_client, db):
+    auth_client.post("/zakupy", data={"text": "kołdra", "note": "180x200"}, headers=HX)
+    s = _items(db)["Kołdra"]
+    r = auth_client.post(f"/zakupy/{s.id}/qty", data={"qty": " 2 "}, headers=HX)
+    assert r.status_code == 200 and f'hx-post="/zakupy/{s.id}/qty"' in r.text and 'value="2"' in r.text
+    s = _items(db)["Kołdra"]
+    assert s.qty == "2" and s.note == "180x200"  # only the quantity changes
+    auth_client.post(f"/zakupy/{s.id}/qty", data={"qty": ""}, headers=HX)
+    assert _items(db)["Kołdra"].qty is None
+
+
 def test_dashboard_card_and_redirect(auth_client, db):
     auth_client.post("/setup/zones")
     r = auth_client.post("/zakupy?next=/", data={"text": "masło"}, follow_redirects=False)
