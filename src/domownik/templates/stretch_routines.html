@@ -16,9 +16,11 @@
 <p class="pick-chips st-sort" aria-label="Kolejność"><small class="muted">↕</small>
   {% for k, label in st.SORTS.items() %}<a href="{{ pick_url(sort=k or None) }}" class="chip{% if sort == k %} on{% endif %}">{{ label }}</a>{% endfor %}
 </p>
+{% for heading, rows in sections %}
 <section data-pick-section>
+<h2 class="pick-head st-head">{{ heading }} <small class="muted">{{ rows|length }}</small></h2>
 <ul class="supl-rows pick-list st-list">
-  {% for r in routines %}
+  {% for r in rows %}
   {% set needs = st.routine_gear(r) %}{% set where = st.focus_label(r) %}
   <li class="pick-item" data-pick-text="{{ r.name }} {{ kinds[r.kind] }} {{ where }} {% for g in st.focus_groups(r) %}{{ st.body_groups()[g]['name'] }} {% endfor %}{% for it in r.items %}{{ it.stretch.name }} {{ st.area_label(it.stretch.area) }} {% endfor %}{{ needs|join(' ') }}"><a class="supl-row" href="/forma/rozciaganie/{{ r.id }}">
     <span class="supl-row-main"><b>{{ r.name }}</b>
@@ -29,6 +31,7 @@
   {% endfor %}
 </ul>
 </section>
+{% endfor %}
 {% if not routines %}<p class="muted">{% if filtered %}Żaden zestaw nie pasuje – <a href="{{ pick_url(partia=None, rodzaj=None, sprzet=None) }}">pokaż wszystkie ({{ total }})</a>.{% else %}Brak zestawów.{% endif %}</p>{% endif %}
 {% if routines %}<p class="muted" data-pick-none hidden>Nic nie pasuje{% if filtered %} – spróbuj bez filtrów: <a href="{{ pick_url(partia=None, rodzaj=None, sprzet=None) }}">wszystkie zestawy</a>{% endif %}.</p>{% endif %}
 <details>

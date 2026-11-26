@@ -538,8 +538,17 @@ def test_routines_list_filters_and_order(auth_client, db):
     every = auth_client.get("/forma/rozciaganie").text
     assert "🦒 Szyja <small>" in every and "🧍 Całe ciało <small>" in every and "data-pick-filter" in every
     assert "Krążenia ramion" in every  # a stretch's name is searchable
+    # split by the main body group: Całe ciało first, then the catalog's order of groups
+    heads = [
+        every.index(f'st-head">{h} ') for h in ("🧍 Całe ciało", "🦵 Nogi i biodra", "🔙 Plecy", "💪 Ręce i barki")
+    ]
+    assert heads == sorted(heads)
+    assert heads[0] < every.index("<b>Przed treningiem</b>") < heads[1] < every.index("<b>Nogi – krótko</b>") < heads[2]
+    assert heads[3] < every.index("<b>Szyja i barki</b>")
+    assert [h for h, _ in st.sections([by_seed["desk"], by_seed["legs_short"]])] == ["🦵 Nogi i biodra", "🔙 Plecy"]
 
     neck = auth_client.get("/forma/rozciaganie?partia=neck").text
+    assert neck.count('st-head">') == 1  # one group chosen: one list under its name
     assert "Szyja i barki" in neck and "Przerwa przy biurku" in neck and "Nogi – krótko" not in neck
     legs = auth_client.get("/forma/rozciaganie?partia=legs").text  # the most about legs first
     assert legs.index("<b>Nogi – krótko</b>") < legs.index("<b>Przed treningiem</b>")

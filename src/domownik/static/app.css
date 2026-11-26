@@ -2070,6 +2070,8 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .pick-search { margin-bottom: 0.6rem; }
 .st-sort { align-items: center; }
 .st-focus { font-size: 0.8rem; }
+.st-head { display: flex; align-items: center; gap: 0.5rem; margin-top: 1.25rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--pico-primary-background); }
+.st-head small { font-weight: normal; }
 .pick-types { flex-wrap: wrap; }  /* "🙌 Bez sprzętu" goes to its own line on a phone instead of off the edge */
 
 /* ⇉ a whole superset round in one form */

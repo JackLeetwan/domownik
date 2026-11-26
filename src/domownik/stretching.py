@@ -272,6 +272,24 @@ def _recent_rank(db: Session, user: User) -> dict[int, int]:
     return rank
 
 
+def main_group(r: StretchRoutine) -> str | None:
+    """Where the routine stands on the list: "Całe ciało", else the group with most of its time."""
+    if is_whole_body(r):
+        return WHOLE
+    return next(iter(focus(r)), None)
+
+
+def sections(rs: list[StretchRoutine]) -> list[tuple[str, list[StretchRoutine]]]:
+    """The list split by body group (Całe ciało first, then the catalog's order), each keeping the given order;
+    an empty routine goes under "Inne"."""
+    labels = {WHOLE: "🧍 Całe ciało"} | {g: f"{row['icon']} {row['name']}" for g, row in body_groups().items()}
+    by: dict[str | None, list[StretchRoutine]] = {}
+    for r in rs:
+        by.setdefault(main_group(r), []).append(r)
+    out = [(label, by[g]) for g, label in labels.items() if g in by]
+    return out + ([("Inne", by[None])] if None in by else [])
+
+
 def browse(
     db: Session,
     user: User,

@@ -76,6 +76,8 @@ def routines_page(
         _ctx(
             user,
             routines=shown,
+            # one body group chosen: one list (its routines are about it, whatever their main group)
+            sections=[(dict((k, lab) for k, lab, _ in chips)[group], shown)] if group and shown else st.sections(shown),
             total=len(every),
             groups=chips,
             group_filter=group,
