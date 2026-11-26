@@ -36,9 +36,10 @@
   {% elif k == 'sleeve' %}
   <polyline class="szf-m" points="30,37 22,70 17,97"/><circle class="szf-dot" cx="30" cy="37" r="2"/><circle class="szf-dot" cx="17" cy="97" r="2"/>
   {% elif k == 'inseam' %}
-  <line class="szf-m" x1="49" y1="110" x2="49" y2="192"/><circle class="szf-dot" cx="49" cy="110" r="2"/>
+  <line class="szf-m" x1="49" y1="110" x2="49" y2="197"/><circle class="szf-dot" cx="49" cy="110" r="2"/><line class="szf-m" x1="45" y1="197" x2="53" y2="197"/>
   {% elif k == 'outseam' %}
-  <line class="szf-m" x1="31" y1="78" x2="31" y2="192"/><circle class="szf-dot" cx="31" cy="78" r="2"/>
+  <line class="szf-guide" x1="31" y1="86" x2="69" y2="86"/>
+  <line class="szf-m" x1="29" y1="86" x2="29" y2="197"/><circle class="szf-dot" cx="29" cy="86" r="2"/><line class="szf-m" x1="24" y1="197" x2="34" y2="197"/>
   {% endif %}
 </svg>
 {% endif %}
