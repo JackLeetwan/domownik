@@ -137,6 +137,7 @@ def notes_page(
         {
             "user": user,
             "notes": shown,
+            "elsewhere": [n for n in active if n not in shown] if k else [],
             "total": len(active),
             "archive": archive,
             "labels": labels,

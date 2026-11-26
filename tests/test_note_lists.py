@@ -245,3 +245,17 @@ def test_category_colour_from_the_palette(auth_client, db):
     db.info.pop("note_label_shades", None)
     db.expire_all()
     assert db.scalar(select(BoardNote)).shade not in ("teal", "red;background:url(x)")
+
+
+def test_search_on_top_and_other_categories_only_while_searching(auth_client, db):
+    _add(auth_client, title="Wi-Fi gości", label="Dom")
+    _add(auth_client, title="Łódź – nocleg", label="Wyjazdy")
+    page = auth_client.get("/notatki").text
+    # the search comes before the "＋ Nowa notatka" form and the category chips, even with only two notes
+    assert page.index("data-note-filter") < page.index("note-add-box") < page.index("notes-filter")
+    assert "data-notes-elsewhere" not in page
+    only = auth_client.get("/notatki?k=Dom").text
+    main, elsewhere = only.split("data-notes-elsewhere hidden")
+    assert "Wi-Fi gości" in main and "Łódź – nocleg" not in main
+    # the category is searchable too
+    assert "Łódź – nocleg" in elsewhere and 'Wyjazdy"' in elsewhere

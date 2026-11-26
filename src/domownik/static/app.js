@@ -446,18 +446,39 @@
   });
 
   // ------------------------------------------------------------------ notes: filter cards as you type
+  // without Polish letters and case, every word anywhere (title, text, points, category); with a category
+  // chosen its cards come first and the other categories' matches show below them ([data-notes-elsewhere])
+  const plainText = (s) => s.toLowerCase().replace(/ł/g, "l").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   document.addEventListener("input", (e) => {
     const box = e.target.closest && e.target.closest("[data-note-filter]");
     if (!box) return;
-    const q = box.value.trim().toLowerCase();
+    const words = plainText(box.value).split(/\s+/).filter(Boolean);
     let shown = 0;
+    let away = 0;
     document.querySelectorAll("[data-notes-grid] .note-card").forEach((card) => {
-      const hit = !q || (card.dataset.noteText || "").includes(q);
+      const text = card.dataset.notePlain || (card.dataset.notePlain = plainText(card.dataset.noteText || ""));
+      const hit = words.every((w) => text.includes(w));
       card.hidden = !hit;
-      if (hit) shown += 1;
+      if (!hit) return;
+      if (card.closest("[data-notes-elsewhere]")) away += 1;
+      else shown += 1;
     });
+    const elsewhere = document.querySelector("[data-notes-elsewhere]");
+    if (elsewhere) elsewhere.hidden = !words.length || !away;
+    const empty = document.querySelector("[data-notes-empty]");
+    if (empty) empty.hidden = words.length > 0;
     const none = document.querySelector("[data-notes-none]");
-    if (none) none.hidden = shown > 0;
+    if (none) none.hidden = !words.length || shown + away > 0;
+  });
+  // "/" anywhere outside a field jumps to the notes search
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target;
+    if (t.closest && t.closest("input, textarea, select, [contenteditable]")) return;
+    const box = document.querySelector("[data-note-filter]");
+    if (!box) return;
+    e.preventDefault();
+    box.focus();
   });
 
   // ------------------------------------------------------------------ 🤸 the stretch picker: search as you type

@@ -3,6 +3,10 @@
 {% block content %}
 <header class="item-head"><h1>📝 Notatki</h1></header>
 
+<div class="notes-top">
+{% if total %}{# at the top, every category: typing searches all notes, "/" jumps here (app.js) #}
+<input type="search" placeholder="Szukaj w notatkach" aria-label="Szukaj w notatkach" title="Skrót: /" data-note-filter>
+{% endif %}
 <details class="note-add-box">
   <summary role="button" class="outline">＋ Nowa notatka</summary>
   <form class="note-add" method="post" action="/notatki" enctype="multipart/form-data">
@@ -13,6 +17,7 @@
     <small class="muted">Notatka z datą „ważna do” sama trafi do archiwum następnego dnia.</small>
   </form>
 </details>
+</div>
 
 {% if total %}
 <nav class="notes-filter" aria-label="Kategorie notatek">
@@ -20,7 +25,6 @@
   {# a chip in the colour of its notes – the same colour as the cards below #}
   {% for l in labels %}{% set sh = label_shades.get(l) %}<a href="/notatki?k={{ l|urlencode }}" {% if sh and sh.startswith('#') %}style="--h: {{ sh }}" {% endif %}class="note-chip{% if sh %} c-{{ 'custom' if sh.startswith('#') else sh }}{% endif %}" {% if k == l %}aria-current="true"{% endif %}>{{ l }}</a>{% endfor %}
   {% if labels %}<a href="/notatki?k={{ NO_LABEL }}" class="note-chip" {% if k == NO_LABEL %}aria-current="true"{% endif %}>Bez kategorii</a>{% endif %}
-  {% if total > 3 %}<input type="search" placeholder="Szukaj w notatkach" aria-label="Szukaj w notatkach" data-note-filter>{% endif %}
 </nav>
 {% if k and k != NO_LABEL and k in labels %}
 {# the colour of the whole category: its chip and its notes without a colour of their own #}
@@ -41,9 +45,18 @@
 {% if notes %}
 {% if notes|length > 1 %}<p class="notes-fold"><button type="button" class="link" data-notes-all="open"><span aria-hidden="true">▾</span> Rozwiń wszystkie</button> · <button type="button" class="link" data-notes-all="close"><span aria-hidden="true">▸</span> Zwiń wszystkie</button></p>{% endif %}
 <div class="notes-grid" data-notes-grid data-notes-board>{% for n in notes %}{% include "partials/note_card.html" %}{% endfor %}</div>
-<p class="muted" data-notes-none hidden>Nic nie pasuje.</p>
 {% elif total %}
-<p class="muted">Brak notatek w tej kategorii.</p>
+<p class="muted" data-notes-empty>Brak notatek w tej kategorii.</p>
+{% endif %}
+{% if elsewhere %}
+{# the other categories' notes: shown only while searching, so a search never stops at the chosen category #}
+<section class="notes-elsewhere" data-notes-elsewhere hidden>
+  <h2 class="notes-elsewhere-head">W innych kategoriach <a href="/notatki" class="small">pokaż wszystkie</a></h2>
+  <div class="notes-grid" data-notes-grid data-notes-board>{% for n in elsewhere %}{% include "partials/note_card.html" %}{% endfor %}</div>
+</section>
+{% endif %}
+{% if total %}
+<p class="muted" data-notes-none hidden>Nic nie pasuje.</p>
 {% else %}
 <p class="muted">Brak notatek. Karteczka dla wszystkich: kod do furtki, plan lekcji, lista na wyjazd – dodaj ją przyciskiem wyżej albo przez „＋ Dodaj”.</p>
 {% endif %}
