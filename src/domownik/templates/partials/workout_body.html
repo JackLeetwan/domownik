@@ -45,6 +45,7 @@
   {% set ns = namespace(ss=None) %}
   {% for r in rows %}{% set we = r.we %}{% set ex = we.exercise %}
   {% if we.superset != ns.ss %}{% if ns.ss is not none %}</div>{% endif %}{% if we.superset is not none %}<div class="wo-superset"><p class="wo-ss-label">Superseria {{ superset_letter(we.superset) }} <small class="muted">– na zmianę, przerwa po drugim</small></p>
+  {% if uneven.get(we.superset) %}{% set n_even = uneven.get(we.superset) %}<p class="wo-ss-uneven small">Różna liczba serii ({% for m in rows if m.we.superset == we.superset %}{{ m.we.sets }}{% if not loop.last %} i {% endif %}{% endfor %}) <button type="button" class="small outline" hx-post="/forma/trening/{{ w.id }}/superseria/{{ we.superset }}/wyrownaj" hx-target="#workout" hx-swap="outerHTML">⚖ Wyrównaj do {{ n_even }}</button></p>{% endif %}
   {% set ms = rounds.get(we.superset) %}{% if ms %}{% set rkey = 'round' ~ we.superset %}
   <form class="wo-round" hx-post="/forma/trening/{{ w.id }}/runda/{{ we.superset }}" hx-target="#workout" hx-swap="outerHTML">
     <p class="wo-round-head"><b>⇉ Cała runda naraz</b> <small class="muted">– seria {{ ms[0].work|length + 1 }}/{{ ms[0].sets }} każdego</small></p>
@@ -130,11 +131,22 @@
     {% endif %}
 
     <div class="wo-ex-actions">
-      <details class="wo-menu">
+      <details class="wo-menu"{% if menu_open == we.id %} open{% endif %}>
       <summary class="small" aria-label="Więcej: {{ ex.name }}">⋯ Więcej</summary>
       <div class="wo-menu-items">
       <a href="/forma/postepy/{{ ex.id }}" class="small">📈 Historia</a>
       {% if not w.finished_at %}
+      <span class="wo-menu-group" role="group" aria-label="Kolejność: {{ ex.name }}">
+        <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/przesun?d=-1" hx-target="#workout" hx-swap="outerHTML" aria-label="Przesuń w górę: {{ ex.name }}"{% if not r.can_up %} disabled{% endif %}>↑</button>
+        <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/przesun?d=1" hx-target="#workout" hx-swap="outerHTML" aria-label="Przesuń w dół: {{ ex.name }}"{% if not r.can_down %} disabled{% endif %}>↓</button>
+      </span>
+      <span class="wo-menu-group" role="group" aria-label="Liczba serii: {{ ex.name }}">
+        <small class="muted">Serie</small>
+        <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/serie?o=-1" hx-target="#workout" hx-swap="outerHTML" aria-label="Jedna seria mniej: {{ ex.name }}"{% if we.sets <= [we.work|length, 1]|max %} disabled{% endif %}>−</button>
+        <b class="wo-sets-n">{{ we.sets }}</b>
+        <button type="button" class="small outline secondary" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/serie?o=1" hx-target="#workout" hx-swap="outerHTML" aria-label="Jedna seria więcej: {{ ex.name }}"{% if we.sets >= 20 %} disabled{% endif %}>+</button>
+      </span>
+      {% if r.can_link_prev %}<button type="button" class="link small" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/superseria?prev=1" hx-target="#workout" hx-swap="outerHTML" title="Na zmianę z ćwiczeniem nad nim, przerwa po drugim">🔗 Superseria z poprzednim</button>{% endif %}
       {% if r.can_link %}<button type="button" class="link small" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/superseria" hx-target="#workout" hx-swap="outerHTML" title="Na zmianę z następnym ćwiczeniem, przerwa po drugim">🔗 Superseria z następnym</button>{% endif %}
       {% if r.ss_last %}<button type="button" class="link small" hx-post="/forma/trening/{{ w.id }}/cw/{{ we.id }}/rozlacz" hx-target="#workout" hx-swap="outerHTML">✂ Rozłącz superserię</button>{% endif %}
       {% endif %}

@@ -2193,6 +2193,11 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .wo-menu > summary::after { display: none; }
 .wo-menu[open] { display: block; width: 100%; }
 .wo-menu-items { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; padding: 0.5rem 0 0.1rem; }
+.wo-menu-group { display: inline-flex; align-items: center; gap: 0.35rem; }
+.wo-menu-group button { margin: 0; min-width: 2.6rem; }
+.wo-sets-n { min-width: 1.5rem; text-align: center; }
+.wo-ss-uneven { margin: 0 0 0.4rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; color: var(--pico-muted-color); }
+.wo-ss-uneven button { margin: 0; }
 .wo-pr { color: var(--dm-accent, #b7791f); font-size: 0.85rem; }
 .wo-summary { margin-bottom: 1rem; }
 .wo-sum-facts { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin: 0 0 0.25rem; font-size: 1.05rem; }

@@ -290,3 +290,82 @@ def test_started_over_moves_the_partner(auth_client, db, user, paula, fbw, sent)
     assert r.status_code == 303
     db.expire_all()
     assert together.member(db.get(type(g3), g3.id), paula) is not None
+
+
+def test_reorder_sets_and_link_with_previous(db, user, paula, fbw, sent):
+    """The day's case: abduction added at the end with 5 sets – 🔗 with the one above, ⚖ even to 2, ↑ / ↓ moves
+    the whole superset, for the partner too where the order is the same."""
+    w, pw = _pair(db, user, paula, fbw)
+    add = together.add(db, w, _ex(db, "hip_adduction"))
+    ab = together.add(db, w, _ex(db, "hip_abduction"))
+    add.sets, ab.sets = 2, 5
+    tr.log_set(db, add, weight=50, reps=12, at=T)
+    db.commit()
+    with pytest.raises(ValueError):
+        together.link_with_previous(db, w, w.exercises[0])  # the first has no previous
+    together.link_with_previous(db, w, ab)
+    db.commit()
+    assert add.superset is not None and add.superset == ab.superset
+    assert tr.uneven_sets(w, add.superset) == 2
+    tr.even_sets(db, w, add.superset)
+    assert (add.sets, ab.sets) == (2, 2) and tr.uneven_sets(w, add.superset) is None
+    # even never drops below sets already done
+    ab.sets = 1
+    tr.log_set(db, ab, weight=50, reps=12, at=T)
+    tr.log_set(db, add, weight=50, reps=12, at=T)
+    ab.sets = 4
+    assert tr.uneven_sets(w, add.superset) == 2
+
+    before = [e.exercise_id for e in w.exercises]
+    p_before = [e.exercise_id for e in pw.exercises]
+    together.move(db, w, ab, -1)  # the superset moves as one, above the exercise before it
+    db.commit()
+    after = [e.exercise_id for e in w.exercises]
+    n = len(before)
+    assert after == before[: n - 3] + before[n - 2 :] + [before[n - 3]]
+    assert [e.position for e in w.exercises] == list(range(n))
+    assert [e.exercise_id for e in pw.exercises] == p_before[: n - 3] + p_before[n - 2 :] + [p_before[n - 3]]
+    assert not tr.move(db, w, w.exercises[0], -1)  # the first goes nowhere up
+    together.move(db, w, ab, 1)
+    assert [e.exercise_id for e in w.exercises] == before
+
+    # − / + sets: not below the done ones, not below one, at most 20
+    single = w.exercises[0]
+    single.sets = 1
+    tr.change_sets(db, single, -1)
+    assert single.sets == 1
+    tr.change_sets(db, add, -1)
+    assert add.sets == len(add.work) == 2
+    for _ in range(30):
+        tr.change_sets(db, single, 1)
+    assert single.sets == tr.MAX_SETS
+
+
+def test_order_and_sets_buttons_on_the_screen(auth_client, db, user, fbw):
+    w = tr.start(db, user, fbw[0], at=datetime.now())
+    a = tr.add_exercise(db, w, _ex(db, "hip_adduction"))
+    b = tr.add_exercise(db, w, _ex(db, "hip_abduction"))
+    a.sets, b.sets = 2, 5
+    db.commit()
+    hx = {"HX-Request": "true", "HX-Target": "workout"}
+    page = auth_client.get(f"/forma/trening/{w.id}").text
+    assert f'/cw/{b.id}/superseria?prev=1"' in page  # the last one: with the previous
+    assert f'/cw/{w.exercises[0].id}/superseria?prev=1"' not in page
+    r = auth_client.post(f"/forma/trening/{w.id}/cw/{b.id}/superseria?prev=1", headers=hx)
+    db.refresh(a), db.refresh(b)
+    assert a.superset == b.superset and "Wyrównaj do 2" in r.text
+    r = auth_client.post(f"/forma/trening/{w.id}/superseria/{a.superset}/wyrownaj", headers=hx)
+    db.refresh(b)
+    assert b.sets == 2 and "Wyrównaj" not in r.text
+    r = auth_client.post(f"/forma/trening/{w.id}/cw/{b.id}/serie?o=1", headers=hx)
+    db.refresh(b)
+    assert b.sets == 3 and f'id="we{b.id}"' in r.text and 'class="wo-menu" open' in r.text
+    first = w.exercises[0].id
+    r = auth_client.post(f"/forma/trening/{w.id}/cw/{b.id}/przesun?d=-1", headers=hx)
+    db.expire_all()
+    w = db.get(Workout, w.id)
+    ids = [e.id for e in w.exercises]
+    assert ids.index(a.id) + 1 == ids.index(b.id) and ids[-1] != b.id and ids[0] == first
+    auth_client.post(f"/forma/trening/{w.id}/cw/{b.id}/przesun?d=7", headers=hx)  # nonsense: nothing
+    db.expire_all()
+    assert [e.id for e in db.get(Workout, w.id).exercises] == ids

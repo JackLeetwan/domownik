@@ -207,6 +207,30 @@ def unlink_superset(db: Session, w: Workout, we: WorkoutExercise) -> None:
                 tr.unlink_superset(db, o, x.superset)
 
 
+def link_with_previous(db: Session, w: Workout, we: WorkoutExercise) -> None:
+    """🔗 This exercise and the one above it into a superset (the one added at the end joins the last)."""
+    prev = tr.preceding(w, we)
+    if prev is None:
+        raise ValueError("pierwsze ćwiczenie nie ma poprzedniego")
+    link_superset(db, w, prev)
+
+
+def move(db: Session, w: Workout, we: WorkoutExercise, d: int) -> None:
+    """↑ / ↓ – for the partner too, where the same exercises stand next to each other in the same way."""
+    nb = tr.neighbour_block(w, we, d)
+    if nb is None:
+        return
+    nb_slots = {e.slot for e in nb}
+    tr.move(db, w, we, d)
+    for o in others(w):
+        x = _same_slot(o, we.slot)
+        if x is None or x.slot is None:
+            continue
+        onb = tr.neighbour_block(o, x, d)
+        if onb is not None and {e.slot for e in onb} == nb_slots:
+            tr.move(db, o, x, d)
+
+
 def remove(db: Session, w: Workout, we: WorkoutExercise) -> None:
     """Out of the training – for the partner too, unless they already did sets of it (those stay theirs)."""
     slot = we.slot

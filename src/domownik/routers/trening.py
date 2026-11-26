@@ -181,6 +181,11 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
                 "can_link": (f := tr.following(w, we)) is not None
                 and (we.superset is None or f.superset != we.superset),
                 "ss_last": we.superset is not None and (f is None or f.superset != we.superset),
+                # 🔗 with the one above (the one just added at the end joins the last one)
+                "can_link_prev": (pv := tr.preceding(w, we)) is not None
+                and (we.superset is None or pv.superset != we.superset),
+                "can_up": tr.neighbour_block(w, we, -1) is not None,
+                "can_down": tr.neighbour_block(w, we, 1) is not None,
                 # ⏱ the rest after it is this one's (inside a superset: the last one's) – editable in place
                 "rest_here": tr.rest_holder(we),
                 "plan_rest": (it.rest_seconds if (it := tr.plan_item_for(we)) is not None else None),
@@ -203,6 +208,10 @@ def _screen(db: Session, user: User, w: Workout, errors: dict | None = None) -> 
         "progress": (done, total),
         "summary": tr.summary(db, w, recs) if w.finished_at else None,
         "rounds": rounds,
+        # ⚖ a superset with different numbers of sets: one tap evens them (rounds go together)
+        "uneven": {g: n for g in {we.superset for we in w.exercises} if (n := tr.uneven_sets(w, g)) is not None}
+        if w.finished_at is None
+        else {},
         "row_of": {r["we"].id: r for r in rows},
         "stretch": st.offer(db, user, w, done),
         "st": st,
@@ -447,13 +456,69 @@ def change_exercise_rest(
 
 @router.post("/trening/{workout_id:int}/cw/{we_id:int}/superseria", dependencies=[Depends(verify_csrf)])
 def link_superset(
-    workout_id: int, we_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
+    workout_id: int,
+    we_id: int,
+    request: Request,
+    prev: int = 0,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
 ):
-    """🔗 This exercise and the next one into a superset."""
+    """🔗 This exercise and the next one into a superset; prev=1 – with the one above it."""
     w = _workout(db, user, workout_id)
     we = _we(w, we_id)
-    if tr.following(w, we) is not None:
+    if w.finished_at is None and prev and tr.preceding(w, we) is not None:
+        together.link_with_previous(db, w, we)
+        db.commit()
+    elif w.finished_at is None and not prev and tr.following(w, we) is not None:
         together.link_superset(db, w, we)
+        db.commit()
+    return _show(request, db, user, w)
+
+
+@router.post("/trening/{workout_id:int}/cw/{we_id:int}/przesun", dependencies=[Depends(verify_csrf)])
+def move_exercise(
+    workout_id: int,
+    we_id: int,
+    request: Request,
+    d: int = 0,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """↑ (d=-1) / ↓ (d=1) – with its whole superset; the menu stays open for the next tap."""
+    w = _workout(db, user, workout_id)
+    we = _we(w, we_id)
+    if w.finished_at is None and d in (-1, 1):
+        together.move(db, w, we, d)
+        db.commit()
+    return _show(request, db, user, w, menu_open=we.id)
+
+
+@router.post("/trening/{workout_id:int}/cw/{we_id:int}/serie", dependencies=[Depends(verify_csrf)])
+def change_sets(
+    workout_id: int,
+    we_id: int,
+    request: Request,
+    o: int = 0,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """− / + one planned set of this exercise in this workout."""
+    w = _workout(db, user, workout_id)
+    we = _we(w, we_id)
+    if w.finished_at is None and o in (-1, 1):
+        tr.change_sets(db, we, o)
+        db.commit()
+    return _show(request, db, user, w, menu_open=we.id)
+
+
+@router.post("/trening/{workout_id:int}/superseria/{group:int}/wyrownaj", dependencies=[Depends(verify_csrf)])
+def even_sets(
+    workout_id: int, group: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    """⚖ The superset's exercises to the same number of sets."""
+    w = _workout(db, user, workout_id)
+    if w.finished_at is None:
+        tr.even_sets(db, w, group)
         db.commit()
     return _show(request, db, user, w)
 

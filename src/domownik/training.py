@@ -665,6 +665,77 @@ def unlink_superset(db: Session, w: Workout, group: int | None) -> None:
     db.flush()
 
 
+def preceding(w: Workout, we: WorkoutExercise) -> WorkoutExercise | None:
+    """The exercise before this one on the list (None for the first)."""
+    exs = list(w.exercises)
+    i = exs.index(we)
+    return exs[i - 1] if i > 0 else None
+
+
+def blocks(w: Workout) -> list[list[WorkoutExercise]]:
+    """The list in moving units: an exercise alone, or a whole superset (its members stand next to each other)."""
+    out: list[list[WorkoutExercise]] = []
+    for e in w.exercises:
+        if out and e.superset is not None and out[-1][0].superset == e.superset:
+            out[-1].append(e)
+        else:
+            out.append([e])
+    return out
+
+
+def neighbour_block(w: Workout, we: WorkoutExercise, d: int) -> list[WorkoutExercise] | None:
+    """The unit next to this exercise's one, up (d=-1) or down (d=1)."""
+    bs = blocks(w)
+    i = next(k for k, b in enumerate(bs) if we in b)
+    j = i + (1 if d > 0 else -1)
+    return bs[j] if 0 <= j < len(bs) else None
+
+
+def move(db: Session, w: Workout, we: WorkoutExercise, d: int) -> bool:
+    """↑ / ↓ – the exercise (with its whole superset) swaps places with the unit next to it."""
+    bs = blocks(w)
+    i = next(k for k, b in enumerate(bs) if we in b)
+    j = i + (1 if d > 0 else -1)
+    if not 0 <= j < len(bs):
+        return False
+    bs[i], bs[j] = bs[j], bs[i]
+    order = [e for b in bs for e in b]
+    for pos, e in enumerate(order):
+        e.position = pos
+    w.exercises.sort(key=lambda e: e.position)
+    db.flush()
+    return True
+
+
+MAX_SETS = 20
+
+
+def change_sets(db: Session, we: WorkoutExercise, delta: int) -> None:
+    """− / + one planned set in this workout – never below the sets already done, never below one."""
+    we.sets = min(MAX_SETS, max(1, len(we.work), we.sets + delta))
+    db.flush()
+
+
+def uneven_sets(w: Workout, group: int | None) -> int | None:
+    """A superset whose members plan different numbers of sets: the number to even them to (the smallest,
+    but not below what one of them already did) – None when they are even or it would change nothing."""
+    ms = [e for e in w.exercises if group is not None and e.superset == group]
+    if len(ms) < 2 or len({e.sets for e in ms}) == 1:
+        return None
+    return max(min(e.sets for e in ms), *(len(e.work) for e in ms))
+
+
+def even_sets(db: Session, w: Workout, group: int) -> None:
+    """⚖ Every exercise of the superset gets the same number of sets – rounds go together."""
+    n = uneven_sets(w, group)
+    if n is None:
+        return
+    for e in w.exercises:
+        if e.superset == group:
+            e.sets = n
+    db.flush()
+
+
 def _rest_after(we: WorkoutExercise) -> int:
     """Inside a superset the rest comes after its last exercise; until then straight to the partner."""
     return we.rest_seconds if rest_holder(we) else 0
