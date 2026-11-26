@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from domownik import browse
 from domownik import stretching as st
 from domownik import training as tr
 from domownik.models import Stretch, StretchRoutine, StretchSession, User
@@ -529,11 +530,11 @@ def test_routines_list_filters_and_order(auth_client, db):
     the order, and the search text (name, groups, every stretch)."""
     st.prepare(db)
     db.commit()
-    by_seed = {r.seed: r for r in st.routines(db)}
-    assert st.focus_groups(by_seed["legs_short"]) == ["legs"] and not st.is_whole_body(by_seed["legs_short"])
-    assert st.is_whole_body(by_seed["full_body"]) and st.focus_label(by_seed["full_body"]) == "🧍 Całe ciało"
-    assert "neck" in st.focus_groups(by_seed["desk"]) and "neck" not in st.focus_groups(by_seed["before"])
-    assert abs(sum(st.focus(by_seed["after"]).values()) - 1) < 1e-9
+    by_seed = {r.seed: st.entry(r, st.ROUTINE_KINDS) for r in st.routines(db)}
+    assert by_seed["legs_short"].groups == ["legs"] and not by_seed["legs_short"].whole_body
+    assert by_seed["full_body"].whole_body and by_seed["full_body"].label == "🧍 Całe ciało"
+    assert "neck" in by_seed["desk"].groups and "neck" not in by_seed["before"].groups
+    assert abs(sum(by_seed["after"].focus.values()) - 1) < 1e-9
 
     every = auth_client.get("/forma/rozciaganie").text
     assert "🦒 Szyja <small>" in every and "🧍 Całe ciało <small>" in every and "data-pick-filter" in every
@@ -545,7 +546,7 @@ def test_routines_list_filters_and_order(auth_client, db):
     assert heads == sorted(heads)
     assert heads[0] < every.index("<b>Przed treningiem</b>") < heads[1] < every.index("<b>Nogi – krótko</b>") < heads[2]
     assert heads[3] < every.index("<b>Szyja i barki</b>")
-    assert [h for h, _ in st.sections([by_seed["desk"], by_seed["legs_short"]])] == ["🦵 Nogi i biodra", "🔙 Plecy"]
+    assert [h for h, _ in browse.sections([by_seed["desk"], by_seed["legs_short"]])] == ["🦵 Nogi i biodra", "🔙 Plecy"]
 
     neck = auth_client.get("/forma/rozciaganie?partia=neck").text
     assert neck.count('st-head">') == 1  # one group chosen: one list under its name
@@ -563,5 +564,5 @@ def test_routines_list_filters_and_order(auth_client, db):
         az.index("<b>Biodra – otwarcie</b>") < az.index("<b>Ręce i nadgarstki</b>") < az.index("<b>Szyja i barki</b>")
     )
     none = auth_client.get("/forma/rozciaganie?partia=neck&rodzaj=before").text
-    assert "Żaden zestaw nie pasuje" in none and "/forma/rozciaganie?sort" not in none
+    assert "Nic nie pasuje – <a" in none and "/forma/rozciaganie?sort" not in none
     assert auth_client.get("/forma/rozciaganie?partia=bzdura&sort=x").status_code == 200

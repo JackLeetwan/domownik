@@ -13,8 +13,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from domownik import browse, together
 from domownik import stretching as st
-from domownik import together
 from domownik import training as tr
 from domownik.db import get_db
 from domownik.models import Stretch, StretchGroup, StretchRoutine, StretchRoutineItem, StretchSession, User
@@ -60,37 +60,20 @@ def routines_page(
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
-    """The routines: 🔎 search (in the browser), body-group, kind and "nothing needed" filters, the order."""
+    """The routines – the shared list (browse.py): search, body groups, kind, nothing needed, the order."""
     st.prepare(db)
     db.commit()
-    every = st.routines(db)
-    chips = st.group_chips(every)
-    group = partia if partia in {k for k, _, _ in chips} else None
-    kind = rodzaj if rodzaj in KINDS else None
-    free = sprzet == "0"
-    sort = sort if sort in st.SORTS else ""
-    shown = st.browse(db, user, every, group, kind, free, sort)
-    return render(
-        request,
-        "stretch_routines.html",
-        _ctx(
-            user,
-            routines=shown,
-            # one body group chosen: one list (its routines are about it, whatever their main group)
-            sections=[(dict((k, lab) for k, lab, _ in chips)[group], shown)] if group and shown else st.sections(shown),
-            total=len(every),
-            groups=chips,
-            group_filter=group,
-            kind_filter=kind,
-            free_filter=free,
-            sort=sort,
-            filtered=bool(group or kind or free),
-            pick_url=_pick_url(
-                "/forma/rozciaganie",
-                {"partia": group, "rodzaj": kind, "sprzet": "0" if free else None, "sort": sort or None},
-            ),
-        ),
+    b = browse.view(
+        [st.entry(r, KINDS) for r in st.routines(db)],
+        "/forma/rozciaganie",
+        partia=partia,
+        rodzaj=rodzaj,
+        sprzet=sprzet,
+        sort=sort,
+        kinds=st.ROUTINE_KINDS,
+        rank=st.recent_rank(db, user) if sort == "ostatnie" else None,
     )
+    return render(request, "stretch_routines.html", _ctx(user, b=b))
 
 
 @router.post("", dependencies=[Depends(verify_csrf)])

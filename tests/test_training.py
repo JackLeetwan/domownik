@@ -5,8 +5,8 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
+from domownik import browse, webpush
 from domownik import training as tr
-from domownik import webpush
 from domownik.models import Exercise, PushSubscription, User, Workout, WorkoutPlan
 from domownik.security import hash_password
 from tests.conftest import stock_slugs
@@ -801,3 +801,29 @@ def test_suggested_rest(db, fbw):
     assert duo["db_curl"] == duo["rope_pushdown"] == 60  # set in the catalog by hand
     assert tr.suggested_rest(_ex(db, "back_squat")) == 180 and tr.suggested_rest(_ex(db, "push_up")) == 90
     assert tr.suggested_rest(_ex(db, "hip_abduction")) == 60
+
+
+def test_plans_list_like_the_stretching_routines(auth_client, db, user, fbw):
+    """The plans page is the shared list (browse.py): search, body groups by sets, ▶ Start, order, "Na wyjazd"."""
+    legs = WorkoutPlan(name="Nogi", position=10)
+    legs.items = [tr.PlanItem(exercise=_ex(db, k), position=i, sets=4) for i, k in enumerate(["back_squat", "rdl"])]
+    db.add(legs)
+    db.commit()
+    e = tr.plan_entry(legs)
+    assert e.groups == ["legs"] and e.meta == "2 ćw. · 8 serii" and e.start_fields == {"plan_id": legs.id}
+    assert tr.plan_entry(fbw[0]).whole_body
+
+    page = auth_client.get("/forma/plany").text
+    assert "data-pick-filter" in page and 'st-head">🧍 Całe ciało' in page and 'st-head">🦵 Nogi i biodra' in page
+    assert page.index("<b>FBW 1</b>") < page.index("<b>Nogi</b>") and 'name="plan_id"' in page
+    assert "Przysiad ze sztangą" in page  # the exercises are searchable
+    only = auth_client.get("/forma/plany?partia=legs").text
+    assert "<b>Nogi</b>" in only and only.count('st-head">') == 1
+    # the order works inside each heading (browse.pick before the split)
+    entries = [tr.plan_entry(p) for p in tr.plans(db)]
+    assert next(e.name for e in browse.pick(entries, sort="krotkie")) == "Nogi"
+    r = _post(auth_client, "/forma/trening", {"plan_id": str(legs.id)})
+    assert r.status_code == 303
+    rank = tr.recent_plans(db, user)
+    assert next(e.name for e in browse.pick(entries, sort="ostatnie", rank=rank)) == "Nogi"
+    assert 'class="chip on">Ostatnio robione' in auth_client.get("/forma/plany?sort=ostatnie").text

@@ -4,36 +4,7 @@
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma" class="home-link">← Forma</a></li></ul></nav>
 <header class="item-head"><h1>🤸 Rozciąganie</h1></header>
 <p class="muted"><small>Zestawy są wspólne – każdy domownik może je zmieniać.</small></p>
-<input type="search" class="pick-search" placeholder="Szukaj: nazwa, partia, ćwiczenie…" aria-label="Szukaj zestawu" autocomplete="off" enterkeyhint="search" data-pick-filter>
-<nav class="pick-chips pick-areas" aria-label="Partia ciała">
-  <a href="{{ pick_url(partia=None) }}" class="chip{% if not group_filter %} on{% endif %}">Wszystko</a>
-  {% for k, label, n in groups %}<a href="{{ pick_url(partia=k) }}" class="chip{% if group_filter == k %} on{% endif %}">{{ label }} <small>{{ n }}</small></a>{% endfor %}
-</nav>
-<p class="pick-chips pick-types">
-  {% for k, label in kinds.items() %}<a href="{{ pick_url(rodzaj=None if kind_filter == k else k) }}" class="chip{% if kind_filter == k %} on{% endif %}" aria-pressed="{{ 'true' if kind_filter == k else 'false' }}">{{ 'Własne' if k == 'own' else label }}</a>{% endfor %}
-  <a href="{{ pick_url(sprzet=None if free_filter else '0') }}" class="chip{% if free_filter %} on{% endif %}" aria-pressed="{{ 'true' if free_filter else 'false' }}">🙌 Bez sprzętu</a>
-</p>
-<p class="pick-chips st-sort" aria-label="Kolejność"><small class="muted">↕</small>
-  {% for k, label in st.SORTS.items() %}<a href="{{ pick_url(sort=k or None) }}" class="chip{% if sort == k %} on{% endif %}">{{ label }}</a>{% endfor %}
-</p>
-{% for heading, rows in sections %}
-<section data-pick-section>
-<h2 class="pick-head st-head">{{ heading }} <small class="muted">{{ rows|length }}</small></h2>
-<ul class="supl-rows pick-list st-list">
-  {% for r in rows %}
-  {% set needs = st.routine_gear(r) %}{% set where = st.focus_label(r) %}
-  <li class="pick-item" data-pick-text="{{ r.name }} {{ kinds[r.kind] }} {{ where }} {% for g in st.focus_groups(r) %}{{ st.body_groups()[g]['name'] }} {% endfor %}{% for it in r.items %}{{ it.stretch.name }} {{ st.area_label(it.stretch.area) }} {% endfor %}{{ needs|join(' ') }}"><a class="supl-row" href="/forma/rozciaganie/{{ r.id }}">
-    <span class="supl-row-main"><b>{{ r.name }}</b>
-      <small class="muted">{% if r.kind != 'own' and r.name != kinds[r.kind] %}{{ kinds[r.kind] }} · {% endif %}{{ r.items|length }} ćw. · ok. {{ st.fmt_duration(st.total_seconds(r)) }}{% if needs %} · 🧰 {{ needs|join(', ') }}{% endif %}</small>
-      {% if where %}<small class="muted st-focus">{{ where }}</small>{% endif %}</span>
-    <span class="supl-row-go" aria-hidden="true">›</span></a>
-    {% if r.items %}<form method="post" action="/forma/rozciaganie/{{ r.id }}/start" class="st-row-start"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" aria-label="Start: {{ r.name }}">▶ Start</button></form>{% endif %}</li>
-  {% endfor %}
-</ul>
-</section>
-{% endfor %}
-{% if not routines %}<p class="muted">{% if filtered %}Żaden zestaw nie pasuje – <a href="{{ pick_url(partia=None, rodzaj=None, sprzet=None) }}">pokaż wszystkie ({{ total }})</a>.{% else %}Brak zestawów.{% endif %}</p>{% endif %}
-{% if routines %}<p class="muted" data-pick-none hidden>Nic nie pasuje{% if filtered %} – spróbuj bez filtrów: <a href="{{ pick_url(partia=None, rodzaj=None, sprzet=None) }}">wszystkie zestawy</a>{% endif %}.</p>{% endif %}
+{% include "partials/browse.html" %}
 <details>
   <summary role="button" class="outline">＋ Nowy zestaw</summary>
   <form method="post" action="/forma/rozciaganie" class="supl-form"><input type="hidden" name="csrf" value="{{ csrf }}">

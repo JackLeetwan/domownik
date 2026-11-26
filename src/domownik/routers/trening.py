@@ -11,8 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from domownik import browse, together
 from domownik import stretching as st
-from domownik import together
 from domownik import training as tr
 from domownik.config import get_settings, now, today
 from domownik.db import get_db
@@ -755,11 +755,29 @@ def _chart(rows: list[tr.HistoryRow], top: float = 0) -> dict | None:
 
 
 @router.get("/plany")
-def plans_page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+def plans_page(
+    request: Request,
+    partia: str = "",
+    sprzet: str = "",
+    sort: str = "",
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """The plans – the same list as the stretching routines (browse.py)."""
     tr.ensure_library(db)
     tr.seed_plans(db)
     db.commit()
-    return render(request, "training_plans.html", {"user": user, "plans": tr.plans(db), "prefs": tr.prefs(db, user)})
+    b = browse.view(
+        [tr.plan_entry(p) for p in tr.plans(db)],
+        "/forma/plany",
+        partia=partia,
+        sprzet=sprzet,
+        sort=sort,
+        free_label="🧳 Na wyjazd",
+        rank=tr.recent_plans(db, user) if sort == "ostatnie" else None,
+        what="planu",
+    )
+    return render(request, "training_plans.html", {"user": user, "b": b, "prefs": tr.prefs(db, user)})
 
 
 @router.post("/plany", dependencies=[Depends(verify_csrf)])

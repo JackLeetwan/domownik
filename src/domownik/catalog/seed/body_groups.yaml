@@ -1,0 +1,11 @@
+# The body groups of the lists of routines and plans (🤸 stretching, 🏋️ strength): the search, the filter chips
+# and the headings the list is split under. `stretch`: the stretches' areas, `strength`: the exercises' muscles.
+# A routine / plan belongs to a group that takes at least a fifth of it (time, or sets); one with at least a tenth
+# on the legs and a fifth above them is "Całe ciało" – and stands under that heading.
+groups:
+  legs: {name: Nogi i biodra, icon: 🦵, stretch: [hips, glutes, quads, hamstrings, groin, calves], strength: [quads, posterior, calves]}
+  back: {name: Plecy, icon: 🔙, stretch: [back], strength: [back]}
+  core: {name: Brzuch i boki, icon: 🫃, stretch: [abs], strength: [core]}
+  arms: {name: Ręce i barki, icon: 💪, stretch: [shoulders, arms], strength: [shoulders, biceps, triceps]}
+  chest: {name: Klatka, icon: 🫁, stretch: [chest], strength: [chest]}
+  neck: {name: Szyja, icon: 🦒, stretch: [neck], strength: []}

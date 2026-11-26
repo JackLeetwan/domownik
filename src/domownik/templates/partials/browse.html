@@ -1,0 +1,33 @@
+{# 📚 the list of routines / plans (browse.py): search, body-group / kind / "nothing needed" chips, the order,
+   the rows under body-group headings. Needs `b` = browse.view(...) and `csrf`. #}
+<input type="search" class="pick-search" placeholder="Szukaj: nazwa, partia, ćwiczenie…" aria-label="Szukaj {{ b.what }}" autocomplete="off" enterkeyhint="search" data-pick-filter>
+<nav class="pick-chips pick-areas" aria-label="Partia ciała">
+  <a href="{{ b.url(partia=None) }}" class="chip{% if not b.group %} on{% endif %}">Wszystko</a>
+  {% for k, label, n in b.chips %}<a href="{{ b.url(partia=k) }}" class="chip{% if b.group == k %} on{% endif %}">{{ label }} <small>{{ n }}</small></a>{% endfor %}
+</nav>
+{% if b.kinds or b.free_any or b.free %}
+<p class="pick-chips pick-types">
+  {% for k, label in b.kinds.items() %}<a href="{{ b.url(rodzaj=None if b.kind == k else k) }}" class="chip{% if b.kind == k %} on{% endif %}" aria-pressed="{{ 'true' if b.kind == k else 'false' }}">{{ label }}</a>{% endfor %}
+  {% if b.free_any or b.free %}<a href="{{ b.url(sprzet=None if b.free else '0') }}" class="chip{% if b.free %} on{% endif %}" aria-pressed="{{ 'true' if b.free else 'false' }}">{{ b.free_label }}</a>{% endif %}
+</p>
+{% endif %}
+<p class="pick-chips st-sort" aria-label="Kolejność"><small class="muted">↕</small>
+  {% for k, label in b.sorts.items() %}<a href="{{ b.url(sort=k or None) }}" class="chip{% if b.sort == k %} on{% endif %}">{{ label }}</a>{% endfor %}
+</p>
+{% for heading, rows in b.sections %}
+<section data-pick-section>
+<h2 class="pick-head st-head">{{ heading }} <small class="muted">{{ rows|length }}</small></h2>
+<ul class="supl-rows pick-list st-list">
+  {% for e in rows %}
+  <li class="pick-item" data-pick-text="{{ e.text }}"><a class="supl-row" href="{{ e.href }}">
+    <span class="supl-row-main"><b>{{ e.name }}</b>
+      <small class="muted">{{ e.meta }}</small>
+      {% if e.label %}<small class="muted st-focus">{{ e.label }}</small>{% endif %}</span>
+    <span class="supl-row-go" aria-hidden="true">›</span></a>
+    {% if e.start %}<form method="post" action="{{ e.start }}" class="st-row-start"><input type="hidden" name="csrf" value="{{ csrf }}">{% for k, v in e.start_fields.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}<button type="submit" aria-label="Start: {{ e.name }}">▶ Start</button></form>{% endif %}</li>
+  {% endfor %}
+</ul>
+</section>
+{% endfor %}
+{% if not b.entries %}<p class="muted">{% if b.filtered %}Nic nie pasuje – <a href="{{ b.url(partia=None, rodzaj=None, sprzet=None) }}">pokaż wszystko ({{ b.total }})</a>.{% else %}Jeszcze nic tu nie ma.{% endif %}</p>
+{% else %}<p class="muted" data-pick-none hidden>Nic nie pasuje{% if b.filtered %} – spróbuj bez filtrów: <a href="{{ b.url(partia=None, rodzaj=None, sprzet=None) }}">wszystko</a>{% endif %}.</p>{% endif %}

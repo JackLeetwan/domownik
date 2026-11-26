@@ -29,7 +29,7 @@ import yaml
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, selectinload
 
-from domownik import webpush
+from domownik import browse, webpush
 from domownik.config import now
 from domownik.models import (
     Exercise,
@@ -313,6 +313,52 @@ def plans(db: Session) -> list[WorkoutPlan]:
             .options(selectinload(WorkoutPlan.items).selectinload(PlanItem.exercise))
         )
     )
+
+
+def _series(n: int) -> str:
+    return "seria" if n == 1 else "serie" if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14) else "serii"
+
+
+def plan_entry(p: WorkoutPlan) -> browse.Entry:
+    """The plan as a row of the list (browse.py, shared with the stretching routines): body groups by sets,
+    ▶ Start, its exercises to search by; "🧳 Na wyjazd" – everything in it can be done away from the gym."""
+    amounts: dict[str, float] = {}
+    for it in p.items:
+        g = browse.group_of("strength", it.exercise.muscle)
+        if g:
+            amounts[g] = amounts.get(g, 0) + it.sets
+    sets = sum(it.sets for it in p.items)
+    away = set(away_equipment())
+    words = " ".join(
+        f"{it.exercise.name} {muscle_label(it.exercise.muscle)} {equipment_label(it.exercise.equipment)}"
+        for it in p.items
+    )
+    return browse.Entry(
+        id=p.id,
+        name=p.name,
+        href=f"/forma/plany/{p.id}",
+        meta=f"{len(p.items)} ćw. · {sets} {_series(sets)}",
+        amounts=amounts,
+        position=p.position,
+        size=sets,
+        start="/forma/trening" if p.items else None,
+        start_fields={"plan_id": p.id},
+        free=all(it.exercise.equipment in away for it in p.items),
+        search=words,
+    )
+
+
+def recent_plans(db: Session, user: User) -> dict[int, int]:
+    """Plan id → 0 for the one done most recently by this person, 1 for the one before…"""
+    rank: dict[int, int] = {}
+    for pid in db.scalars(
+        select(Workout.plan_id)
+        .where(Workout.user_id == user.id, Workout.plan_id.is_not(None))
+        .order_by(Workout.day.desc(), Workout.started_at.desc())
+        .limit(50)
+    ):
+        rank.setdefault(pid, len(rank))
+    return rank
 
 
 def exercises(db: Session) -> list[Exercise]:

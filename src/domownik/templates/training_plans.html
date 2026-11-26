@@ -4,11 +4,7 @@
 <nav aria-label="breadcrumb" class="crumbs"><ul><li><a href="/forma" class="home-link">← Forma</a></li></ul></nav>
 <header class="item-head"><h1>📋 Plany i cel</h1></header>
 <p class="muted"><small>Plany są wspólne dla domowników – każdy ma swoje ciężary i historię. Kolejność = rotacja.</small></p>
-<ul class="supl-rows">
-  {% for p in plans %}
-  <li><a class="supl-row" href="/forma/plany/{{ p.id }}"><span class="supl-row-main"><b>{{ p.name }}</b><small class="muted">{% for it in p.items %}{{ it.exercise.name }}{% if not loop.last %} · {% endif %}{% endfor %}</small></span><span class="supl-row-go" aria-hidden="true">›</span></a></li>
-  {% endfor %}
-</ul>
+{% include "partials/browse.html" %}
 <details>
   <summary role="button" class="outline">＋ Nowy plan</summary>
   <form method="post" action="/forma/plany" class="supl-form"><input type="hidden" name="csrf" value="{{ csrf }}">

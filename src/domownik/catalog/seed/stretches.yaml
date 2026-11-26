@@ -32,16 +32,6 @@ areas:
   groin: Pachwiny
   calves: Łydki
 
-# the routines list's filter: the areas in broader groups (a routine belongs to a group that takes at least
-# a fifth of its time; one with at least a fifth on the legs and a fifth above them is also "Całe ciało")
-body_groups:
-  legs: {name: Nogi i biodra, icon: 🦵, areas: [hips, glutes, quads, hamstrings, groin, calves]}
-  back: {name: Plecy, icon: 🔙, areas: [back]}
-  core: {name: Brzuch i boki, icon: 🫃, areas: [abs]}
-  arms: {name: Ręce i barki, icon: 💪, areas: [shoulders, arms]}
-  chest: {name: Klatka, icon: 🫁, areas: [chest]}
-  neck: {name: Szyja, icon: 🦒, areas: [neck]}
-
 stretches:
   # ---------------------------------------------------------------- dynamic (before)
   - {key: jumping_jacks, name: Pajacyki, type: dynamic, area: shoulders, sided: false, seconds: 30, img: Jumping Jacks, pic: 1}
