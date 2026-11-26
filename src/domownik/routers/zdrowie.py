@@ -167,6 +167,7 @@ def person(request: Request, item_id: int, db: Session = Depends(get_db), user: 
             "year": t.year,
             "sz": sizes.load(db, item, user),
             "size_fields": sizes.FIELDS,
+            "size_guide": sizes.GUIDE,
             "size_what": sizes.WHAT,
             "fmt_cm": sizes.fmt,
             "fit_label": sizes.fit_label,
@@ -529,6 +530,27 @@ async def add_sizes(request: Request, item_id: int, db: Session = Depends(get_db
     )
     db.commit()
     return _redirect(f"/zdrowie/{item.id}#wymiary")
+
+
+@router.post("/wymiary/{entry_id}/edit", dependencies=[Depends(verify_csrf)])
+async def edit_sizes(
+    request: Request, entry_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)
+):
+    """A measurement corrected: the values as typed (an emptied field = not measured that day), the day, the note."""
+    e = db.get(BodySize, entry_id)
+    if e is None or e.private_to_id not in (None, user.id):
+        raise HTTPException(404, "Nie ma takiego pomiaru")
+    form = await request.form()
+    values = {k: sizes.parse_cm(form.get(k)) for k in sizes.KEYS}
+    if all(v is None for v in values.values()):
+        raise HTTPException(400, "Pomiar musi mieć choć jeden wymiar – żeby go skasować, użyj ✕")
+    for k, v in values.items():
+        setattr(e, k, v)
+    e.measured_on = _date(form.get("measured_on")) or e.measured_on
+    e.note = (form.get("note") or "").strip()[:200] or None
+    privacy.apply(e, form, user)
+    db.commit()
+    return _redirect(f"/zdrowie/{e.item_id}#wymiary")
 
 
 @router.post("/wymiary/{entry_id}/delete", dependencies=[Depends(verify_csrf)])

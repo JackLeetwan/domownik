@@ -1,0 +1,45 @@
+{# ⓘ where a measurement is taken: a plain figure with the tape drawn on it. figure(key) – one of sizes.KEYS #}
+{% macro figure(k) %}
+{% if k in ('foot_len', 'foot_width') %}
+<svg class="szf" viewBox="0 0 70 110" role="img" aria-label="Rysunek: {{ 'długość' if k == 'foot_len' else 'szerokość' }} stopy">
+  <path class="szf-body" d="M35 104 C22 104 18 92 18 80 C18 66 15 52 15 40 C15 22 22 8 33 6 C46 4 54 14 55 30 C56 46 52 62 52 80 C52 94 48 104 35 104 Z"/>
+  <g class="szf-toe"><circle cx="24" cy="12" r="5"/><circle cx="34" cy="8" r="4.5"/><circle cx="42" cy="9" r="4"/><circle cx="49" cy="13" r="3.5"/><circle cx="54" cy="19" r="3"/></g>
+  {% if k == 'foot_len' %}
+  <line class="szf-m" x1="62" y1="5" x2="62" y2="104"/><line class="szf-m" x1="58" y1="5" x2="66" y2="5"/><line class="szf-m" x1="58" y1="104" x2="66" y2="104"/>
+  <line class="szf-guide" x1="20" y1="5" x2="58" y2="5"/><line class="szf-guide" x1="35" y1="104" x2="58" y2="104"/>
+  {% else %}
+  <line class="szf-m" x1="13" y1="38" x2="57" y2="34"/><line class="szf-m" x1="13" y1="34" x2="13" y2="42"/><line class="szf-m" x1="57" y1="30" x2="57" y2="38"/>
+  {% endif %}
+</svg>
+{% else %}
+<svg class="szf" viewBox="0 0 110 204" role="img" aria-label="Rysunek: gdzie mierzyć">
+  <g class="szf-body">
+    <circle cx="50" cy="18" r="10"/>
+    <rect x="45" y="26" width="10" height="9"/>
+    <path d="M32 38 Q50 33 68 38 L66 70 Q64 82 66 92 L68 106 L32 106 L34 92 Q36 82 34 70 Z"/>
+  </g>
+  <g class="szf-limb">
+    <polyline points="31,41 26,70 22,98"/><polyline points="69,41 74,70 78,98"/>
+    <polyline class="szf-leg" points="41,104 41,150 41,190"/><polyline class="szf-leg" points="59,104 59,150 59,190"/>
+  </g>
+  <g class="szf-body"><circle cx="21" cy="105" r="5"/><circle cx="79" cy="105" r="5"/><ellipse cx="38" cy="195" rx="8" ry="3"/><ellipse cx="62" cy="195" rx="8" ry="3"/></g>
+  {% set ring = {'chest': (50, 52, 20, 3.5), 'waist': (50, 78, 16.5, 3), 'hips': (50, 98, 18.5, 3.5), 'neck': (50, 31, 6.5, 2),
+     'head': (50, 14, 11.5, 3), 'biceps': (28.5, 57, 6, 2), 'forearm': (24.5, 80, 5.5, 2), 'wrist': (22, 96, 4.5, 1.8),
+     'hand': (21, 105, 6.5, 2), 'thigh': (41, 116, 8.5, 2.5), 'calf': (41, 163, 7.5, 2.2)} %}
+  {% if k in ring %}{% set r = ring[k] %}
+  <ellipse class="szf-m" cx="{{ r[0] }}" cy="{{ r[1] }}" rx="{{ r[2] }}" ry="{{ r[3] }}"/>
+  {% elif k == 'height' %}
+  <line class="szf-m" x1="94" y1="8" x2="94" y2="198"/><line class="szf-m" x1="89" y1="8" x2="99" y2="8"/><line class="szf-m" x1="89" y1="198" x2="99" y2="198"/>
+  <line class="szf-guide" x1="50" y1="8" x2="89" y2="8"/>
+  {% elif k == 'shoulders' %}
+  <line class="szf-m szf-back" x1="31" y1="38" x2="69" y2="38"/><line class="szf-m" x1="31" y1="34" x2="31" y2="42"/><line class="szf-m" x1="69" y1="34" x2="69" y2="42"/>
+  {% elif k == 'sleeve' %}
+  <polyline class="szf-m" points="30,37 22,70 17,97"/><circle class="szf-dot" cx="30" cy="37" r="2"/><circle class="szf-dot" cx="17" cy="97" r="2"/>
+  {% elif k == 'inseam' %}
+  <line class="szf-m" x1="49" y1="110" x2="49" y2="192"/><circle class="szf-dot" cx="49" cy="110" r="2"/>
+  {% elif k == 'outseam' %}
+  <line class="szf-m" x1="31" y1="78" x2="31" y2="192"/><circle class="szf-dot" cx="31" cy="78" r="2"/>
+  {% endif %}
+</svg>
+{% endif %}
+{% endmacro %}

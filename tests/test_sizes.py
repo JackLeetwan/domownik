@@ -121,3 +121,67 @@ def test_child_foot_reminder(auth_client, db, family):
     db.commit()
     html = auth_client.get(f"/zdrowie/{kid.id}").text
     assert "mies. temu" not in html and "+0,8 od" in html
+
+
+def test_every_measurement_listed_with_its_guide(auth_client, family):
+    me = family["me"]
+    html = auth_client.get(f"/zdrowie/{me.id}").text
+    for k, lbl, *_ in sizes.FIELDS:
+        assert f"Jak mierzyć: {lbl}" in html  # the ⓘ of each one, measured or not
+        assert sizes.GUIDE[k][1][0] in html
+    assert html.count("— do zmierzenia") == len(sizes.FIELDS)
+    assert html.count('class="szf"') == len(sizes.FIELDS)
+
+
+def test_limb_girths_and_outer_leg(auth_client, db, family):
+    me = family["me"]
+    csrf = _csrf(auth_client, me.id)
+    data = {"csrf": csrf, "biceps": "37", "forearm": "31,5", "thigh": "53", "calf": "38", "outseam": "105"}
+    assert auth_client.post(f"/zdrowie/{me.id}/wymiary", data=data).status_code in (200, 303)
+    e = db.query(BodySize).one()
+    assert (e.biceps, e.forearm, e.thigh, e.calf, e.outseam) == (37, 31.5, 53, 38, 105)
+    html = auth_client.get(f"/zdrowie/{me.id}").text
+    assert "31,5 cm" in html and html.count("— do zmierzenia") == len(sizes.FIELDS) - 5
+    assert "biceps 37" in sizes.load(db, me, db.get(User, me.user_id)).copy_text()
+
+
+def test_edit_measurement(auth_client, db, user, family):
+    me = family["me"]
+    e = BodySize(item_id=me.id, measured_on=today(), height=184, chest=104, note="stara")
+    db.add(e)
+    db.commit()
+    csrf = _csrf(auth_client, me.id)
+    assert "✏️ Popraw" in auth_client.get(f"/zdrowie/{me.id}").text
+    day = (today() - timedelta(days=5)).isoformat()
+    r = auth_client.post(
+        f"/zdrowie/wymiary/{e.id}/edit",
+        data={
+            "csrf": csrf,
+            "height": "183,5",
+            "chest": "",
+            "shoulders": "47",
+            "measured_on": day,
+            "note": "",
+            "private_field": "1",
+            "private": "1",
+        },
+    )
+    assert r.status_code in (200, 303)
+    db.refresh(e)
+    assert (e.height, e.chest, e.shoulders, e.note) == (183.5, None, 47, None)
+    assert e.measured_on.isoformat() == day and e.private_to_id == user.id
+    assert auth_client.post(f"/zdrowie/wymiary/{e.id}/edit", data={"csrf": csrf, "height": ""}).status_code == 400
+
+
+def test_private_entry_not_editable_by_others(client, db, user, family):
+    me = family["me"]
+    hidden = BodySize(item_id=me.id, measured_on=today(), height=184, private_to_id=user.id)
+    other = User(email="ola@example.com", name="Ola", password_hash=hash_password("tajnehaslo2"))
+    db.add_all([hidden, other])
+    db.commit()
+    page = client.get("/login")
+    client.post("/login", data={"email": "ola@example.com", "password": "tajnehaslo2", "csrf": csrf_of(page.text)})
+    csrf = csrf_of(client.get(f"/zdrowie/{me.id}").text)
+    assert client.post(f"/zdrowie/wymiary/{hidden.id}/edit", data={"csrf": csrf, "height": "1"}).status_code == 404
+    db.refresh(hidden)
+    assert hidden.height == 184

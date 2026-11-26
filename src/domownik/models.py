@@ -1450,6 +1450,11 @@ class BodySize(Base):
     head: Mapped[float | None]
     hand: Mapped[float | None]
     wrist: Mapped[float | None]
+    biceps: Mapped[float | None]
+    forearm: Mapped[float | None]
+    thigh: Mapped[float | None]
+    calf: Mapped[float | None]
+    outseam: Mapped[float | None]
     foot_len: Mapped[float | None]
     foot_width: Mapped[float | None]
     note: Mapped[str | None] = mapped_column(String(200))

@@ -2139,6 +2139,35 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .sz-h { font-size: 1rem; margin: 0.75rem 0 0.25rem; }
 .sz-form fieldset { margin-bottom: 0.75rem; }
 .sz-form fieldset label small { display: block; font-size: 0.8rem; }
+.sz-group { font-size: 0.85rem; margin: 0.6rem 0 0.15rem; color: var(--pico-muted-color); font-weight: 600; }
+.sz-row { margin: 0; border-bottom: 1px solid var(--pico-muted-border-color); }
+.sz-row > summary { display: flex; align-items: baseline; gap: 0.5rem; padding: 0.35rem 0; list-style: none; cursor: pointer; }
+.sz-row > summary::-webkit-details-marker { display: none; }
+.sz-row > summary::after { display: none; }
+.sz-lbl { flex: 0 0 9.5rem; color: var(--pico-muted-color); font-size: 0.9rem; }
+.sz-val { flex: 1; min-width: 0; }
+.sz-i { flex: none; width: 1.4rem; height: 1.4rem; line-height: 1.4rem; text-align: center; border-radius: 50%;
+  font-size: 0.85rem; color: var(--pico-primary); background: var(--pico-primary-focus); }
+.sz-row[open] .sz-i { color: var(--pico-primary-inverse); background: var(--pico-primary); }
+.sz-guide { display: flex; gap: 0.9rem; align-items: flex-start; padding: 0.25rem 0 0.75rem; font-size: 0.9rem; }
+.sz-guide p { margin-bottom: 0.35rem; }
+.sz-guide ol { margin: 0; padding-left: 1.2rem; }
+.sz-guide li { margin-bottom: 0.2rem; }
+.szf { flex: none; width: 6.5rem; height: auto; }
+.szf .szf-body, .szf .szf-toe { fill: var(--pico-muted-border-color); }
+.szf .szf-limb polyline { fill: none; stroke: var(--pico-muted-border-color); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+.szf .szf-limb .szf-leg { stroke-width: 12; }
+.szf .szf-m { fill: none; stroke: var(--pico-primary); stroke-width: 2.2; stroke-linecap: round; }
+.szf .szf-back { stroke-dasharray: 4 3; }
+.szf .szf-guide { stroke: var(--pico-primary); stroke-width: 0.8; stroke-dasharray: 2 2; }
+.szf .szf-dot { fill: var(--pico-primary); }
+.sz-weight { margin: 0.5rem 0 0; }
+.sz-edit { display: block; margin: 0.2rem 0 0.4rem; }
+.sz-edit > summary { font-size: 0.85rem; }
+@media (max-width: 480px) {
+  .sz-lbl { flex-basis: 7.5rem; }
+  .szf { width: 5rem; }
+}
 .hl-chart { width: 100%; max-width: 32rem; height: auto; display: block; margin: 0.25rem 0 0; }
 .hl-chart polyline { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .hl-chart .l1 { stroke: var(--pico-primary); }

@@ -24,14 +24,115 @@ FIELDS: tuple[tuple[str, str, str, str], ...] = (
     ("hips", "Biodra", "Sylwetka", "w najszerszym miejscu pośladków, stopy razem"),
     ("shoulders", "Szerokość ramion", "Sylwetka", "z tyłu, od kości barkowej do kości barkowej"),
     ("neck", "Obwód szyi", "Sylwetka", "u nasady szyi, z palcem pod taśmą – to rozmiar kołnierzyka koszuli"),
+    ("biceps", "Biceps", "Ręce i nogi", "ramię luźno, w najszerszym miejscu między barkiem a łokciem"),
+    ("forearm", "Przedramię", "Ręce i nogi", "ręka luźno, w najszerszym miejscu tuż pod łokciem"),
+    ("thigh", "Udo", "Ręce i nogi", "na stojąco, w najszerszym miejscu, tuż pod kroczem"),
+    ("calf", "Łydka", "Ręce i nogi", "na stojąco, w najszerszym miejscu łydki"),
     ("sleeve", "Długość rękawa", "Długości", "od kości barkowej przez lekko zgięty łokieć do nadgarstka"),
     ("inseam", "Nogawka (wewn.)", "Długości", "po wewnętrznej stronie nogi od krocza do podłogi, bez butów"),
+    ("outseam", "Długość nogi (zewn.)", "Długości", "z boku, od talii (tam, gdzie pasek) do podłogi, bez butów"),
     ("head", "Obwód głowy", "Głowa i dłonie", "nad brwiami i uszami, w najszerszym miejscu (czapki, kaski)"),
     ("hand", "Obwód dłoni", "Głowa i dłonie", "dłoń otwarta, nad kostkami, bez kciuka (rękawiczki)"),
     ("wrist", "Nadgarstek", "Głowa i dłonie", "tuż nad kostką nadgarstka (zegarek, bransoletka)"),
     ("foot_len", "Długość stopy", "Stopy", "na stojąco, od pięty do najdłuższego palca, wieczorem, dłuższa stopa"),
     ("foot_width", "Szerokość stopy", "Stopy", "na stojąco, w najszerszym miejscu (u nasady palców)"),
 )
+# ⓘ the longer guide of each measurement: what it decides and how to take it, step by step
+GUIDE: dict[str, tuple[str, tuple[str, ...]]] = {
+    "height": ("Rozmiar w tabelach marek (np. „176–182”), długość kurtek i płaszczy, rama roweru.", (
+        "Stań bez butów plecami do ściany: pięty, pośladki i łopatki dotykają ściany.",
+        "Patrz prosto przed siebie, broda równolegle do podłogi.",
+        "Połóż na czubku głowy książkę dociśniętą do ściany i zaznacz ołówkiem jej dolną krawędź.",
+        "Zmierz od podłogi do kreski – najlepiej rano, wieczorem jest się o ok. 1 cm niższym.",
+    )),
+    "chest": ("Koszulki, koszule, bluzy, swetry, kurtki – główny wymiar „góry” (S/M/L, 48/50).", (
+        "Stań swobodnie, ręce wzdłuż ciała, na samej bieliźnie albo cienkiej koszulce.",
+        "Poprowadź taśmę pod pachami, przez najszerszy punkt klatki (u kobiet – przez biust).",
+        "Na plecach taśma musi biec poziomo – najłatwiej sprawdzić w lustrze albo z pomocą drugiej osoby.",
+        "Odczytaj na spokojnym wydechu; taśma przylega, ale nie uciska.",
+    )),
+    "waist": ("Spodnie i spódnice (rozmiar W w jeansach), paski, sukienki.", (
+        "Znajdź najwęższe miejsce tułowia – zwykle ok. 2–3 cm nad pępkiem; pochyl się w bok, zgięcie pokazuje talię.",
+        "Owiń taśmę poziomo, nie wciągaj brzucha.",
+        "Odczytaj na spokojnym wydechu.",
+        "Jeansy noszone niżej: zmierz też obwód tam, gdzie leży pasek – zapisz w notatce pomiaru.",
+    )),
+    "hips": ("Spodnie, spódnice, sukienki, bielizna; przy szerszych biodrach decyduje o rozmiarze spodni.", (
+        "Stań ze złączonymi stopami.",
+        "Poprowadź taśmę przez najbardziej wystający punkt pośladków.",
+        "Sprawdź w lustrze z boku, czy taśma jest poziomo, i odczytaj.",
+    )),
+    "shoulders": ("Koszule, marynarki, kurtki, płaszcze – za wąskie w ramionach nie da się poprawić u krawca.", (
+        "Mierzy druga osoba, Ty stoisz prosto, ręce luźno.",
+        "Wymacaj z tyłu kości barkowe – kostne „rogi” na końcu obojczyków, nad ramieniem.",
+        "Zmierz w linii prostej po plecach od jednej kości barkowej do drugiej.",
+        "Najprościej porównać z koszulą, która dobrze leży: szew od szwu na plecach.",
+    )),
+    "neck": ("Rozmiar kołnierzyka koszuli (np. 41) – koszule wizytowe sprzedaje się właśnie po nim.", (
+        "Owiń taśmę u nasady szyi, tam, gdzie leży kołnierzyk – poniżej jabłka Adama.",
+        "Włóż pod taśmę jeden palec, żeby został luz.",
+        "Odczytaj i zaokrąglij w górę do pełnego centymetra (połówki – do 0,5).",
+    )),
+    "biceps": ("Dopasowane koszule i koszulki (slim), marynarki – przy treningu siłowym często to rękaw jest za ciasny.", (
+        "Ręka luźno wzdłuż ciała, bez napinania.",
+        "Owiń taśmę wokół ramienia w najszerszym miejscu, zwykle w połowie między barkiem a łokciem.",
+        "Taśma poziomo, przylega, ale nie uciska. Napięty biceps możesz zapisać w notatce.",
+    )),
+    "forearm": ("Mankiety i rękawy dopasowanych koszul, rękawy kurtek, opaski sportowe.", (
+        "Ręka luźno, dłoń rozluźniona.",
+        "Owiń taśmę w najszerszym miejscu przedramienia – kilka centymetrów pod łokciem.",
+    )),
+    "thigh": ("Jeansy i spodnie slim/skinny, szorty, spodnie kolarskie – czy nogawka nie będzie za ciasna w udzie.", (
+        "Stań w lekkim rozkroku, ciężar na obu nogach.",
+        "Owiń taśmę wokół uda w najszerszym miejscu, tuż pod kroczem.",
+        "Taśma poziomo, bez uciskania.",
+    )),
+    "calf": ("Kozaki i wysokie buty, skarpety uciskowe, spodnie z wąską nogawką.", (
+        "Stań swobodnie, ciężar na obu nogach.",
+        "Owiń taśmę wokół łydki w najszerszym miejscu i odczytaj.",
+    )),
+    "sleeve": ("Koszule (np. „41/88”), kurtki, płaszcze, swetry – czy rękaw nie będzie za krótki.", (
+        "Mierzy druga osoba. Stań prosto, ręka lekko zgięta w łokciu, dłoń na biodrze.",
+        "Przyłóż taśmę na kości barkowej.",
+        "Prowadź ją po zewnętrznej stronie ręki przez łokieć do kości nadgarstka (koniec mankietu).",
+        "Rękaw koszuli w sklepach liczy się czasem od karku – wtedy dodaj połowę szerokości ramion.",
+    )),
+    "inseam": ("Długość nogawki spodni i jeansów (rozmiar L, np. W32/L32).", (
+        "Stań bez butów, stopy lekko rozstawione.",
+        "Przyłóż taśmę jak najwyżej w kroczu i prowadź ją po wewnętrznej stronie nogi do podłogi.",
+        "Prościej: zmierz szew wewnętrzny spodni, które mają dobrą długość.",
+    )),
+    "outseam": ("Długość spodni w tabelach niektórych marek, spodnie garniturowe, spodnie z wysokim stanem.", (
+        "Stań bez butów, prosto.",
+        "Przyłóż taśmę z boku, na wysokości talii – tam, gdzie zwykle leży pasek.",
+        "Prowadź ją pionowo po zewnętrznej stronie nogi do podłogi.",
+    )),
+    "head": ("Czapki, kapelusze, kaski rowerowe i narciarskie (rozmiar = obwód, np. 57).", (
+        "Owiń taśmę wokół głowy ok. 1 cm nad brwiami i nad uszami.",
+        "Z tyłu przez najbardziej wystający punkt potylicy.",
+        "Odczytaj bez uciskania; między rozmiarami wybierz większy.",
+    )),
+    "hand": ("Rękawiczki (rozmiar 8–10 albo S/M/L), rękawiczki rowerowe i na siłownię.", (
+        "Zmierz dłoń, którą piszesz.",
+        "Otwórz dłoń, palce razem, kciuk odsunięty.",
+        "Owiń taśmę wokół dłoni nad kostkami (u nasady palców), bez kciuka.",
+    )),
+    "wrist": ("Zegarki i paski do nich, bransoletki, mankiety koszul.", (
+        "Owiń taśmę tuż nad kostką nadgarstka (od strony łokcia).",
+        "Na pasek zegarka dodaj ok. 1–1,5 cm luzu.",
+    )),
+    "foot_len": ("Rozmiar butów – obok pokazujemy przybliżony rozmiar EU; tabele marek podają długość wkładki.", (
+        "Mierz wieczorem – stopa jest wtedy największa.",
+        "Postaw stopę na kartce przy ścianie, piętą do ściany, ciężar ciała na tej nodze.",
+        "Zaznacz koniec najdłuższego palca (nie zawsze dużego) i zmierz od ściany do kreski.",
+        "Zmierz obie stopy i zapisz dłuższą.",
+    )),
+    "foot_width": ("Buty o szerszej tęgości (np. „wide”, H, G), buty górskie i biegowe.", (
+        "Stań na kartce, ciężar ciała na mierzonej nodze.",
+        "Zaznacz po obu stronach najszersze miejsce stopy – u nasady palców.",
+        "Zmierz odległość między kreskami.",
+    )),
+}  # fmt: skip
 KEYS = tuple(k for k, *_ in FIELDS)
 LABELS = {k: lbl for k, lbl, *_ in FIELDS}
 FROM_BODY_CHECK = ("chest", "waist")  # what 💪 Sylwetka measures too
