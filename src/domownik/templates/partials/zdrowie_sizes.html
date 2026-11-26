@@ -23,7 +23,8 @@
       <summary><span class="sz-lbl">{{ lbl }}</span>
         <span class="sz-val">{% if v %}<b>{{ fmt_cm(v.value) }} cm</b>{% if k == 'foot_len' and sz.shoe %} <span class="chip">≈ EU {{ sz.shoe }}</span>{% endif %}
           <small class="muted{% if sz.stale(k, today()) %} sz-old{% endif %}">· {{ v.on|d }}{% if v.source %} · z {{ v.source }}{% endif %}{% if v.delta %} · {{ '+' if v.delta > 0 else '' }}{{ fmt_cm(v.delta) }} od {{ v.since|d }}{% endif %}</small>
-        {% else %}<span class="muted">— do zmierzenia</span>{% endif %}</span>
+        {% else %}<span class="sz-quick"><input name="{{ k }}" form="sz-quick" inputmode="decimal" placeholder="do zmierzenia" aria-label="{{ lbl }} w cm" autocomplete="off"><small class="muted">cm</small>
+          <button type="submit" form="sz-quick" class="small" aria-label="Zapisz wpisane wymiary" title="Zapisz wpisane">✓</button></span>{% endif %}</span>
         <span class="sz-i" aria-label="Jak mierzyć: {{ lbl }}" title="Jak mierzyć">ⓘ</span></summary>
       <div class="sz-guide">
         {{ figure(k) }}
@@ -34,6 +35,11 @@
       </div>
     </details>
   {% endfor %}
+  {# the missing ones are typed straight into their rows – one form, so several go in at once (today's date) #}
+  <form id="sz-quick" method="post" action="/zdrowie/{{ item.id }}/wymiary" hidden>
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% if sz.entries and sz.entries[0].private_to_id and sz.entries[0].private_to_id == user.id %}<input type="hidden" name="private" value="1">{% endif %}
+  </form>
   {% if sz.weight %}<p class="sz-weight">Waga <b>{{ fmt_cm(sz.weight) }} kg</b> <small class="muted">· {{ sz.weight_on|d }} · z Sylwetki</small></p>{% endif %}
   </div>
 

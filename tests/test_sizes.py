@@ -129,7 +129,7 @@ def test_every_measurement_listed_with_its_guide(auth_client, family):
     for k, lbl, *_ in sizes.FIELDS:
         assert f"Jak mierzyć: {lbl}" in html  # the ⓘ of each one, measured or not
         assert sizes.GUIDE[k][1][0] in html
-    assert html.count("— do zmierzenia") == len(sizes.FIELDS)
+    assert html.count('form="sz-quick" inputmode') == len(sizes.FIELDS)
     assert html.count('class="szf"') == len(sizes.FIELDS)
 
 
@@ -141,7 +141,7 @@ def test_limb_girths_and_outer_leg(auth_client, db, family):
     e = db.query(BodySize).one()
     assert (e.biceps, e.forearm, e.thigh, e.calf, e.outseam) == (37, 31.5, 53, 38, 105)
     html = auth_client.get(f"/zdrowie/{me.id}").text
-    assert "31,5 cm" in html and html.count("— do zmierzenia") == len(sizes.FIELDS) - 5
+    assert "31,5 cm" in html and html.count('form="sz-quick" inputmode') == len(sizes.FIELDS) - 5
     assert "biceps 37" in sizes.load(db, me, db.get(User, me.user_id)).copy_text()
 
 
@@ -185,3 +185,17 @@ def test_private_entry_not_editable_by_others(client, db, user, family):
     assert client.post(f"/zdrowie/wymiary/{hidden.id}/edit", data={"csrf": csrf, "height": "1"}).status_code == 404
     db.refresh(hidden)
     assert hidden.height == 184
+
+
+def test_missing_typed_straight_into_the_rows(auth_client, db, user, family):
+    me = family["me"]
+    db.add(BodySize(item_id=me.id, measured_on=today() - timedelta(days=9), height=184, private_to_id=user.id))
+    db.commit()
+    html = auth_client.get(f"/zdrowie/{me.id}").text
+    assert 'id="sz-quick"' in html and 'name="private" value="1"' in html.split('id="sz-quick"')[1].split("</form>")[0]
+    assert 'name="height" form="sz-quick"' not in html  # measured already – no quick field
+    csrf = csrf_of(html)
+    data = {"csrf": csrf, "shoulders": "47", "sleeve": "64,5", "private": "1"}
+    assert auth_client.post(f"/zdrowie/{me.id}/wymiary", data=data).status_code in (200, 303)
+    e = db.query(BodySize).order_by(BodySize.id.desc()).first()
+    assert (e.shoulders, e.sleeve, e.measured_on, e.private_to_id) == (47, 64.5, today(), user.id)

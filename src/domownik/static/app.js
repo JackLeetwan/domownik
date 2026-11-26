@@ -597,6 +597,18 @@
     saveNotesState(st);
   });
 
+  // ------------------------------------------------------------------ 📏 a value typed straight into a measurement's row
+  // The row is a <details> (ⓘ opens how to measure); clicks and keys in its input must not fold it open or shut.
+  document.addEventListener("click", (ev) => {
+    if (ev.target.closest(".sz-row > summary .sz-quick")) {
+      ev.preventDefault();
+      if (ev.target.matches("button")) ev.target.form && ev.target.form.requestSubmit(ev.target);
+    }
+  });
+  document.addEventListener("keyup", (ev) => {
+    if (ev.key === " " && ev.target.closest(".sz-row > summary .sz-quick")) ev.preventDefault();
+  });
+
   // ------------------------------------------------------------------ sections folded to their heading
   // Inside [data-fold-scope="key"] every <section> that starts with a heading (h2/h3, or a header with
   // one) folds to that heading; a tap on it (or ▾) opens / folds, remembered on this device per scope.
