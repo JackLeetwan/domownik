@@ -827,3 +827,7 @@ def test_plans_list_like_the_stretching_routines(auth_client, db, user, fbw):
     rank = tr.recent_plans(db, user)
     assert next(e.name for e in browse.pick(entries, sort="ostatnie", rank=rank)) == "Nogi"
     assert 'class="chip on">Ostatnio robione' in auth_client.get("/forma/plany?sort=ostatnie").text
+
+
+def test_new_workout_page_links_to_plan_editing(auth_client, fbw):
+    assert 'href="/forma/plany">📋 Plany i cel</a>' in auth_client.get("/forma/trening/nowy").text

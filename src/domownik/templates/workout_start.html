@@ -15,6 +15,7 @@
   </div>
 
   <h2 class="wst-q">2. Co robisz?</h2>
+  <p class="muted"><small>Ćwiczenia, serie i kolejność planów zmienisz w <a href="/forma/plany">📋 Plany i cel</a>.</small></p>
   <div class="wst-list">
     {% for p in plans %}
     <label class="choice"><input type="radio" name="plan_id" value="{{ p.id }}"{% if next_plan and p.id == next_plan.id %} checked{% endif %}>
