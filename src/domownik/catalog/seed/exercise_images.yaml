@@ -178,7 +178,7 @@ by_key:
   plate_rotation: Plate Twist
   slrdl_rotation: Kettlebell One-Legged Deadlift
   leg_swing_ex: Front Leg Raises
-  # our own drawings (scripts/draw_exercises.py) and the photos of the newer exercises
+  # stock photos / our own drawings (scripts/draw_exercises.py, STOCK) and the photos of the newer exercises
   knee_push_up: Knee Push-Up
   db_reverse_lunge: Dumbbell Rear Lunge
   wall_sit: Wall Sit

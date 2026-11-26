@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Our own pictures for exercises free-exercise-db has none of: a side-view silhouette, two frames
+"""Our own pictures for exercises free-exercise-db has none of (most now replaced by stock photos – STOCK below): a side-view silhouette, two frames
 (start and end position), the same look as standing-quad-stretch. Writes static/exercises/<slug>.webp
 and <slug>-1.webp (320×213, like the photos).
 
@@ -429,12 +429,37 @@ def render(svg: str, png: Path) -> None:
                    check=True, capture_output=True)
 
 
+# Drawings replaced by stock photos (Pexels, free to use without attribution: pexels.com/license): slug → photo id
+# (pexels.com/photo/<id>/), one frame, 320×213. Running the script without names leaves them alone.
+STOCK = {
+    "wall-sit": 5038859,
+    "bird-dog": 6454196,
+    "pike-push-up": 3758148,
+    "band-pulldown": 4920470,
+    "band-row": 5067749,
+    "band-curl": 4920435,
+    "band-pushdown": 30672398,
+    "barbell-sumo-squat": 1552249,
+    "poliquin-step": 4587386,
+    "plank-rotation": 4775188,
+    "doorway-chest-stretch": 5743233,
+    "thread-the-needle": 9194299,
+    "downward-dog": 6303735,
+    "hips-90-90": 4804308,
+    "neck-levator-stretch": 4584274,
+    "jumping-jacks": 4853080,
+    "cobra-stretch": 3823076,
+    "pigeon-stretch": 3822138,
+    "standing-quad-stretch": 7787917,
+}
+
+
 def main() -> None:
     from PIL import Image
 
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     all_poses = poses()
-    keys = args or list(all_poses)
+    keys = args or [k for k, (slug, *_) in all_poses.items() if slug not in STOCK]
     tmp = Path(os.environ.get("DRAW_TMP") or tempfile.mkdtemp(prefix="draw-ex-"))
     tmp.mkdir(parents=True, exist_ok=True)
     thumbs = []

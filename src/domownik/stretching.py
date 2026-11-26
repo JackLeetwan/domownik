@@ -58,12 +58,14 @@ def routine_gear(r: StretchRoutine) -> list[str]:
 # ---------------------------------------------------------------- pictures and instructions
 
 
-def _frames(s: Stretch) -> tuple[str, str] | None:
+def _frames(s: Stretch) -> tuple[str, str | None] | None:
+    """Start and end frame; a single photo (a stock one) has no end frame – then the start is the picture."""
     row = _by_key().get(s.key)
     if not row or not row.get("img"):
         return None
     slug = tr._slug(row["img"])
-    return f"/static/exercises/{slug}.webp", f"/static/exercises/{slug}-1.webp"
+    end = f"/static/exercises/{slug}-1.webp"
+    return f"/static/exercises/{slug}.webp", end if (tr.STATIC / end.removeprefix("/static/")).is_file() else None
 
 
 def image(s: Stretch) -> str | None:
@@ -71,14 +73,14 @@ def image(s: Stretch) -> str | None:
     frames = _frames(s)
     if frames is None:
         return None
-    return frames[1] if _by_key()[s.key].get("pic") == 1 else frames[0]
+    return (frames[1] if _by_key()[s.key].get("pic") == 1 else None) or frames[0]
 
 
 def image_target(s: Stretch) -> str | None:
     """What the timer shows: the target position – the end frame (`hold: 0` where the start shows it better).
     Both frames, start and end, stay in the instructions."""
     frames = _frames(s)
-    return frames[_by_key()[s.key].get("hold", 1)] if frames else None
+    return (frames[_by_key()[s.key].get("hold", 1)] or frames[0]) if frames else None
 
 
 def image_start(s: Stretch) -> str | None:

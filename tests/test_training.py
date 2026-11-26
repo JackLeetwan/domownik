@@ -9,6 +9,7 @@ from domownik import training as tr
 from domownik import webpush
 from domownik.models import Exercise, PushSubscription, User, Workout, WorkoutPlan
 from domownik.security import hash_password
+from tests.conftest import stock_slugs
 
 D = date(2026, 11, 10)
 T = datetime(2026, 11, 10, 18, 0)
@@ -453,9 +454,11 @@ def test_guide_by_key_and_by_jefit_name(db):
 
 
 def test_every_picture_has_its_end_frame(db):
+    """Except a stock photo – one frame (STOCK in scripts/draw_exercises.py)."""
     tr.ensure_library(db)
+    stock = stock_slugs()
     for ex in db.query(Exercise).all():
-        if tr.image(ex):
+        if (img := tr.image(ex)) and img.removeprefix("/static/exercises/").removesuffix(".webp") not in stock:
             assert tr.image_end(ex), ex.key
 
 

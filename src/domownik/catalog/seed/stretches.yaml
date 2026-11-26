@@ -3,7 +3,7 @@
 # sided: done for each side separately – the timer counts `seconds` twice with "zmień stronę" in between
 # seconds: the default time (per side when sided); a routine can change it
 # img: the exercise's name in free-exercise-db (The Unlicense) → static/exercises/<slug>.webp (+ <slug>-1.webp);
-# an img with no such exercise there is our own drawing: scripts/draw_exercises.py (a side-view silhouette, 320×213)
+# an img with no such exercise there is a stock photo (one frame) or our own drawing: scripts/draw_exercises.py, STOCK
 # gear: a key of `gear` above when the stretch needs it
 # img left out: no good picture there – the icon is 🤸/🧘 (pic/hold then left out too)
 # pic: which of the two frames is its icon (0 = start; 1 when the start is just a person standing)

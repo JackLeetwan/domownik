@@ -69,3 +69,13 @@ def auth_client(client, user):
     assert r.status_code == 303
     client.headers["X-CSRF-Token"] = csrf_of(client.get("/").text)  # token rotates on login
     return client
+
+
+def stock_slugs() -> set[str]:
+    """Pictures that are one stock photo, without an end frame: STOCK in scripts/draw_exercises.py."""
+    import ast
+    from pathlib import Path
+
+    tree = ast.parse((Path(__file__).resolve().parent.parent / "scripts/draw_exercises.py").read_text())
+    node = next(n for n in tree.body if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", "") == "STOCK")
+    return set(ast.literal_eval(node.value))

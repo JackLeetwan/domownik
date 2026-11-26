@@ -8,6 +8,7 @@ from domownik import stretching as st
 from domownik import training as tr
 from domownik.models import Stretch, StretchRoutine, StretchSession, User
 from domownik.security import hash_password
+from tests.conftest import stock_slugs
 
 STATIC = Path(st.__file__).parent / "static"
 
@@ -32,7 +33,7 @@ def test_catalog_is_complete():
         assert row["pic"] in (0, 1)
         slug = tr._slug(row["img"])
         assert (STATIC / "exercises" / f"{slug}.webp").is_file(), slug
-        assert (STATIC / "exercises" / f"{slug}-1.webp").is_file(), slug
+        assert (STATIC / "exercises" / f"{slug}-1.webp").is_file() or slug in stock_slugs(), slug
     for g in guides.values():
         assert 3 <= len(g.steps) <= 5 and 1 <= len(g.mistakes) <= 2
     for r in cat["routines"]:
@@ -137,6 +138,9 @@ def test_pictures_and_duration(db):
     assert st.image(four) == st.image_start(four) and st.image_target(four) == st.image_end(four)
     chair = db.query(Stretch).filter_by(key="chair_side_bend").one()  # hold: 0 – the start is the bend
     assert st.image_target(chair) == st.image_start(chair)
+    pigeon = db.query(Stretch).filter_by(key="pigeon").one()  # pic: 1, but one stock photo – no end frame
+    assert st.image(pigeon) == st.image_target(pigeon) == st.image_start(pigeon) == "/static/exercises/pigeon-stretch.webp"
+    assert st.image_end(pigeon) is None
     r = st.for_kind(db, "after")
     work = sum((it.stretch.seconds + st.TRANSITION) * (2 if it.stretch.sided else 1) for it in r.items)
     assert st.total_seconds(r) == work
