@@ -2068,6 +2068,8 @@ legend .ex-info { width: 2rem; height: 2rem; font-size: 1.1rem; vertical-align: 
 .st-quick button small { opacity: 0.8; }
 .st-gear { margin: -0.5rem 0 0.75rem; }
 .pick-search { margin-bottom: 0.6rem; }
+.st-sort { align-items: center; }
+.st-focus { font-size: 0.8rem; }
 .pick-types { flex-wrap: wrap; }  /* "🙌 Bez sprzętu" goes to its own line on a phone instead of off the edge */
 
 /* ⇉ a whole superset round in one form */

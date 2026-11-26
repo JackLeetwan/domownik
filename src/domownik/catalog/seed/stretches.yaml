@@ -32,6 +32,16 @@ areas:
   groin: Pachwiny
   calves: Łydki
 
+# the routines list's filter: the areas in broader groups (a routine belongs to a group that takes at least
+# a fifth of its time; one with at least a fifth on the legs and a fifth above them is also "Całe ciało")
+body_groups:
+  legs: {name: Nogi i biodra, icon: 🦵, areas: [hips, glutes, quads, hamstrings, groin, calves]}
+  back: {name: Plecy, icon: 🔙, areas: [back]}
+  core: {name: Brzuch i boki, icon: 🫃, areas: [abs]}
+  arms: {name: Ręce i barki, icon: 💪, areas: [shoulders, arms]}
+  chest: {name: Klatka, icon: 🫁, areas: [chest]}
+  neck: {name: Szyja, icon: 🦒, areas: [neck]}
+
 stretches:
   # ---------------------------------------------------------------- dynamic (before)
   - {key: jumping_jacks, name: Pajacyki, type: dynamic, area: shoulders, sided: false, seconds: 30, img: Jumping Jacks, pic: 1}
@@ -158,3 +168,63 @@ routines:
     name: Przed snem
     kind: own
     items: [cat_cow, childs_pose, butterfly, knees_to_chest, figure_four, leg_up_hamstring, knee_across]
+  # ☀️ the morning – standing, slowly waking every joint up; nothing needed (~5½ min)
+  - key: morning
+    name: Poranne rozbudzenie
+    kind: own
+    items: [full_torso, arm_swings_up, shoulder_rolls, torso_rotation, pelvic_tilt_standing, knee_circles, ankle_circles, toe_touch, quad_standing]
+  # 🌍 the whole body in one go – floor and standing, nothing needed (~10½ min)
+  - key: full_body
+    name: Całe ciało
+    kind: own
+    items: [cat_cow, down_dog, worlds_greatest, hip_flexor_lunge, hamstring_seated, pigeon, thread_needle, cross_body_shoulder, side_neck, childs_pose]
+  # 🔙 a stiff back – on the floor, slow; nothing needed (~7½ min)
+  - key: back
+    name: Plecy – ulga
+    kind: own
+    items: [cat_cow, pelvic_tilt_bridge, thread_needle, childs_pose, lat_wall, upper_back, cobra, knee_across, knees_to_chest]
+  # 🦒 neck and shoulders after a day at the screen – sitting or standing, nothing needed (~6 min)
+  - key: neck_shoulders
+    name: Szyja i barki
+    kind: own
+    items: [side_neck, chin_to_chest, shoulder_rolls, elbow_circles, cross_body_shoulder, side_wrist_pull, upper_back, chest_elbows_back]
+  # 💪 arms and wrists – after pull-ups, the keyboard, the phone; nothing needed (~7 min)
+  - key: arms
+    name: Ręce i nadgarstki
+    kind: own
+    items: [wrist_circles, elbow_circles, forearms_kneeling, triceps_overhead, triceps_across, biceps_behind, cross_body_shoulder, doorway_chest]
+  # 🫃 the trunk's front and sides – standing and lying, nothing needed (~5½ min)
+  - key: core
+    name: Brzuch i boki
+    kind: own
+    items: [torso_rotation, full_torso, side_bend, cobra, side_lying_reach, seated_side_bend, kneeling_backbend]
+  # 🦵 hips open – circles and lunges, then long holds on the floor; nothing needed (~8½ min)
+  - key: hips
+    name: Biodra – otwarcie
+    kind: own
+    items: [hip_circles_fours, groiners, hip_flexor_lunge, hips_90_90, pigeon, butterfly, straddle, figure_four]
+  # 🦵 the back of the thighs – a warm-up, then the holds; nothing needed (~9 min)
+  - key: hamstrings
+    name: Tył uda – gibkość
+    kind: own
+    items: [inchworm, leg_swings_front, hamstring_90_90, runners_stretch, hamstring_seated, leg_up_hamstring, toe_touch, down_dog, straddle]
+  # 🏃 after a run – standing, at a wall or a tree; nothing needed (~7½ min)
+  - key: after_run
+    name: Po bieganiu
+    kind: after
+    items: [quad_standing, calf_wall, soleus_standing, toe_touch, hip_flexor_lunge, runners_stretch, figure_four]
+  # 💪 after an upper-body workout – chest, back, arms (~8 min)
+  - key: after_upper
+    name: Po treningu – góra
+    kind: after
+    items: [doorway_chest, cross_body_shoulder, triceps_overhead, biceps_behind, lat_wall, thread_needle, upper_back, side_neck]
+  # 🦵 a warm-up before a leg day – joints, swings, squats (~6½ min)
+  - key: before_legs
+    name: Rozgrzewka – nogi
+    kind: before
+    items: [ankle_circles, knee_circles, leg_circles, leg_swings_front, leg_swings_side, groiners, crossover_lunge, warmup_squats]
+  # 💪 a warm-up before pushing and pulling – shoulders, elbows, wrists (~4½ min)
+  - key: before_upper
+    name: Rozgrzewka – góra
+    kind: before
+    items: [jumping_jacks, arm_circles, shoulder_rolls, elbow_circles, wrist_circles, chest_openers, arm_swings_up, torso_rotation]

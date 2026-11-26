@@ -139,7 +139,9 @@ def test_pictures_and_duration(db):
     chair = db.query(Stretch).filter_by(key="chair_side_bend").one()  # hold: 0 – the start is the bend
     assert st.image_target(chair) == st.image_start(chair)
     pigeon = db.query(Stretch).filter_by(key="pigeon").one()  # pic: 1, but one stock photo – no end frame
-    assert st.image(pigeon) == st.image_target(pigeon) == st.image_start(pigeon) == "/static/exercises/pigeon-stretch.webp"
+    assert (
+        st.image(pigeon) == st.image_target(pigeon) == st.image_start(pigeon) == "/static/exercises/pigeon-stretch.webp"
+    )
     assert st.image_end(pigeon) is None
     r = st.for_kind(db, "after")
     work = sum((it.stretch.seconds + st.TRANSITION) * (2 if it.stretch.sided else 1) for it in r.items)
@@ -520,3 +522,37 @@ def test_swap_a_stretch_in_the_session(auth_client, db, user, monkeypatch):
     assert g.state["idx"] == sum(sided[:3]) and g.state["endsAt"] is None and g.state["left"] == st.TRANSITION * 1000
     assert g.state["results"] == {"0": "done"} and g.state["activeMs"] > 0
     assert auth_client.get(f"/forma/rozciaganie/razem/{g.id}/stan").json()["plan"][3] == first.id
+
+
+def test_routines_list_filters_and_order(auth_client, db):
+    """The list: body-group chips (a routine is in a group with a fifth of its time), kind, nothing needed,
+    the order, and the search text (name, groups, every stretch)."""
+    st.prepare(db)
+    db.commit()
+    by_seed = {r.seed: r for r in st.routines(db)}
+    assert st.focus_groups(by_seed["legs_short"]) == ["legs"] and not st.is_whole_body(by_seed["legs_short"])
+    assert st.is_whole_body(by_seed["full_body"]) and st.focus_label(by_seed["full_body"]) == "🧍 Całe ciało"
+    assert "neck" in st.focus_groups(by_seed["desk"]) and "neck" not in st.focus_groups(by_seed["before"])
+    assert abs(sum(st.focus(by_seed["after"]).values()) - 1) < 1e-9
+
+    every = auth_client.get("/forma/rozciaganie").text
+    assert "🦒 Szyja <small>" in every and "🧍 Całe ciało <small>" in every and "data-pick-filter" in every
+    assert "Krążenia ramion" in every  # a stretch's name is searchable
+
+    neck = auth_client.get("/forma/rozciaganie?partia=neck").text
+    assert "Szyja i barki" in neck and "Przerwa przy biurku" in neck and "Nogi – krótko" not in neck
+    legs = auth_client.get("/forma/rozciaganie?partia=legs").text  # the most about legs first
+    assert legs.index("<b>Nogi – krótko</b>") < legs.index("<b>Przed treningiem</b>")
+    before = auth_client.get("/forma/rozciaganie?rodzaj=before&partia=arms").text
+    assert "Rozgrzewka – góra" in before and "Rozgrzewka – nogi" not in before and "Po treningu – góra" not in before
+    free = auth_client.get("/forma/rozciaganie?sprzet=0").text
+    assert "Nogi – długo" not in free and "Nogi – krótko" in free
+    short = auth_client.get("/forma/rozciaganie?sort=krotkie").text
+    assert short.index("<b>Rozgrzewka – szybka</b>") < short.index("<b>Nogi – długo</b>")
+    az = auth_client.get("/forma/rozciaganie?sort=az").text
+    assert (
+        az.index("<b>Biodra – otwarcie</b>") < az.index("<b>Ręce i nadgarstki</b>") < az.index("<b>Szyja i barki</b>")
+    )
+    none = auth_client.get("/forma/rozciaganie?partia=neck&rodzaj=before").text
+    assert "Żaden zestaw nie pasuje" in none and "/forma/rozciaganie?sort" not in none
+    assert auth_client.get("/forma/rozciaganie?partia=bzdura&sort=x").status_code == 200

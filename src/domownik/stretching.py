@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import functools
 import time
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -159,15 +160,7 @@ def routines(db: Session) -> list[StretchRoutine]:
 def quick(db: Session, user: User, n: int = 3) -> list[StretchRoutine]:
     """The routines for a quick start on "Forma": the person's most recent ones first, then the list order."""
     rs = [r for r in routines(db) if r.items]
-    recent = db.scalars(
-        select(StretchSession.routine_id)
-        .where(StretchSession.user_id == user.id, StretchSession.routine_id.is_not(None))
-        .order_by(StretchSession.started_at.desc(), StretchSession.id.desc())
-        .limit(20)
-    )
-    rank = {}
-    for rid in recent:
-        rank.setdefault(rid, len(rank))
+    rank = _recent_rank(db, user)
     return sorted(rs, key=lambda r: (rank.get(r.id, len(rank)), r.position, r.id))[:n]
 
 
@@ -203,6 +196,111 @@ def areas_with(db: Session, type_: str | None, free: bool = False) -> list[tuple
     rows = _pickable(db, type_, free)
     counts = {k: sum(1 for s in rows if s.area == k) for k in catalog()["areas"]}
     return [(k, label, counts[k]) for k, label in catalog()["areas"].items() if counts[k]]
+
+
+# ---------------------------------------------------------------- the routines list: body groups, filter, order
+
+WHOLE = "cale"  # the filter "Całe ciało": a fifth of the time on the legs and a fifth above them
+SORTS = {"": "Kolejność", "ostatnie": "Ostatnio robione", "krotkie": "Najkrótsze", "dlugie": "Najdłuższe", "az": "A–Z"}
+
+
+def body_groups() -> dict[str, dict[str, Any]]:
+    return catalog()["body_groups"]
+
+
+@functools.cache
+def _group_of_area() -> dict[str, str]:
+    return {a: g for g, row in body_groups().items() for a in row["areas"]}
+
+
+def focus(r: StretchRoutine) -> dict[str, float]:
+    """What share of the routine's time each body group gets, the biggest first."""
+    total = total_seconds(r)
+    if not total:
+        return {}
+    shares: dict[str, float] = {}
+    for it in r.items:
+        g = _group_of_area().get(it.stretch.area)
+        if g:
+            shares[g] = shares.get(g, 0) + (it.duration + TRANSITION) * steps_count(it) / total
+    return dict(sorted(shares.items(), key=lambda x: -x[1]))
+
+
+def focus_groups(r: StretchRoutine) -> list[str]:
+    """The groups the routine is for: each with at least a fifth of its time (the main one always)."""
+    f = focus(r)
+    return [g for i, (g, share) in enumerate(f.items()) if i == 0 or share >= 0.2]
+
+
+def is_whole_body(r: StretchRoutine) -> bool:
+    legs = focus(r).get("legs", 0)
+    return 0.2 <= legs <= 0.8
+
+
+def focus_label(r: StretchRoutine) -> str:
+    """The groups as text ("🦵 Nogi i biodra, 🔙 Plecy") – or "🧍 Całe ciało" for one over the whole body."""
+    if is_whole_body(r):
+        return "🧍 Całe ciało"
+    return ", ".join(f"{body_groups()[g]['icon']} {body_groups()[g]['name']}" for g in focus_groups(r))
+
+
+def group_chips(rs: list[StretchRoutine]) -> list[tuple[str, str, int]]:
+    """The list's body-group chips: (key, label, how many routines) – the groups with any routine."""
+    rows = [(WHOLE, "🧍 Całe ciało", sum(1 for r in rs if is_whole_body(r)))]
+    rows += [
+        (g, f"{row['icon']} {row['name']}", sum(1 for r in rs if g in focus_groups(r)))
+        for g, row in body_groups().items()
+    ]
+    return [x for x in rows if x[2]]
+
+
+def _plain(text: str) -> str:
+    """For A–Z: "Łydki" between "Kolana" and "Mostek", not after "Z"."""
+    text = text.lower().replace("ł", "l")
+    return "".join(c for c in unicodedata.normalize("NFD", text) if not unicodedata.combining(c))
+
+
+def _recent_rank(db: Session, user: User) -> dict[int, int]:
+    rank: dict[int, int] = {}
+    for rid in db.scalars(
+        select(StretchSession.routine_id)
+        .where(StretchSession.user_id == user.id, StretchSession.routine_id.is_not(None))
+        .order_by(StretchSession.started_at.desc(), StretchSession.id.desc())
+        .limit(50)
+    ):
+        rank.setdefault(rid, len(rank))
+    return rank
+
+
+def browse(
+    db: Session,
+    user: User,
+    rs: list[StretchRoutine],
+    group: str | None = None,
+    kind: str | None = None,
+    free: bool = False,
+    sort: str = "",
+) -> list[StretchRoutine]:
+    """The routines list filtered (body group, before / after / own, nothing needed) and ordered.
+    With a body group and the default order, the routines most about that group come first."""
+    if group == WHOLE:
+        rs = [r for r in rs if is_whole_body(r)]
+    elif group:
+        rs = [r for r in rs if group in focus_groups(r)]
+    if kind:
+        rs = [r for r in rs if r.kind == kind]
+    if free:
+        rs = [r for r in rs if not routine_gear(r)]
+    if sort == "ostatnie":
+        rank = _recent_rank(db, user)
+        return sorted(rs, key=lambda r: (rank.get(r.id, len(rank)), r.position, r.id))
+    if sort in ("krotkie", "dlugie"):
+        return sorted(rs, key=lambda r: (total_seconds(r) * (1 if sort == "krotkie" else -1), r.position))
+    if sort == "az":
+        return sorted(rs, key=lambda r: _plain(r.name))
+    if group and group != WHOLE:
+        return sorted(rs, key=lambda r: (-focus(r).get(group, 0), r.position, r.id))
+    return rs
 
 
 def steps_count(item: StretchRoutineItem) -> int:

@@ -51,10 +51,44 @@ def _ctx(user: User, **kw) -> dict:
 
 
 @router.get("")
-def routines_page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+def routines_page(
+    request: Request,
+    partia: str = "",
+    rodzaj: str = "",
+    sprzet: str = "",
+    sort: str = "",
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """The routines: 🔎 search (in the browser), body-group, kind and "nothing needed" filters, the order."""
     st.prepare(db)
     db.commit()
-    return render(request, "stretch_routines.html", _ctx(user, routines=st.routines(db)))
+    every = st.routines(db)
+    chips = st.group_chips(every)
+    group = partia if partia in {k for k, _, _ in chips} else None
+    kind = rodzaj if rodzaj in KINDS else None
+    free = sprzet == "0"
+    sort = sort if sort in st.SORTS else ""
+    shown = st.browse(db, user, every, group, kind, free, sort)
+    return render(
+        request,
+        "stretch_routines.html",
+        _ctx(
+            user,
+            routines=shown,
+            total=len(every),
+            groups=chips,
+            group_filter=group,
+            kind_filter=kind,
+            free_filter=free,
+            sort=sort,
+            filtered=bool(group or kind or free),
+            pick_url=_pick_url(
+                "/forma/rozciaganie",
+                {"partia": group, "rodzaj": kind, "sprzet": "0" if free else None, "sort": sort or None},
+            ),
+        ),
+    )
 
 
 @router.post("", dependencies=[Depends(verify_csrf)])
