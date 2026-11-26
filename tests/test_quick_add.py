@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 
 from sqlalchemy import select
 
@@ -38,10 +39,10 @@ def test_item_of_current_page_is_preselected(auth_client, db):
     db.add_all([a, b])
     db.commit()
     r = auth_client.get("/dodaj/task", headers=HX | {"HX-Current-URL": f"http://testserver/items/{b.id}"})
-    assert f'<option value="{b.id}" selected>' in r.text
+    assert f'name="item_id" value="{b.id}" checked' in r.text
     assert f"/tasks/new?item={b.id}" in r.text  # "Więcej opcji" goes to the full form of that item
     r = auth_client.get("/dodaj/task", headers=HX | {"HX-Current-URL": "http://testserver/zakupy"})
-    assert "selected>" not in r.text.split('name="item_id"')[1].split("</select>")[0]
+    assert "checked" not in r.text.split("data-ip>")[1].split("</fieldset>")[0]
 
 
 def test_quick_task_saves_with_guessed_category(auth_client, db):
@@ -184,3 +185,24 @@ def test_menu_for_a_calendar_day(auth_client, db):
 def test_calendar_day_has_add_button(auth_client):
     page = auth_client.get("/kalendarz?d=2030-05-14&m=2030-05").text
     assert 'data-cal-add="2030-05-14"' in page and 'data-cal-day="2030-05-14"' in page
+
+
+def test_item_chips_most_used_first_rest_folded_by_area(auth_client, db):
+    from domownik.item_pick import TOP
+
+    home = Item(name="Dom", kind="house")
+    db.add(home)
+    db.flush()
+    gadgets = [Item(name=f"Sprzęt {n:02}", kind="appliance", parent_id=home.id) for n in range(TOP + 3)]
+    kid = Item(name="Staś", kind="child")
+    db.add_all([*gadgets, kid])
+    db.flush()
+    db.add_all([Task(title=f"Szczepienie {n}", item_id=kid.id, next_due_date=date(2030, 1, 1)) for n in range(3)])
+    db.commit()
+    html = auth_client.get("/dodaj/task", headers=HX).text
+    pick = html.split("data-ip>")[1].split("</fieldset>")[0]
+    top, rest = pick.split("ip-more")
+    # the child with tasks is a big chip; the long tail of "Dom › …" sits folded under its area
+    assert "Staś" in top and "Sprzęt 10" in rest and '<p class="ip-head">Dom</p>' in rest
+    assert "data-ip-filter" in pick and 'data-ip-text="Dom › Sprzęt 10"' in rest
+    assert '<select name="item_id"' not in html

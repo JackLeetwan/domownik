@@ -10,7 +10,7 @@ from markupsafe import escape
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from domownik import budget, documents, points, privacy, schedule, services
+from domownik import budget, documents, item_pick, points, privacy, schedule, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain import recurrence
@@ -161,6 +161,7 @@ def _form_context(db: Session, tree: Tree, **extra) -> dict:
         "users": list(db.scalars(select(User).where(User.is_active.is_(True)))),
         "items": sorted(tree.items.values(), key=lambda i: tree.label(i.id)),
         "label": tree.label,
+        "pick": item_pick.build(db, tree, task.item_id if task is not None else None),
         "FREQ_LABELS": FREQ_LABELS,
         "REMIND_CHOICES": REMIND_CHOICES,
         "DEFAULT_REMIND": DEFAULT_REMIND,

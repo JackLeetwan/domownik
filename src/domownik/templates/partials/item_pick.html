@@ -1,0 +1,21 @@
+{# "Dotyczy" as chips instead of a long <select> (item_pick.py). Needs: pick, and optionally
+   pick_title ("Dotyczy"), pick_required. One radio per item: the top chips, the rest folded by area;
+   the search looks through all of them and opens the fold (app.js, data-ip). #}
+{% macro chip(i) %}<label class="cap-chip ip-chip" title="{{ pick.label[i.id] }}" data-ip-text="{{ pick.label[i.id] }}"><input type="radio" name="item_id" value="{{ i.id }}" {% if i.id == pick.current %}checked {% endif %}{% if pick_required %}required{% endif %}>{{ i.display_icon }} {{ i.name }}</label>{% endmacro %}
+<fieldset class="ip" data-ip>
+  <legend>{{ pick_title or 'Dotyczy' }}</legend>
+  {% if pick.rest_count %}<input type="search" class="ip-search" placeholder="Szukaj: dom, auto, Staś…" aria-label="Szukaj, czego dotyczy" autocomplete="off" data-ip-filter>{% endif %}
+  <div class="cap-chips ip-top">{% for i in pick.top %}{{ chip(i) }}{% endfor %}</div>
+  {% if pick.rest_count %}
+  <details class="cap-more ip-more"{% if pick.current_folded %} open{% endif %}>
+    <summary>Inne ({{ pick.rest_count }})</summary>
+    {% for area, its in pick.groups %}
+    <div class="ip-group" data-ip-group>
+      <p class="ip-head">{{ area }}</p>
+      <div class="cap-chips">{% for i in its %}{{ chip(i) }}{% endfor %}</div>
+    </div>
+    {% endfor %}
+  </details>
+  {% endif %}
+  <p class="muted ip-none" data-ip-none hidden>Nic nie pasuje.</p>
+</fieldset>

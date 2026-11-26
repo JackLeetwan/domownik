@@ -470,6 +470,34 @@
     const none = document.querySelector("[data-notes-none]");
     if (none) none.hidden = !words.length || shown + away > 0;
   });
+  // ------------------------------------------------------------------ "Dotyczy" chips (partials/item_pick.html)
+  // the search looks through every item – the top chips and the folded areas – and opens the fold
+  document.addEventListener("input", (e) => {
+    const box = e.target.closest && e.target.closest("[data-ip-filter]");
+    if (!box) return;
+    const pick = box.closest("[data-ip]");
+    const words = plainText(box.value).split(/\s+/).filter(Boolean);
+    let shown = 0;
+    pick.querySelectorAll("[data-ip-text]").forEach((chip) => {
+      const text = chip.dataset.ipPlain || (chip.dataset.ipPlain = plainText(chip.dataset.ipText));
+      const hit = words.every((w) => text.includes(w));
+      chip.hidden = !hit;
+      if (hit) shown += 1;
+    });
+    pick.querySelectorAll("[data-ip-group]").forEach((g) => { g.hidden = !g.querySelector("[data-ip-text]:not([hidden])"); });
+    const more = pick.querySelector(".ip-more");
+    if (more && words.length) more.open = true;
+    pick.querySelector("[data-ip-none]").hidden = shown > 0;
+  });
+  // Enter in that search picks the only / first chip left instead of sending the form
+  document.addEventListener("keydown", (e) => {
+    const box = e.key === "Enter" && e.target.closest && e.target.closest("[data-ip-filter]");
+    if (!box) return;
+    e.preventDefault();
+    const first = box.closest("[data-ip]").querySelector("[data-ip-text]:not([hidden]) input");
+    if (first) { first.checked = true; first.dispatchEvent(new Event("change", { bubbles: true })); }
+  });
+
   // "/" anywhere outside a field jumps to the notes search
   document.addEventListener("keydown", (e) => {
     if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1653,7 +1681,7 @@
   // "Więcej opcji…" of the quick task form opens the full form for the item picked
   document.addEventListener("change", (e) => {
     const sel = e.target;
-    if (!sel.matches || !sel.matches(".qa-form select[name=item_id]")) return;
+    if (!sel.matches || !sel.matches(".qa-form [name=item_id]")) return;
     const more = sel.form.querySelector("[data-qa-more]");
     if (more && sel.value) more.href = `/tasks/new?item=${encodeURIComponent(sel.value)}`;
   });

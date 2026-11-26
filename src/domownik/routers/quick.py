@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from domownik import budget, services
+from domownik import budget, item_pick, services
 from domownik.config import today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
@@ -125,6 +125,8 @@ def form(
             # an appointment is usually someone's: start with the person's own page in the tree
             own = db.scalar(select(Item.id).where(Item.user_id == user.id, Item.archived.is_(False)))
             ctx["current_item"] = own if own in tree.items else None
+    if kind in ("event", "task"):
+        ctx["pick"] = item_pick.build(db, tree, ctx["current_item"])
     elif kind == "day":
         from domownik.dayevents import ICONS
 

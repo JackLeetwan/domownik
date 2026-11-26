@@ -33,12 +33,7 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <input type="hidden" name="freq" value="once">
   <label>Co trzeba zrobić <input name="title" required autofocus placeholder="np. Wymiana filtra" maxlength="200"></label>
-  <label>Dotyczy
-    <select name="item_id" required>
-      {% if not current_item %}<option value="">— wybierz —</option>{% endif %}
-      {% for i in items %}<option value="{{ i.id }}" {% if i.id == current_item %}selected{% endif %}>{{ label(i.id) }}</option>{% endfor %}
-    </select>
-  </label>
+  {% with pick_required = true %}{% include "partials/item_pick.html" %}{% endwith %}
   <label>Termin <input type="date" name="next_due_date" required value="{{ start.isoformat() }}"></label>
   <div class="qa-time">
     <label>Godzina <input type="time" name="due_time"></label>
@@ -70,12 +65,7 @@
     <label>Kto<select name="assignee_id"><option value="">— wszyscy —</option>{% for u in users %}<option value="{{ u.id }}" {% if u.id == user.id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}</select></label>
     <label>Powiadom<select name="remind_minutes">{% for k, l in remind_choices.items() %}<option value="{{ k }}" {% if k == default_remind %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
   </div>
-  <label>Dotyczy
-    <select name="item_id" required>
-      {% if not current_item %}<option value="">— wybierz —</option>{% endif %}
-      {% for i in items %}<option value="{{ i.id }}" {% if i.id == current_item %}selected{% endif %}>{{ label(i.id) }}</option>{% endfor %}
-    </select>
-  </label>
+  {% with pick_required = true %}{% include "partials/item_pick.html" %}{% endwith %}
   {% with obj = none %}{% include "partials/private_field.html" %}{% endwith %}
   <footer class="modal-actions"><button type="submit">Dodaj</button></footer>
 </form>

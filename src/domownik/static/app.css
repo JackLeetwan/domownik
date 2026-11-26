@@ -1639,6 +1639,19 @@ main .who > [role=button]:focus-visible, .timeline-toolbar .zoom > button:focus-
 .cap-chip[aria-pressed="true"] { background: var(--pico-primary-background); border-color: var(--pico-primary-background); color: #fff; font-weight: 600; }
 .cap-more { margin: -0.4rem 0 0.8rem; }
 .cap-more > summary { font-size: 0.9rem; color: var(--pico-primary); }
+/* "Dotyczy" as chips (partials/item_pick.html): the radio is hidden, the chip shows the choice */
+.ip { margin: 0 0 var(--pico-spacing); padding: 0; border: 0; }
+.ip legend { margin-bottom: 0.35rem; }
+.ip-search { margin-bottom: 0.5rem !important; }
+.ip-chip { display: inline-flex; align-items: center; gap: 0.25rem; position: relative; cursor: pointer; line-height: 1.3; }
+.ip-chip input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.ip-chip:has(input:checked) { background: var(--pico-primary-background); border-color: var(--pico-primary-background); color: #fff; font-weight: 600; }
+.ip-chip:has(input:focus-visible) { outline: 2px solid var(--pico-primary); outline-offset: 2px; }
+.ip-chip[hidden] { display: none; }
+.ip-more { margin: -0.4rem 0 0.4rem; }
+.ip-more .cap-chips { margin-bottom: 0.5rem; }
+.ip-head { margin: 0.5rem 0 0.3rem; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--pico-muted-color); }
+.ip-none { margin: 0; }
 .cap-foot { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
 .cap-foot form { margin: 0; }
 .cap-foot label[role=button], .cap-foot button { margin: 0; width: auto; }
