@@ -2310,6 +2310,15 @@ stretch:  # 🤸 the stretches (stretches.yaml) by key
     mistakes:
       - "Wyginanie lędźwi w łuk zamiast podwinięcia miednicy."
       - "Kolano uciekające w bok albo ciągnięcie za palce zamiast za kostkę."
+  hamstring_step:
+    steps:
+      - "Stań przodem do stopnia, ławki lub krzesła i połóż na nim piętę jednej nogi, kolano wyprostowane, palce w górę."
+      - "Druga noga stoi prosto z tyłu, stopa płasko na podłodze i skierowana do przodu, równolegle do nogi na podwyższeniu."
+      - "Z prostymi plecami pochyl się lekko z bioder w stronę nogi na podwyższeniu, aż poczujesz tył uda."
+      - "Utrzymaj pozycję i oddychaj spokojnie – bez sprężynowania."
+    mistakes:
+      - "Zaokrąglanie pleców, żeby sięgnąć dalej."
+      - "Za wysokie podwyższenie – kolano się ugina albo czujesz ciągnięcie pod kolanem zamiast w udzie."
   quad_step:
     steps:
       - "Stań plecami do stopnia, krzesła lub kanapy, ok. kroku od niego."

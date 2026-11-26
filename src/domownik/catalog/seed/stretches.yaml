@@ -87,6 +87,8 @@ stretches:
   - {key: quad_step, name: Przód uda – stopa z tyłu na stopniu, type: static, area: quads, sided: true, seconds: 30, gear: step, img: Standing Elevated Quad Stretch, pic: 0}
   - {key: it_band_strap, name: Bok uda i pośladek – noga przez ciało z paskiem, type: static, area: glutes, sided: true, seconds: 30, gear: strap, img: IT Band and Glute Stretch, pic: 1}
   - {key: groin_strap, name: Pachwina – noga w bok leżąc z paskiem, type: static, area: groin, sided: true, seconds: 30, gear: strap, img: Intermediate Groin Stretch, pic: 1}
+  # a physiotherapist's knee-friendly one: no kneeling, the knee straight (no good picture – the icon)
+  - {key: hamstring_step, name: Tył uda – prosta noga na podwyższeniu, type: static, area: hamstrings, sided: true, seconds: 30, gear: step}
   - {key: hamstring_calf_strap, name: Tył uda i łydka na stojąco z paskiem, type: static, area: hamstrings, sided: true, seconds: 30, gear: strap, img: Standing Hamstring and Calf Stretch, pic: 0}
   - {key: pigeon, name: Gołąb, type: static, area: glutes, sided: true, seconds: 40, img: Pigeon Stretch, pic: 1}
   - {key: hips_90_90, name: Biodra 90/90 – skłon nad przednią goleń, type: static, area: hips, sided: true, seconds: 40, img: Hips 90 90, pic: 1}
