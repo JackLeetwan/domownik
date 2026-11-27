@@ -36,6 +36,7 @@ from domownik.routers import (
     inbox,
     items,
     kitchen,
+    mail,
     meters,
     ocr_api,
     points,
@@ -207,6 +208,7 @@ def create_app() -> FastAPI:
     app.include_router(contacts.router)
     app.include_router(emergency.router)
     app.include_router(inbox.router)
+    app.include_router(mail.router)
     app.include_router(meters.router)
     app.include_router(timers.router)
     app.include_router(forma.router)

@@ -192,6 +192,25 @@ Scheduler / CLI nie mają widza i filtrują same (`notify.py`). Wspólny budżet
 
 Ustawienia → **Menu**: dwa własne skróty dolnego paska i ukrywanie nieużywanych pozycji menu.
 
+## Maile z przedszkola (✉️ → 📥)
+
+Raz dziennie (`DOMOWNIK_MAIL_CHECK_AT`, domyślnie 18:30 – przed powiadomieniem „na jutro”) serwer czyta
+skrzynkę przez IMAP **tylko do odczytu** (folder otwierany jako EXAMINE, wiadomości przez BODY.PEEK – zostają
+nieprzeczytane) i bierze wyłącznie maile od nadawców z `DOMOWNIK_MAIL_FROM`. Daty wyciągają zwykłe reguły
+(`domain/mailparse.py`, bez modelu językowego) i są tylko propozycjami: w 📥 Do rozpoznania każdy termin
+można poprawić, odznaczyć albo dopisać brakujący; bez godziny → kalendarz rodziny, z godziną → zadanie
+z przypomnieniem godzinę wcześniej, rzeczy „do przyniesienia” → lista zakupów.
+
+Żeby nic nie zginęło po cichu: każdy mail od nadawcy trafia do 📥, nawet bez daty; zdania z datą lub dniem
+tygodnia, których reguły nie rozumieją, są pokazane do przeczytania; dzień tygodnia niezgodny z datą, data
+przed wysłaniem maila albo już wpisana w Domowniku są oznaczone ⚠️ i domyślnie odznaczone; każde sprawdzenie
+sięga tydzień przed ostatnie udane (wyłączony telefon nadrabia), Message-ID nie dubluje maili; nieudane
+sprawdzenie jest ponawiane co godzinę, opisane w 📥, wysyłane pushem raz dziennie i pokazane na pulpicie,
+gdy przez 2 dni nic nie zadziałało.
+
+Ustawienia w `.env` / `~/domownik.env` (wzór: `deploy/termux/domownik.env.example`) – hasło to „hasło
+aplikacji” Google, nie hasło do konta. Próba bez zapisu: `domownik mail-check --dry-run`.
+
 ## Kalendarz w telefonie (ICS)
 
 **Ustawienia → Kalendarz w telefonie** tworzy osobisty link `/ics/<token>.ics` (subskrypcja, bez logowania):

@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from domownik import budget, chores, dayevents, emergency, extcal, goals, kitchen, schedule, services
+from domownik import budget, chores, dayevents, emergency, extcal, goals, kitchen, mailwatch, schedule, services
 from domownik.config import now, today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
@@ -88,6 +88,7 @@ def dashboard(
             "today_ext": today_ext,
             "today_days": today_days,
             "backup_warning": services.backup_warning(t),
+            "mail_warning": mailwatch.warning(db, now()),
             "emergency_warning": _emergency_warning(db),
         }
         | timer_card(db)

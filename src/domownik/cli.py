@@ -193,6 +193,46 @@ def import_jefit(
         typer.echo("Nowe ćwiczenia w bibliotece: " + ", ".join(sorted(set(res.new_exercises))))
 
 
+@app.command("mail-check")
+def mail_check(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Tylko pokaż, co jest w skrzynce – nic nie zapisuj"),
+    days: int = typer.Option(14, help="Przy --dry-run: ile dni wstecz"),
+) -> None:
+    """Check the kindergarten emails now (read-only IMAP) – the same as the daily 18:30 run."""
+    from datetime import timedelta
+
+    from domownik import mailwatch
+    from domownik.config import now
+    from domownik.db import session_factory
+    from domownik.domain import mailparse
+
+    if not mailwatch.configured():
+        raise typer.BadParameter("Ustaw DOMOWNIK_MAIL_USER, DOMOWNIK_MAIL_PASSWORD i DOMOWNIK_MAIL_FROM")
+    if dry_run:
+        try:
+            raws = mailwatch.fetch_raw(today() - timedelta(days=days))
+        except mailwatch.MailError as exc:
+            raise typer.Exit(f"Błąd: {exc}") from None
+        typer.echo(f"Maili od obserwowanych nadawców: {len(raws)}")
+        for raw in raws:
+            p = mailwatch.read_message(raw)
+            if p is None:
+                continue
+            res = mailparse.parse(p.subject, p.body, p.sent_at.date())
+            typer.echo(f"\n== {p.sent_at:%d.%m %H:%M} {p.subject}")
+            for pr in res.proposals:
+                at = f" {pr.at:%H:%M}" if pr.at else ""
+                end = f"–{pr.end:%d.%m}" if pr.end != pr.day else ""
+                typer.echo(f"  {pr.day:%d.%m}{end}{at} {pr.icon} {pr.title}" + "".join(f"  ⚠ {w}" for w in pr.warnings))
+            for u in res.unread:
+                typer.echo(f"  ? {u[:150]}")
+        return
+    with session_factory()() as db:
+        n = mailwatch.check(db, now())
+        st = mailwatch.state(db)
+        typer.echo(f"Błąd: {st.error}" if st.error else f"Nowych maili: {n}")
+
+
 @app.command()
 def serve(host: str = "0.0.0.0", port: int = 8000, reload: bool = False) -> None:
     """Run migrations and start the web server."""

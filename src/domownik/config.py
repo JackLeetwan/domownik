@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     ocr_token: str = ""
     # outside systems writing into /grafik (domownik.routers.schedule_api, e.g. the Zdrofit bot); empty = off
     sync_token: str = ""
+    # ✉️ emails from the kindergarten (domownik.mailwatch): read-only IMAP, once a day; empty user/from = off
+    mail_imap_host: str = "imap.gmail.com"
+    mail_user: str = ""
+    mail_password: str = ""  # a Google "app password", never the account password
+    mail_folder: str = "INBOX"
+    mail_from: str = ""  # watched senders, comma separated
+    mail_label: str = "Z przedszkola"  # how the push and the page name them
+    mail_check_at: str = "18:30"  # once a day, before the 19:00 "na jutro" push
 
     @property
     def db_path(self) -> Path:

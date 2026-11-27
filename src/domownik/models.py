@@ -1877,3 +1877,40 @@ class BodyComp(Base):
     body_age: Mapped[float | None]
     score: Mapped[float | None]
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+# ---------------------------------------------------------------- ✉️ Z poczty: the kindergarten's emails (domownik.mailwatch)
+
+
+class MailMessage(Base):
+    """One email from a watched sender (the kindergarten teacher), kept whole until someone has gone through it.
+
+    Its dates are read again from `body` every time it is shown (domain.mailparse) – better rules later help
+    emails already waiting. Status: "new" (in 📥 Do rozpoznania), "done" (entries added), "dismissed".
+    """
+
+    __tablename__ = "mail_message"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    message_id: Mapped[str] = mapped_column(String(500), unique=True)
+    sender: Mapped[str] = mapped_column(String(200))
+    subject: Mapped[str] = mapped_column(String(300), default="", server_default="")
+    sent_at: Mapped[datetime] = mapped_column(DateTime, index=True)  # local, naive
+    body: Mapped[str] = mapped_column(Text, default="", server_default="")
+    status: Mapped[str] = mapped_column(String(12), default="new", server_default="new", index=True)
+    done_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    done_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class MailState(Base):
+    """The one row about checking the mailbox: when it last ran, last worked, what went wrong."""
+
+    __tablename__ = "mail_state"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime)  # local, naive
+    last_ok_at: Mapped[datetime | None] = mapped_column(DateTime)
+    error: Mapped[str | None] = mapped_column(String(300))
+    error_pushed_on: Mapped[date | None] = mapped_column(Date)  # one push per day about a broken check
+    item_id: Mapped[int | None] = mapped_column(ForeignKey("item.id", ondelete="SET NULL"))  # last used target

@@ -3,6 +3,7 @@
 {% block content %}
 <header class="item-head"><h1>📥 Do rozpoznania{% if cards %} <small class="muted">({{ cards|length }})</small>{% endif %}</h1></header>
 <p class="muted"><small>Zdjęcia zrobione w biegu – wydruk z serwisu, paragon, polisa, przepis z książki. Tu dopisujesz kwotę i kiedy następny raz, a Domownik odhacza serwis, dopisuje wydatek albo przypomni o końcu polisy.</small></p>
+{% include "partials/mail_section.html" %}
 <form class="cap-snap" hx-post="/zdjecia" hx-encoding="multipart/form-data" hx-trigger="change">
   <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="from" value="page">
   <label role="button">📷 Zrób zdjęcie<input type="file" name="files" accept="image/*,.heic" capture="environment" hidden></label>
@@ -13,6 +14,6 @@
 {% include "partials/capture_card.html" %}
 {% endwith %}
 {% else %}
-<p class="cap-empty">Nic nie czeka. 🎉</p>
+{% if not mail_cards %}<p class="cap-empty">Nic nie czeka. 🎉</p>{% endif %}
 {% endfor %}
 {% endblock %}

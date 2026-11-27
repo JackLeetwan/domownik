@@ -24,6 +24,7 @@ from domownik.models import (
     Completion,
     Issue,
     Item,
+    MailMessage,
     Measurement,
     PointEntry,
     ShoppingItem,
@@ -311,7 +312,8 @@ def nav_context(db: Session, today: date, user_id: int | None = None) -> Nav:
         notes=len(active_notes(db, today)),
         todos=len(open_todos(db, tree)),
         chores=sum(1 for st in chores_mod.states(db, today) if st.overdue),
-        inbox=db.scalar(select(func.count(Attachment.id)).where(Attachment.inbox.is_(True))) or 0,
+        inbox=(db.scalar(select(func.count(Attachment.id)).where(Attachment.inbox.is_(True))) or 0)
+        + (db.scalar(select(func.count(MailMessage.id)).where(MailMessage.status == "new")) or 0),
         points=(
             db.scalar(
                 select(func.count(PointEntry.id)).where(PointEntry.status == "pending", PointEntry.user_id != user_id)

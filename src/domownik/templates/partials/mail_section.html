@@ -1,0 +1,75 @@
+{# ✉️ Emails from the kindergarten in 📥 Do rozpoznania (domownik.mailwatch). Nothing is added until "Dopisz". #}
+{% if mail_on or mail_cards %}
+<section id="poczta" class="mail-sec">
+  <h2>✉️ {{ mail_label }}{% if mail_cards %} <small class="muted">({{ mail_cards|length }})</small>{% endif %}</h2>
+  {% if mail_note == 'zapisane' %}<p class="mail-ok" role="status"><small>✓ Dopisane.</small></p>
+  {% elif mail_note.startswith('nowe-') %}<p class="mail-ok" role="status"><small>Sprawdzone – nowych maili: {{ mail_note[5:] }}.</small></p>{% endif %}
+  {% if mail_state and mail_state.error %}
+  <p class="backup-warn" role="alert"><small>⚠️ Ostatnie sprawdzenie poczty ({{ mail_state.last_run_at.strftime('%d.%m %H:%M') if mail_state.last_run_at }}) nie wyszło: {{ mail_state.error }}. Ponowna próba co godzinę.</small></p>
+  {% endif %}
+  {% for c in mail_cards %}
+  {% set m = c.m %}
+  <article class="mail-card" id="mail-{{ m.id }}">
+    <header>
+      <strong>{{ m.subject or '(bez tematu)' }}</strong>
+      <small class="muted">· {{ m.sent_at.date()|d(weekday=true) }} {{ m.sent_at.strftime('%H:%M') }}</small>
+    </header>
+    <details class="mail-body"><summary><small>Treść maila</small></summary><pre>{{ m.body }}</pre></details>
+    <form hx-post="/poczta/{{ m.id }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      {% if c.res.proposals %}
+      <p class="muted"><small>Znalezione terminy – sprawdź i popraw. Bez godziny → kalendarz rodziny; z godziną → zadanie z przypomnieniem godzinę wcześniej.</small></p>
+      {% for p in c.res.proposals %}{% set i = loop.index0 %}
+      <fieldset class="mail-row{% if p.warnings %} mail-warn{% endif %}">
+        <label class="mail-pick"><input type="checkbox" name="pick_{{ i }}" value="1"{% if p.checked %} checked{% endif %}> dopisz</label>
+        <div class="mail-fields">
+          <input name="icon_{{ i }}" value="{{ p.icon }}" class="mail-icon" aria-label="Ikona" maxlength="8">
+          <input name="title_{{ i }}" value="{{ p.title }}" aria-label="Nazwa" maxlength="120">
+          <input type="date" name="day_{{ i }}" value="{{ p.day.isoformat() }}" aria-label="Dzień">
+          {% if p.end != p.day %}<input type="date" name="end_{{ i }}" value="{{ p.end.isoformat() }}" aria-label="Do dnia">{% endif %}
+          <input type="time" name="at_{{ i }}" value="{{ p.at.strftime('%H:%M') if p.at else '' }}" aria-label="Godzina">
+        </div>
+        <small class="muted mail-src">„{{ p.sentence|truncate(160) }}”</small>
+        {% for w in p.warnings %}<small class="mail-w">⚠️ {{ w }}</small>{% endfor %}
+      </fieldset>
+      {% endfor %}
+      {% else %}
+      <p><small>Nie znalazłem w tym mailu żadnej daty. Przeczytaj treść – jeśli jest w nim termin, wpisz go niżej.</small></p>
+      {% endif %}
+      {% if c.res.unread %}
+      <div class="mail-unread"><small>⚠️ Tych zdań nie umiem zamienić na termin – przeczytaj:</small>
+        <ul>{% for s in c.res.unread %}<li><small>{{ s }}</small></li>{% endfor %}</ul></div>
+      {% endif %}
+      <details class="mail-extra"{% if not c.res.proposals or c.res.unread %} open{% endif %}><summary><small>＋ Inny termin z tego maila</small></summary>
+        <div class="mail-fields">
+          <input name="extra_title" placeholder="Co" aria-label="Nazwa dodatkowego terminu" maxlength="120">
+          <input type="date" name="extra_day" aria-label="Dzień dodatkowego terminu">
+          <input type="time" name="extra_at" aria-label="Godzina dodatkowego terminu">
+        </div>
+      </details>
+      <label><small>🛒 Do listy zakupów (po przecinku)</small>
+        <input name="shopping" value="{{ c.bring }}" placeholder="np. cukier puder, posypki"></label>
+      <label><small>Terminy z godziną dopisz do</small>
+        <select name="item_id">
+          <option value="">—</option>
+          {% for it in c.targets %}<option value="{{ it.id }}"{% if it.id == c.default_item_id %} selected{% endif %}>{{ c.label(it.id) }}</option>{% endfor %}
+        </select></label>
+      <div class="mail-actions">
+        <button type="submit">✓ Dopisz zaznaczone</button>
+      </div>
+    </form>
+    <form hx-post="/poczta/{{ m.id }}/odrzuc" class="cap-del">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">Nic do dopisania – schowaj</button>
+    </form>
+  </article>
+  {% endfor %}
+  <p class="muted mail-status"><small>
+    {% if mail_on %}Poczta sprawdzana codziennie o {{ mail_check_at.strftime('%H:%M') }}, tylko do odczytu (maile zostają nieprzeczytane).
+    Ostatnio udane: {{ mail_state.last_ok_at.strftime('%d.%m %H:%M') if mail_state and mail_state.last_ok_at else 'jeszcze nigdy' }}.
+    {% else %}Sprawdzanie poczty wyłączone.{% endif %}
+  </small></p>
+  {% if mail_on %}
+  <form hx-post="/poczta/sprawdz" class="cap-del"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="link">Sprawdź teraz</button></form>
+  {% endif %}
+</section>
+{% endif %}

@@ -70,9 +70,12 @@ def _card(request: Request, db: Session, att: Attachment, mode: str, user: User,
 
 @router.get("")
 def page(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    from domownik.routers.mail import page_ctx
+
     rows = inbox.pending(db)
     cards = [_ctx(db, a, "card", user) for a in rows]
-    return render(request, "inbox.html", {"user": user, "cards": cards})
+    note = request.query_params.get("poczta", "")
+    return render(request, "inbox.html", {"user": user, "cards": cards, "mail_note": note} | page_ctx(db))
 
 
 @router.post("", dependencies=[Depends(verify_csrf)])

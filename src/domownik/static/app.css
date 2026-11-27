@@ -2262,3 +2262,23 @@ textarea.note-input { min-height: max(9rem, 40dvh); field-sizing: content; resiz
 .wo-rest-edit > summary::after { content: " ✎"; opacity: 0.7; float: none; display: inline; width: auto; height: auto; margin: 0; background-image: none; transform: none; }
 .wo-rest-edit-btns { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
 .wo-rest-edit-btns button { width: auto; margin: 0; padding: 0.25rem 0.6rem; }
+
+/* ✉️ Z poczty (partials/mail_section.html) */
+.mail-sec { margin-bottom: 1.5rem; }
+.mail-sec h2 { font-size: 1.15rem; margin-bottom: 0.5rem; }
+.mail-card { padding: 0.9rem 1rem; }
+.mail-card header { margin-bottom: 0.25rem; }
+.mail-body pre { white-space: pre-wrap; font-size: 0.85rem; max-height: 20rem; overflow: auto; }
+.mail-row { border: 1px solid var(--pico-muted-border-color); border-radius: 6px; padding: 0.5rem 0.6rem; margin-bottom: 0.5rem; }
+.mail-row.mail-warn { border-color: var(--dm-soon); }
+.mail-pick { display: inline-flex; gap: 0.35rem; align-items: center; margin-bottom: 0.3rem; }
+.mail-fields { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.mail-fields input { margin: 0; flex: 1 1 8rem; min-width: 0; }
+.mail-fields input[name^="title"], .mail-fields input[name="extra_title"] { flex: 3 1 14rem; }
+.mail-fields .mail-icon { flex: 0 0 3.2rem; text-align: center; }
+.mail-src, .mail-w { display: block; margin-top: 0.25rem; }
+.mail-w { color: var(--dm-text); background: color-mix(in srgb, var(--dm-soon) 18%, transparent); padding: 0.1rem 0.4rem; border-radius: 4px; }
+.mail-unread { margin: 0.5rem 0; }
+.mail-unread ul { margin: 0.25rem 0 0 1rem; }
+.mail-ok { margin: 0 0 0.5rem; }
+.mail-actions { margin-top: 0.5rem; }

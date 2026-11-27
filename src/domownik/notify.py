@@ -494,7 +494,7 @@ def tick(db: Session, now: datetime) -> None:
 
     Catch-up is built in – after a restart at 9:30 the morning digest still goes out.
     """
-    from domownik import extcal
+    from domownik import extcal, mailwatch
 
     s = get_settings()
     today = now.date()
@@ -505,6 +505,7 @@ def tick(db: Session, now: datetime) -> None:
         _guarded(db, "evening digest", run_slot, "evening", today)
     _guarded(db, "timed reminders", run_timed, now)
     _guarded(db, "external calendars", extcal.refresh_due, now)  # a calendar server never breaks reminders
+    _guarded(db, "mail", mailwatch.run_due, now)  # read-only, once a day; failures are kept in MailState
 
 
 def send_test(db: Session, user: User, digest: Digest | None) -> int:
