@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from domownik import budget, chores, dayevents, emergency, extcal, goals, kitchen, mailwatch, schedule, services
+from domownik import budget, chores, dayevents, emergency, extcal, goals, inbox, kitchen, mailwatch, schedule, services
 from domownik.config import now, today
 from domownik.db import get_db
 from domownik.domain.tree import Tree
@@ -22,6 +22,11 @@ router = APIRouter()
 
 # "Później" can hold dozens of rows – the rest hides behind "Pokaż wszystkie (N)"
 LATER_SHOWN = 5
+
+
+def _inbox_card(db: Session) -> dict | None:
+    mails, photos = mailwatch.pending(db), inbox.count(db)
+    return {"mails": list(reversed(mails)), "photos": photos} if mails or photos else None
 
 
 @router.get("/")
@@ -89,6 +94,7 @@ def dashboard(
             "today_days": today_days,
             "backup_warning": services.backup_warning(t),
             "mail_warning": mailwatch.warning(db, now()),
+            "inbox_card": _inbox_card(db),
             "emergency_warning": _emergency_warning(db),
         }
         | timer_card(db)

@@ -16,6 +16,7 @@ class Link:
     count: str | None = None  # Nav attribute with a badge number
     fixed: bool = False  # cannot be hidden
     group: str = ""  # a heading of the sidebar ("" = no heading: Pulpit on top, Ustawienia at the bottom)
+    attention: bool = False  # a waiting count is a call to act: the link is outlined, "Więcej" gets a badge
 
 
 LINKS: tuple[Link, ...] = (
@@ -30,7 +31,7 @@ LINKS: tuple[Link, ...] = (
     Link("notatki", "/notatki", "📝", "Notatki", "notes", group="Dom"),
     Link("punkty", "/punkty", "⭐", "Punkty", "points", group="Dom"),
     Link("budzet", "/budzet", "💰", "Budżet", group="Pieniądze i papiery"),
-    Link("zdjecia", "/zdjecia", "📥", "Do rozpoznania", "inbox", group="Pieniądze i papiery"),
+    Link("zdjecia", "/zdjecia", "📥", "Do rozpoznania", "inbox", group="Pieniądze i papiery", attention=True),
     Link("kontakty", "/kontakty", "📇", "Kontakty", group="Pieniądze i papiery"),
     Link("na-wypadek", "/na-wypadek", "🧰", "Na wypadek", group="Pieniądze i papiery"),
     Link("forma", "/forma", "💪", "Forma", group="Ja"),

@@ -450,3 +450,16 @@ def test_timed_entry_needs_a_target(auth_client, db, user, mail_on):
 def test_check_now_without_settings(auth_client):
     r = auth_client.post("/poczta/sprawdz")
     assert r.status_code == 400 and "nie jest włączone" in r.text
+
+
+def test_waiting_email_is_outlined_on_dashboard_and_in_menu(auth_client, db, user):
+    db.add(Item(name="Dom", kind="zone"))
+    db.commit()
+    page = auth_client.get("/").text
+    assert "inbox-card" not in page and 'class="attn"' not in page  # nothing waits – nothing shouts
+    m = _waiting(db)
+    page = auth_client.get("/").text
+    assert 'class="inbox-card" href="/zdjecia#poczta"' in page and "✉️ Grudzień" in page
+    assert 'class="attn"' in page and 'aria-label="Więcej – 1 do rozpoznania"' in page
+    auth_client.post(f"/poczta/{m.id}/odrzuc")
+    assert "inbox-card" not in auth_client.get("/").text

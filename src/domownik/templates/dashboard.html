@@ -28,6 +28,15 @@
 {% if backup_warning %}<p class="backup-warn" role="status"><small>{{ backup_warning }}</small></p>{% endif %}
 {% if emergency_warning %}<p class="backup-warn" role="status"><small><a href="/na-wypadek#wydruk">{{ emergency_warning }}</a></small></p>{% endif %}
 {% include "partials/timeline.html" %}
+{# 📥 something waits to be gone through – outlined so it is not missed; gone when nothing waits #}
+{% if inbox_card %}
+<a class="inbox-card" href="/zdjecia{{ '#poczta' if inbox_card.mails }}">
+  <span class="inbox-card-head">📥 Do rozpoznania<b class="count">{{ inbox_card.mails|length + inbox_card.photos }}</b></span>
+  {% for m in inbox_card.mails[:3] %}<span class="inbox-card-line">✉️ {{ m.subject or '(bez tematu)' }} <small class="muted">· {{ m.sent_at.date()|d }}</small></span>{% endfor %}
+  {% if inbox_card.mails|length > 3 %}<span class="inbox-card-line muted">i jeszcze {{ inbox_card.mails|length - 3 }} {{ 'maile' if (inbox_card.mails|length - 3) in (2, 3, 4) else 'maili' }}</span>{% endif %}
+  {% if inbox_card.photos %}<span class="inbox-card-line">📷 {{ inbox_card.photos }} {{ 'zdjęcie' if inbox_card.photos == 1 else ('zdjęcia' if inbox_card.photos % 10 in (2, 3, 4) and inbox_card.photos % 100 not in (12, 13, 14) else 'zdjęć') }} do opisania</span>{% endif %}
+</a>
+{% endif %}
 
 {# today's week schedule and overdue chores – a compact card under the timeline, only when there is something #}
 {% if today_slots or late_chores or today_ext or today_days %}

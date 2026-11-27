@@ -2282,3 +2282,12 @@ textarea.note-input { min-height: max(9rem, 40dvh); field-sizing: content; resiz
 .mail-unread ul { margin: 0.25rem 0 0 1rem; }
 .mail-ok { margin: 0 0 0.5rem; }
 .mail-actions { margin-top: 0.5rem; }
+
+/* 📥 something waits: the menu link is outlined, "Więcej" gets a badge, the dashboard shows a card */
+.side-links a.attn { outline: 2px solid var(--dm-soon); outline-offset: -2px; background: color-mix(in srgb, var(--dm-soon) 16%, transparent); font-weight: 700; }
+.side-links a.attn .count, .count.attn { background: var(--dm-soon); color: #1a1a1a; }
+.inbox-card { display: flex; flex-direction: column; gap: 0.15rem; margin: 0 0 1rem; padding: 0.7rem 0.9rem; border: 3px solid var(--dm-soon); border-radius: 10px; background: color-mix(in srgb, var(--dm-soon) 12%, var(--dm-tile-bg, transparent)); color: var(--pico-color); text-decoration: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--dm-soon) 25%, transparent); }
+.inbox-card:hover { background: color-mix(in srgb, var(--dm-soon) 20%, transparent); }
+.inbox-card-head { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.05rem; }
+.inbox-card-head .count { margin-left: auto; min-width: 1.6rem; padding: 0 0.45rem; border-radius: 999px; font-size: 0.85rem; text-align: center; background: var(--dm-soon); color: #1a1a1a; }
+.inbox-card-line { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

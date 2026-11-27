@@ -23,7 +23,7 @@
   <ul class="side-links">
     {% for ln in links %}
     {% set cnt = nav[ln.count] if ln.count else 0 %}
-    <li><a href="{{ ln.href }}" {% if (p == '/' if ln.href == '/' else p.startswith(ln.href)) %}aria-current="page"{% endif %}><span class="ic">{{ ln.icon }}</span> {{ ln.label }}{% if cnt %}<span class="count">{{ cnt }}</span>{% endif %}</a></li>
+    <li><a href="{{ ln.href }}"{% if cnt and ln.attention %} class="attn"{% endif %} {% if (p == '/' if ln.href == '/' else p.startswith(ln.href)) %}aria-current="page"{% endif %}><span class="ic">{{ ln.icon }}</span> {{ ln.label }}{% if cnt %}<span class="count">{{ cnt }}</span>{% endif %}</a></li>
     {% endfor %}
   </ul>
   {% if title %}</details>{% endif %}
@@ -60,5 +60,5 @@
   {# quick add – in the bar itself, so it never covers the ✓ buttons of the lists #}
   <button type="button" class="bb-add" hx-get="/dodaj" hx-target="#modal-body" aria-label="Dodaj: zadanie, zakup, notatkę…" title="Dodaj"><span>＋</span>Dodaj</button>
   {% with ln = bb[1] %}{% set cnt = nav[ln.count] if ln.count else 0 %}<a href="{{ ln.href }}" {% if p.startswith(ln.href) %}aria-current="page"{% endif %}><span>{{ ln.icon }}{% if cnt %}<b class="count">{{ cnt }}</b>{% endif %}</span>{{ ln.label }}</a>{% endwith %}
-  <button type="button" data-nav-toggle aria-controls="sidebar"><span>☰</span>Więcej</button>
+  <button type="button" data-nav-toggle aria-controls="sidebar"{% if nav.inbox %} aria-label="Więcej – {{ nav.inbox }} do rozpoznania"{% endif %}><span>☰{% if nav.inbox %}<b class="count attn">{{ nav.inbox }}</b>{% endif %}</span>Więcej</button>
 </nav>
